@@ -1,0 +1,14 @@
+version: '1'
+
+services:
+  mongodb:
+    image: mongo
+    container_name: goexpense
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: goexpense
+    ports:
+      - 27017:27017
+    volumes:
+      - ./db/mongo:/db/mongo
+      
