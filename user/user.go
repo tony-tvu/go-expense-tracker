@@ -2,47 +2,52 @@ package user
 
 import (
 	"context"
-	"fmt"
-	"github.com/gin-gonic/gin"
+	"encoding/json"
+	"net/http"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type UserService struct {
+type UserConfigs struct {
 	Client     *mongo.Client
 	Database   string
 	Collection string
 }
 
-func (s *UserService) CreateUser(c *gin.Context) string {
-	type CreateUserRequestBody struct {
-		Name     string
-		Email    string
-		Password string
+type User struct {
+	Name     string
+	Email    string
+	Password string
+}
+
+func (s *UserConfigs) Handler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		createUser(s, w, r)
+	} else {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}
+}
 
-	var requestBody CreateUserRequestBody
+func createUser(s *UserConfigs, w http.ResponseWriter, r *http.Request) {
+	var u User
 
-	if err := c.BindJSON(&requestBody); err != nil {
-		fmt.Print("what")
-		panic(err)
+	err := json.NewDecoder(r.Body).Decode(&u)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-
-	fmt.Println(requestBody.Email)
-	fmt.Println(requestBody.Name)
-	fmt.Println(requestBody.Password)
 
 	coll := s.Client.Database(s.Database).Collection(s.Collection)
 	doc := bson.D{
-		{Key: "email", Value: requestBody.Email},
-		{Key: "name", Value: requestBody.Name},
-		{Key: "password", Value: requestBody.Password},
+		{Key: "email", Value: u.Email},
+		{Key: "name", Value: u.Name},
+		{Key: "password", Value: u.Password},
 	}
 
-	_, err := coll.InsertOne(context.TODO(), doc)
+	_, err = coll.InsertOne(context.TODO(), doc)
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
-	return "user created"
 }

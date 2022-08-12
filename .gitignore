@@ -40,9 +40,12 @@ thumb
 sketch
 **/dist
 
+# env
+.env
+.env.production
+
 # Misc
 commands.txt
-.env
 .vscode
 gin-bin
 db

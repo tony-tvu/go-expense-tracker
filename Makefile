@@ -1,10 +1,19 @@
 install:
-	curl -sSfL https://raw.githubusercontent.com/cosmtrek/air/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
-	npm install
+	go mod download
+	cd web && npm install
 
 build:
-	npm run build
-	GOARCH=amd64 GOOS=darwin go build -o goexpense main.go
+	cd web && npm run build
+	go build -o ./bin/main cmd/main.go
 
+run_binary:
+	./bin/main
+
+api:
+	air
+
+client:
+	cd web && npm start
+	
 start:
-	./start.sh
+	make -j2 api client
