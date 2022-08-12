@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/web"
 
 	"github.com/tony-tvu/goexpense/user"
@@ -48,7 +47,7 @@ func main() {
 		Client:     mongoclient,
 		Database:   dbName,
 		Collection: "users",
-		AuthKey: []byte(authKeyStr),
+		AuthKey:    []byte(authKeyStr),
 	}
 
 	// Setup Rate Limiter
