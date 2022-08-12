@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/tony-tvu/goexpense/auth"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -13,6 +14,7 @@ type UserConfigs struct {
 	Client     *mongo.Client
 	Database   string
 	Collection string
+	AuthKey    []byte
 }
 
 type User struct {
@@ -38,11 +40,18 @@ func createUser(s *UserConfigs, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Encrypt password
+	encrypted, err := auth.Encrypt(s.AuthKey, u.Password)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	coll := s.Client.Database(s.Database).Collection(s.Collection)
 	doc := bson.D{
 		{Key: "email", Value: u.Email},
 		{Key: "name", Value: u.Name},
-		{Key: "password", Value: u.Password},
+		{Key: "password", Value: encrypted},
 	}
 
 	_, err = coll.InsertOne(context.TODO(), doc)

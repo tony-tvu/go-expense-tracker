@@ -4,20 +4,19 @@ go 1.19
 
 require (
 	github.com/joho/godotenv v1.4.0
+	github.com/stretchr/testify v1.8.0
 	go.mongodb.org/mongo-driver v1.10.1
 )
 
 require (
-	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/google/go-cmp v0.5.5 // indirect
-	github.com/hashicorp/golang-lru v0.5.4 // indirect
-	github.com/stretchr/testify v1.7.1 // indirect
-	github.com/throttled/throttled/v2 v2.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
-	github.com/go-chi/chi v1.5.4
-	github.com/go-chi/httprate v0.6.0
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/klauspost/compress v1.15.0 // indirect

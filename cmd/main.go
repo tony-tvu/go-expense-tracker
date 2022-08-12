@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/joho/godotenv"
-	"github.com/tony-tvu/goexpense/web"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/joho/godotenv"
+	"github.com/tony-tvu/goexpense/auth"
+	"github.com/tony-tvu/goexpense/web"
 
 	"github.com/tony-tvu/goexpense/user"
 
@@ -30,6 +32,7 @@ func main() {
 	uri := os.Getenv("MONGODB_URI")
 	addr := os.Getenv("ADDR")
 	dbName := os.Getenv("DATABASE_NAME")
+	authKeyStr := os.Getenv("KEY")
 
 	// Setup MongoDB
 	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
@@ -45,10 +48,11 @@ func main() {
 		Client:     mongoclient,
 		Database:   dbName,
 		Collection: "users",
+		AuthKey: []byte(authKeyStr),
 	}
 
 	// Setup Rate Limiter
-	rate, err := limiter.NewRateFromFormatted("5000-M")
+	rate, err := limiter.NewRateFromFormatted("3000-M")
 	if err != nil {
 		panic(err)
 	}
