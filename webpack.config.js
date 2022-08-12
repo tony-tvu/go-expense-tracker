@@ -4,7 +4,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin")
 module.exports = {
   entry: "./web/src/index.js",
   output: {
-    path: path.join(__dirname, "/dist"),
+    path: path.join(__dirname, "/build/static"),
     filename: "bundle.[contenthash].js",
     clean: true,
   },
@@ -26,7 +26,9 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: "web/public/index.html",
+      template: "web/index.html",
+      filename: "index.html",
+      // favicon: "public/favicon.ico",
     }),
   ],
 }
