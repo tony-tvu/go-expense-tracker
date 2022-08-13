@@ -38,6 +38,7 @@ type User struct {
 func (conf *UserConfigs) Handler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(conf.DBTimeout)*time.Second)
 	defer cancel()
+	
 	if r.Method == "POST" {
 		createUser(ctx, conf, w, r)
 	} else {
