@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/tony-tvu/goexpense/web"
-
+	"github.com/tony-tvu/goexpense/config"
 	"github.com/tony-tvu/goexpense/user"
+	"github.com/tony-tvu/goexpense/web"
 
 	"github.com/gorilla/mux"
 	"github.com/ulule/limiter/v3"
@@ -30,10 +30,15 @@ func main() {
 		log.Println("No .env file found")
 	}
 	uri := os.Getenv("MONGODB_URI")
-	addr := os.Getenv("ADDR")
 	dbName := os.Getenv("DATABASE_NAME")
 	dbTimeout, _ := strconv.Atoi(os.Getenv("DB_TIMEOUT_SECONDS"))
 	authKeyStr := os.Getenv("KEY")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	// TODO: throw error if these are blank
 
 	// Setup MongoDB
 	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
@@ -45,10 +50,6 @@ func main() {
 			panic(err)
 		}
 	}()
-	err = mongoclient.Ping(ctx, nil)
-	if err != nil {
-		log.Fatalln(err)
-	}
 
 	// Setup Rate Limiter
 	rate, err := limiter.NewRateFromFormatted("3000-M")
@@ -59,30 +60,34 @@ func main() {
 	instance := limiter.New(store, rate)
 	rateLimit := stdlib.NewMiddleware(instance)
 
-	// Handlers
-	user := &user.UserConfigs{
-		Client:     mongoclient,
-		Database:   dbName,
-		Collection: "users",
-		AuthKey:    []byte(authKeyStr),
-		DBTimeout:  dbTimeout,
+	// Init Config
+	cfg := config.Config{
+		Client:         mongoclient,
+		Database:       dbName,
+		DBTimeout:      dbTimeout,
+		UserCollection: "users",
+		AuthKey:        []byte(authKeyStr),
 	}
+
+	// Handlers
+	uh := user.Handler{Config: cfg}
 
 	// Routes
 	router := mux.NewRouter()
 	router.Handle("/api/health", rateLimit.Handler(http.HandlerFunc(HealthHandler)))
-	router.Handle("/api/user", rateLimit.Handler(http.HandlerFunc(user.Handler)))
+	router.Handle("/api/user", rateLimit.Handler(http.HandlerFunc(uh.NewHandler)))
 	router.Handle("/", rateLimit.Handler(web.SpaHandler{StaticPath: "web/build", IndexPath: "index.html"}))
 
 	srv := &http.Server{
 		Handler:           router,
+		Addr:              fmt.Sprintf(":%s", port),
 		WriteTimeout:      15 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		IdleTimeout:       5 * time.Second,
 		ReadHeaderTimeout: 2 * time.Second,
 	}
 
-	fmt.Printf("Server started on %s\n", addr)
+	log.Printf("Server started on port %s", port)
 	log.Fatal(srv.ListenAndServe())
 }
 
