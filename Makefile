@@ -17,3 +17,7 @@ client:
 	
 start:
 	make -j2 api client
+
+test:
+	go clean -testcache
+	go test ./...

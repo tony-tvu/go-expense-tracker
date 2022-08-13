@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -31,6 +32,7 @@ func main() {
 	uri := os.Getenv("MONGODB_URI")
 	addr := os.Getenv("ADDR")
 	dbName := os.Getenv("DATABASE_NAME")
+	dbTimeout, _ := strconv.Atoi(os.Getenv("DB_TIMEOUT_SECONDS"))
 	authKeyStr := os.Getenv("KEY")
 
 	// Setup MongoDB
@@ -43,11 +45,9 @@ func main() {
 			panic(err)
 		}
 	}()
-	user := &user.UserConfigs{
-		Client:     mongoclient,
-		Database:   dbName,
-		Collection: "users",
-		AuthKey:    []byte(authKeyStr),
+	err = mongoclient.Ping(ctx, nil)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	// Setup Rate Limiter
@@ -59,6 +59,15 @@ func main() {
 	instance := limiter.New(store, rate)
 	rateLimit := stdlib.NewMiddleware(instance)
 
+	// Handlers
+	user := &user.UserConfigs{
+		Client:     mongoclient,
+		Database:   dbName,
+		Collection: "users",
+		AuthKey:    []byte(authKeyStr),
+		DBTimeout:  dbTimeout,
+	}
+
 	// Routes
 	router := mux.NewRouter()
 	router.Handle("/api/health", rateLimit.Handler(http.HandlerFunc(HealthHandler)))
@@ -66,10 +75,12 @@ func main() {
 	router.Handle("/", rateLimit.Handler(web.SpaHandler{StaticPath: "web/build", IndexPath: "index.html"}))
 
 	srv := &http.Server{
-		Handler:      router,
-		Addr:         addr,
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+		Handler:           router,
+		Addr:              addr,
+		WriteTimeout:      15 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		IdleTimeout:       5 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
 	}
 
 	fmt.Printf("Server started on %s\n", addr)
