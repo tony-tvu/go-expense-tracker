@@ -1,4 +1,4 @@
-package middleware
+package app
 
 import (
 	"log"
@@ -13,8 +13,8 @@ var CommonMiddleware = []Middleware{
 	Logging(),
 }
 
-// Chain applies multiple middlewares to a http.HandlerFunc
-func Chain(f http.HandlerFunc, middlewares ...Middleware) http.HandlerFunc {
+// UseMiddlewares applies multiple middlewares to a http.HandlerFunc
+func UseMiddlewares(f http.HandlerFunc, middlewares ...Middleware) http.HandlerFunc {
 	// loop in reverse to preserve middleware order
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		f = middlewares[i](f)
