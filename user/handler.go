@@ -29,11 +29,12 @@ func (h Handler) NewHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "User created")
 		return
 	} else {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
 
 }
+
 func createUser(w http.ResponseWriter, r *http.Request, cfg config.Config) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.DBTimeout)*time.Second)
 	defer cancel()

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/config"
+	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/user"
 	"github.com/tony-tvu/goexpense/web"
 
@@ -74,7 +76,9 @@ func main() {
 
 	// Routes
 	router := mux.NewRouter()
-	router.Handle("/api/health", rateLimit.Handler(http.HandlerFunc(HealthHandler)))
+
+	router.HandleFunc("/api/health", middleware.Chain(HealthHandler, middleware.CommonMiddleware...))
+
 	router.Handle("/api/user", rateLimit.Handler(http.HandlerFunc(uh.NewHandler)))
 	router.Handle("/", rateLimit.Handler(web.SpaHandler{StaticPath: "web/build", IndexPath: "index.html"}))
 
@@ -93,7 +97,11 @@ func main() {
 
 func HealthHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		fmt.Fprint(w, "Ok")
+		w.Header().Set("Content-Type", "application/json")
+		body := make(map[string]string)
+		body["message"] = "Ok"
+		jData, _ := json.Marshal(body)
+		w.Write(jData)
 	} else {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}
