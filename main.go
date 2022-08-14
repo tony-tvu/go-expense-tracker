@@ -3,33 +3,32 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/app"
-	"github.com/tony-tvu/goexpense/config"
-	"github.com/tony-tvu/goexpense/database"
 )
 
 func main() {
-	cfg, err := config.GetAppConfig()
-	if err != nil {
-		log.Fatal(err)
+	ctx := context.Background()
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("No .env file found")
 	}
 
-	mongoclient, err := database.GetMongoClient()
-	if err != nil {
-		log.Fatal(err)
-	}
+	a := app.App{}
+	mongoclient := a.Initialize(ctx,
+		os.Getenv("ENV"),
+		os.Getenv("PORT"),
+		os.Getenv("AUTH_KEY"),
+		os.Getenv("MONGODB_URI"),
+		os.Getenv("DB_NAME"))
 
+	// must defer here to keep mongo connection alive
 	defer func() {
-		if err := mongoclient.Disconnect(context.Background()); err != nil {
+		if err := mongoclient.Disconnect(ctx); err != nil {
 			panic(err)
 		}
 	}()
 
-	app := &app.App{
-		Config:      cfg,
-		MongoClient: mongoclient,
-	}
-
-	app.Run()
+	a.Run()
 }

@@ -7,7 +7,7 @@ import (
 
 func TestEncryptAndDecrypt(t *testing.T) {
 	// given
-	key := []byte("ThisKeyStringIs32BytesLongTest01")
+	key := "ThisKeyStringIs32BytesLongTest01"
 	pw := "thisIsAPassword"
 
 	// when

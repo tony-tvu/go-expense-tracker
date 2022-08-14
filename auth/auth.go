@@ -7,10 +7,10 @@ import (
 	"encoding/hex"
 )
 
-func Encrypt(key []byte, data string) (string, error) {
+func Encrypt(key string, data string) (string, error) {
 	dataBytes := []byte(data)
 
-	blockCipher, err := aes.NewCipher(key)
+	blockCipher, err := aes.NewCipher([]byte(key))
 	if err != nil {
 		return "", err
 	}
@@ -30,13 +30,14 @@ func Encrypt(key []byte, data string) (string, error) {
 	return hex.EncodeToString(ciphertext), nil
 }
 
-func Decrypt(key []byte, data string) (string, error) {
+func Decrypt(key string, data string) (string, error) {
+
 	dataBytes, err := hex.DecodeString(data)
 	if err != nil {
 		return "", err
 	}
 
-	blockCipher, err := aes.NewCipher(key)
+	blockCipher, err := aes.NewCipher([]byte(key))
 	if err != nil {
 		return "", err
 	}
