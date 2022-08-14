@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/config"
@@ -34,7 +35,8 @@ func UserHandler(cfg *config.AppConfig, client *mongo.Client) func(w http.Respon
 }
 
 func createUser(w http.ResponseWriter, r *http.Request, cfg *config.AppConfig, client *mongo.Client) error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
 	var u models.User
 	err := json.NewDecoder(r.Body).Decode(&u)
@@ -61,7 +63,6 @@ func createUser(w http.ResponseWriter, r *http.Request, cfg *config.AppConfig, c
 
 	_, err = coll.InsertOne(ctx, doc)
 	if err != nil {
-		fmt.Printf("\n\n\n %s \n\n\n", err)
 		return errors.New("db request error")
 	}
 
