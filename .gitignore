@@ -49,4 +49,4 @@ commands.txt
 .vscode
 gin-bin
 db
-app.yml
+app.yaml
