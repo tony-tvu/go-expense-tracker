@@ -1,6 +1,7 @@
 package app
 
 import (
+	"golang.org/x/time/rate"
 	"log"
 	"net/http"
 	"time"
@@ -8,13 +9,14 @@ import (
 
 type Middleware func(http.HandlerFunc) http.HandlerFunc
 
-var CommonMiddleware = []Middleware{
-	NoCache(),
+var Middlewares = []Middleware{
 	Logging(),
+	RateLimit(),
+	NoCache(),
 }
 
-// UseMiddlewares applies multiple middlewares to a http.HandlerFunc
-func UseMiddlewares(f http.HandlerFunc, middlewares ...Middleware) http.HandlerFunc {
+// Chain applies multiple middlewares to a http.HandlerFunc
+func Chain(f http.HandlerFunc, middlewares ...Middleware) http.HandlerFunc {
 	// loop in reverse to preserve middleware order
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		f = middlewares[i](f)
@@ -30,6 +32,25 @@ func Logging() Middleware {
 			f(w, r)
 		}
 	}
+}
+
+// A Limiter controls how frequently events are allowed to happen. 
+// It implements a "token bucket" of size b, initially full and refilled at rate r tokens per second.
+var refillRatePerSecond rate.Limit = 10
+var bucketSize = 50
+var limiter = rate.NewLimiter(refillRatePerSecond, bucketSize)
+
+func RateLimit() Middleware {
+	return func(f http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			if !limiter.Allow() {
+				http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+				return
+			}
+			f(w, r)
+		}
+	}
+
 }
 
 var epoch = time.Unix(0, 0).Format(time.RFC1123)

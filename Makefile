@@ -4,7 +4,7 @@ install:
 
 build:
 	cd web && npm run build
-	go build -o ./bin/main cmd/main.go
+	go build -o ./bin/main main.go
 
 run_binary:
 	./bin/main

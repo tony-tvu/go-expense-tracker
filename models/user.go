@@ -1,10 +1,10 @@
-package user
+package models
 
 type Role string
 
 const (
-	Admin    Role = "Admin"
-	External Role = "External"
+	AdminUser    Role = "Admin"
+	ExternalUser Role = "External"
 )
 
 type User struct {
