@@ -36,8 +36,8 @@ func Logging() Middleware {
 
 // A Limiter controls how frequently events are allowed to happen. 
 // It implements a "token bucket" of size b, initially full and refilled at rate r tokens per second.
-var refillRatePerSecond rate.Limit = 10
-var bucketSize = 50
+var refillRatePerSecond rate.Limit = 25
+var bucketSize = 100
 var limiter = rate.NewLimiter(refillRatePerSecond, bucketSize)
 
 func RateLimit() Middleware {

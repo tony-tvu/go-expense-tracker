@@ -8,15 +8,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/auth"
+	"github.com/tony-tvu/goexpense/config"
 	"github.com/tony-tvu/goexpense/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func UserHandler(cfg app.AppConfigs, client *mongo.Client) func(w http.ResponseWriter, r *http.Request) {
+func UserHandler(cfg *config.AppConfig, client *mongo.Client) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			err := createUser(w, r, cfg, client)
@@ -34,7 +34,7 @@ func UserHandler(cfg app.AppConfigs, client *mongo.Client) func(w http.ResponseW
 	}
 }
 
-func createUser(w http.ResponseWriter, r *http.Request, cfg app.AppConfigs, client *mongo.Client) error {
+func createUser(w http.ResponseWriter, r *http.Request, cfg *config.AppConfig, client *mongo.Client) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.DBTimeout)*time.Second)
 	defer cancel()
 
