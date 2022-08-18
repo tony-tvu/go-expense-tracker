@@ -19,7 +19,7 @@ type App struct {
 	Router      *mux.Router
 }
 
-func (a *App) Initialize(ctx context.Context, env, port, authKey, mongoURI, dbName string) *mongo.Client {
+func (a *App) Init(ctx context.Context, env, port, authKey, mongoURI, dbName string) *mongo.Client {
 	cfg := &config.AppConfig{}
 	cfg.Env = env
 	if env == "" {
