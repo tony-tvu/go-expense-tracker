@@ -8,18 +8,17 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/config"
 	"github.com/tony-tvu/goexpense/models"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func UserHandler(cfg *config.AppConfig, client *mongo.Client) func(w http.ResponseWriter, r *http.Request) {
+func UserHandler(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			err := createUser(w, r, cfg, client)
+			err := createUser(a, w, r)
 			if err != nil {
 				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 				return
@@ -34,7 +33,7 @@ func UserHandler(cfg *config.AppConfig, client *mongo.Client) func(w http.Respon
 	}
 }
 
-func createUser(w http.ResponseWriter, r *http.Request, cfg *config.AppConfig, client *mongo.Client) error {
+func createUser(a *app.App, w http.ResponseWriter, r *http.Request) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -46,13 +45,13 @@ func createUser(w http.ResponseWriter, r *http.Request, cfg *config.AppConfig, c
 	}
 
 	// Encrypt password
-	encrypted, err := auth.Encrypt(cfg.AuthKey, u.Password)
+	encrypted, err := auth.Encrypt(a.AuthKey, u.Password)
 	if err != nil {
 		return errors.New("encrypt error")
 	}
 
 	// Save new user
-	coll := client.Database(cfg.DbName).Collection(cfg.UserCollection)
+	coll := a.MongoClient.Database(a.DbName).Collection(a.UserCollection)
 	doc := bson.D{
 		{Key: "email", Value: u.Email},
 		{Key: "name", Value: u.Name},

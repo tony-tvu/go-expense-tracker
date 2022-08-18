@@ -7,7 +7,7 @@ import (
 	"github.com/tony-tvu/goexpense/app"
 )
 
-func ExpenseHandler(a *app.App) func(w http.ResponseWriter, r *http.Request) {
+func PlaidHandler(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 
