@@ -32,7 +32,7 @@ func main() {
 	// must defer here to keep mongo connection alive
 	defer func() {
 		if err := mongoclient.Disconnect(ctx); err != nil {
-			panic(err)
+			log.Println("mongo has been disconnected: ", err)
 		}
 	}()
 

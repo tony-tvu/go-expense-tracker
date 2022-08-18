@@ -19,6 +19,7 @@ type Server struct {
 }
 
 func (s *Server) Init(ctx context.Context, env, port, authKey, mongoURI, dbName, plaidClientID, plaidSecret, plaidEnv, plaidProducts, plaidountryCodes string) *mongo.Client {
+	s.App = &app.App{}
 
 	s.App.Env = env
 	if env == "" {
@@ -63,10 +64,10 @@ func (s *Server) Init(ctx context.Context, env, port, authKey, mongoURI, dbName,
 	s.App.UserCollection = "users"
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/health", Chain(handlers.HealthHandler, Middlewares...))
-	router.Handle("/api/user", Chain(handlers.UserHandler(s.App), Middlewares...))
-	router.Handle("/api/expense", Chain(handlers.ExpenseHandler(s.App), Middlewares...))
-	router.PathPrefix("/").Handler(Chain(handlers.SpaHandler("web/build", "index.html"), Middlewares...))
+	router.HandleFunc("/api/health", Chain(handlers.Health, Middlewares...)).Methods("GET")
+	router.Handle("/api/user", Chain(handlers.CreateUser(s.App), Middlewares...)).Methods("POST")
+	router.Handle("/api/expense", Chain(handlers.GetExpenses(s.App), Middlewares...)).Methods("GET")
+	router.PathPrefix("/").Handler(Chain(handlers.SpaHandler("web/build", "index.html"), Middlewares...)).Methods("GET")
 	s.App.Router = router
 
 	return mongoclient
