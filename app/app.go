@@ -14,8 +14,17 @@ type App struct {
 	DbName         string
 	UserCollection string
 	MongoClient    *mongo.Client
-	PlaidClient    *plaid.APIClient
+	PlaidClient    *PlaidClient
 	Router         *mux.Router
+}
+
+type PlaidClient struct {
+	ClientID     string
+	Secret       string
+	Env          string
+	Products     string
+	CountryCodes string
+	ApiClient    *plaid.APIClient
 }
 
 var PlaidEnvs = map[string]plaid.Environment{

@@ -1,61 +1,66 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { usePlaidLink } from 'react-plaid-link'
 import Button from 'plaid-threads/Button'
+import axios from 'axios'
 import {
   Box,
   Grid,
   GridItem,
-  Flex,
   Text,
   Center,
   Square,
+  Flex,
 } from '@chakra-ui/react'
-import GoogleLoginBtn from '../components/GoogleLoginBtn'
+import { useNavigate } from 'react-router-dom'
 
 function Homepage() {
-  const [linkToken, setLinkToken] = useState('')
+  const [linkToken, setLinkToken] = useState(null)
 
-  function fetchLinkToken() {
-    axios
-      .request({
+  const onSuccess = (public_token) => {
+    console.log(public_token)
+  }
+
+  const config = {
+    token: linkToken,
+    onSuccess,
+  }
+
+  const { open, ready } = usePlaidLink(config)
+
+  // load link_token
+  useEffect(() => {
+    fetchLinkToken()
+  }, [])
+
+  const navigate = useNavigate()
+
+  async function fetchLinkToken() {
+    const response = await fetch(
+      `${process.env.REACT_APP_API_URL}/api/create_link_token`,
+      {
         method: 'GET',
-        url: `${process.env.REACT_APP_API_URL}/auth/refresh_token`,
-        headers: { Authorization: idToken },
-      })
-      .then(res => {
-        if (res.status === 200) {
-          localStorage.setItem(
-            'user-access-token',
-            res.headers['user-access-token']
-          )
-          localStorage.setItem(
-            'user-refresh-token',
-            res.headers['user-refresh-token']
-          )
-          navigate('/admin')
-        }
-      })
-      .catch(() => {
-        // toast({
-        //   title: 'Failed to Load',
-        //   description: 'Something went wrong on our side!',
-        //   status: 'error',
-        //   duration: 10,
-        //   isClosable: false,
-        //   position: 'top',
-        // })
-      })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+    if (!response.ok) {
+      console.error('error fetching link_token')
+      return
+    }
+    const data = await response.json()
+    setLinkToken(data.link_token)
   }
 
   return (
     <div>
       <Flex color="white" minH="85vh">
         <Button type="button" large onClick={() => open()} disabled={!ready}>
-          Launch Link
+          Connect Account
         </Button>
-        <Center w="500px" bg="green.500">
+        {/* <Center w="500px" bg="green.500">
           <Text>Box 1</Text>
-        </Center>
+        </Center> */}
       </Flex>
     </div>
   )

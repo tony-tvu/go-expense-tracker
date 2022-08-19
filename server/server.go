@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/plaid/plaid-go/plaid"
+	"github.com/rs/cors"
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/handlers"
 
@@ -48,8 +49,16 @@ func (s *Server) Init(ctx context.Context, env, port, authKey, mongoURI, dbName,
 	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", plaidClientID)
 	plaidCfg.AddDefaultHeader("PLAID-SECRET", plaidSecret)
 	plaidCfg.UseEnvironment(app.PlaidEnvs[plaidEnv])
-	plaidClient := plaid.NewAPIClient(plaidCfg)
-	s.App.PlaidClient = plaidClient
+	plaidApiClient := plaid.NewAPIClient(plaidCfg)
+	pc := &app.PlaidClient{
+		ClientID:     plaidClientID,
+		Secret:       plaidSecret,
+		Env:          plaidEnv,
+		Products:     plaidProducts,
+		CountryCodes: plaidountryCodes,
+		ApiClient:    plaidApiClient,
+	}
+	s.App.PlaidClient = pc
 
 	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(s.App.MongoURI))
 	if err != nil {
@@ -67,6 +76,8 @@ func (s *Server) Init(ctx context.Context, env, port, authKey, mongoURI, dbName,
 	router.HandleFunc("/api/health", Chain(handlers.Health, Middlewares...)).Methods("GET")
 	router.Handle("/api/user", Chain(handlers.CreateUser(s.App), Middlewares...)).Methods("POST")
 	router.Handle("/api/expense", Chain(handlers.GetExpenses(s.App), Middlewares...)).Methods("GET")
+	// TODO: add auth to this so only registered users can create link tokens
+	router.Handle("/api/create_link_token", Chain(handlers.CreateLinkToken(s.App), Middlewares...)).Methods("GET")
 	router.PathPrefix("/").Handler(Chain(handlers.SpaHandler("web/build", "index.html"), Middlewares...)).Methods("GET")
 	s.App.Router = router
 
@@ -75,7 +86,15 @@ func (s *Server) Init(ctx context.Context, env, port, authKey, mongoURI, dbName,
 
 func (s *Server) Start() {
 	log.Printf("Listening on port %s", s.App.Port)
-	if err := http.ListenAndServe(":"+s.App.Port, s.App.Router); err != nil {
+
+	var handler http.Handler
+	if s.App.Env == "DEV" {
+		handler = cors.Default().Handler(s.App.Router)
+	} else {
+		handler = s.App.Router
+	}
+
+	if err := http.ListenAndServe(":"+s.App.Port, handler); err != nil {
 		log.Fatal(err)
 	}
 }
