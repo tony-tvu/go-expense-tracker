@@ -93,19 +93,16 @@ var etagHeaders = []string{
 func NoCache() Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-
 			// Delete any ETag headers that may have been set
 			for _, v := range etagHeaders {
 				if r.Header.Get(v) != "" {
 					r.Header.Del(v)
 				}
 			}
-
 			// Set our NoCache headers
 			for k, v := range noCacheHeaders {
 				w.Header().Set(k, v)
 			}
-
 			f(w, r)
 		}
 	}

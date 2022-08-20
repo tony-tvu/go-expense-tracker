@@ -87,5 +87,9 @@ func SetAccessToken(ctx context.Context, a *app.App) func(w http.ResponseWriter,
 
 		log.Println(accessToken)
 		log.Println(itemID)
+
+		// TODO: set up user login auth - 
+		// 1. get UserID from request
+		// 2. persist accessToken, itemID with UserID as foreign key
 	}
 }
