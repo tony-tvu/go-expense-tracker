@@ -23,14 +23,14 @@ func CreateUser(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *
 		}
 
 		// Encrypt password
-		encrypted, err := auth.Encrypt(a.AuthKey, u.Password)
+		encrypted, err := auth.Encrypt(a.Secret, u.Password)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		// Save new user
-		coll := a.MongoClient.Database(a.DbName).Collection(a.UserCollection)
+		coll := a.MongoClient.Database(a.Db).Collection(a.Coll.Users)
 		doc := bson.D{
 			{Key: "email", Value: u.Email},
 			{Key: "name", Value: u.Name},

@@ -9,25 +9,23 @@ import (
 type App struct {
 	Env             string
 	Port            string
-	AuthKey         string
+	Secret          string
 	JwtKey          string
 	RefreshTokenExp int
 	AccessTokenExp  int
 	MongoURI        string
-	DbName          string
-	UserCollection  string
+	Db              string
+	Coll            *Collections
 	MongoClient     *mongo.Client
-	PlaidClient     *PlaidClient
+	PlaidClient     *plaid.APIClient
+	CountryCodes    string
+	Products        string
 	Router          *mux.Router
 }
 
-type PlaidClient struct {
-	ClientID     string
-	Secret       string
-	Env          string
-	Products     string
-	CountryCodes string
-	ApiClient    *plaid.APIClient
+type Collections struct {
+	Users    string
+	Sessions string
 }
 
 var PlaidEnvs = map[string]plaid.Environment{

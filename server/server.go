@@ -4,14 +4,13 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
-	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/rs/cors"
 	"github.com/tony-tvu/goexpense/app"
-	"github.com/tony-tvu/goexpense/handlers"
-
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -20,61 +19,83 @@ type Server struct {
 	App *app.App
 }
 
-func (s *Server) Init(ctx context.Context, env, port, authKey, jwtKey, refreshTokenExp, accessTokenExp, mongoURI, dbName, plaidClientID, plaidSecret, plaidEnv, plaidProducts, plaidountryCodes string) *mongo.Client {
+func (s *Server) Init(ctx context.Context) {
 	s.App = &app.App{}
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("No .env file found")
+	}
 
-	s.App.Env = env
+	env := os.Getenv("ENV")
 	if env == "" {
-		s.App.Env = "development"
+		env = "development"
 	}
-	s.App.Port = port
+	port := os.Getenv("PORT")
 	if port == "" {
-		s.App.Port = "8080"
+		port = "8080"
 	}
-	s.App.AuthKey = authKey
-	if authKey == "" {
-		log.Fatal("failed to start - missing AUTH_KEY")
+	secret := os.Getenv("SECRET")
+	if secret == "" {
+		log.Fatal("failed to start - missing SECRET")
 	}
-	s.App.JwtKey = jwtKey
+	jwtKey := os.Getenv("JWT_KEY")
 	if jwtKey == "" {
 		log.Fatal("failed to start - missing JWT_KEY")
 	}
-	refreshTokenExpInt, err := strconv.Atoi(refreshTokenExp)
-	s.App.RefreshTokenExp = refreshTokenExpInt
-	if refreshTokenExp == "" || err != nil {
-		s.App.RefreshTokenExp = 86400
+
+	refreshTokenExpInt, err := strconv.Atoi(os.Getenv("REFRESH_TOKEN_EXP"))
+	if err != nil {
+		refreshTokenExpInt = 86400
 	}
-	accessTokenExpInt, err := strconv.Atoi(refreshTokenExp)
-	s.App.AccessTokenExp = accessTokenExpInt
-	if accessTokenExp == "" || err != nil {
-		s.App.AccessTokenExp = 900
+	accessTokenExpInt, err := strconv.Atoi(os.Getenv("ACCESS_TOKEN_EXP"))
+	if err != nil {
+		accessTokenExpInt = 900
 	}
-	s.App.MongoURI = mongoURI
+
+	mongoURI := os.Getenv("MONGODB_URI")
 	if mongoURI == "" {
 		log.Fatal("failed to start - missing MONGODB_URI")
 	}
-	s.App.DbName = dbName
-	if dbName == "" {
-		s.App.DbName = "goexpense"
+
+	database := os.Getenv("DATABASE")
+	if database == "" {
+		database = "goexpense_local"
 	}
-	if plaidClientID == "" || plaidSecret == "" || plaidEnv == "" || plaidProducts == "" || plaidountryCodes == "" {
+
+	plaidClientID := os.Getenv("PLAID_CLIENT_ID")
+	plaidSecret := os.Getenv("PLAID_SECRET")
+	plaidEnv := os.Getenv("PLAID_ENV")
+	plaidProducts := os.Getenv("PLAID_PRODUCTS")
+	plaidCountryCodes := os.Getenv("PLAID_COUNTRY_CODES")
+	if plaidClientID == "" || plaidSecret == "" || plaidEnv == "" || plaidProducts == "" || plaidCountryCodes == "" {
 		log.Fatal("failed to start - missing Plaid env values")
 	}
 	plaidCfg := plaid.NewConfiguration()
 	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", plaidClientID)
 	plaidCfg.AddDefaultHeader("PLAID-SECRET", plaidSecret)
 	plaidCfg.UseEnvironment(app.PlaidEnvs[plaidEnv])
-	plaidApiClient := plaid.NewAPIClient(plaidCfg)
-	pc := &app.PlaidClient{
-		ClientID:     plaidClientID,
-		Secret:       plaidSecret,
-		Env:          plaidEnv,
-		Products:     plaidProducts,
-		CountryCodes: plaidountryCodes,
-		ApiClient:    plaidApiClient,
-	}
-	s.App.PlaidClient = pc
+	plaidClient := plaid.NewAPIClient(plaidCfg)
 
+	s.App = &app.App{
+		Env:             env,
+		Port:            port,
+		Secret:          secret,
+		JwtKey:          jwtKey,
+		RefreshTokenExp: refreshTokenExpInt,
+		AccessTokenExp:  accessTokenExpInt,
+		MongoURI:        mongoURI,
+		Db:              database,
+		Coll: &app.Collections{
+			Users:    "users",
+			Sessions: "sessions",
+		},
+		PlaidClient:  plaidClient,
+		CountryCodes: plaidCountryCodes,
+		Products:     plaidProducts,
+	}
+	s.App.Router = InitRouter(ctx, s.App)
+}
+
+func (s *Server) Run(ctx context.Context) {
 	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(s.App.MongoURI))
 	if err != nil {
 		log.Fatal(err)
@@ -83,35 +104,12 @@ func (s *Server) Init(ctx context.Context, env, port, authKey, jwtKey, refreshTo
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	s.App.MongoClient = mongoclient
-	s.App.UserCollection = "users"
-
-	router := mux.NewRouter()
-	router.HandleFunc("/api/health",
-		Chain(handlers.Health, Middlewares...)).Methods("GET")
-	router.Handle("/api/login_email",
-		Chain(handlers.LoginEmail(ctx, s.App), Logging(), LoginRateLimit(), NoCache())).Methods("POST")
-	router.Handle("/api/get_token_exp",
-		Chain(handlers.IsTokenValid(ctx, s.App), Logging(), LoginRateLimit(), NoCache())).Methods("POST")
-	router.Handle("/api/user",
-		Chain(handlers.CreateUser(ctx, s.App), Middlewares...)).Methods("POST")
-	router.Handle("/api/expense",
-		Chain(handlers.GetExpenses(ctx, s.App), Middlewares...)).Methods("GET")
-	// TODO: add auth to this so only registered users can create link tokens
-	router.Handle("/api/create_link_token",
-		Chain(handlers.CreateLinkToken(ctx, s.App), Middlewares...)).Methods("GET")
-	router.Handle("/api/set_access_token",
-		Chain(handlers.SetAccessToken(ctx, s.App), Middlewares...)).Methods("POST")
-	router.PathPrefix("/").Handler(
-		Chain(handlers.SpaHandler("web/build", "index.html"), Middlewares...)).Methods("GET")
-	s.App.Router = router
-
-	return mongoclient
-}
-
-func (s *Server) Start() {
-	log.Printf("Listening on port %s", s.App.Port)
+	defer func() {
+		if err := mongoclient.Disconnect(ctx); err != nil {
+			log.Println("mongo has been disconnected: ", err)
+		}
+	}()
 
 	var handler http.Handler
 	if s.App.Env == "development" {
@@ -125,6 +123,7 @@ func (s *Server) Start() {
 		handler = s.App.Router
 	}
 
+	log.Printf("Listening on port %s", s.App.Port)
 	if err := http.ListenAndServe(":"+s.App.Port, handler); err != nil {
 		log.Fatal(err)
 	}

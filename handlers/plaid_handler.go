@@ -25,11 +25,11 @@ func CreateLinkToken(ctx context.Context, a *app.App) func(w http.ResponseWriter
 		body := make(map[string]string)
 
 		countryCodes := []plaid.CountryCode{}
-		for _, countryCodeStr := range strings.Split(a.PlaidClient.CountryCodes, ",") {
+		for _, countryCodeStr := range strings.Split(a.CountryCodes, ",") {
 			countryCodes = append(countryCodes, plaid.CountryCode(countryCodeStr))
 		}
 		products := []plaid.Products{}
-		for _, productStr := range strings.Split(a.PlaidClient.Products, ",") {
+		for _, productStr := range strings.Split(a.Products, ",") {
 			products = append(products, plaid.Products(productStr))
 		}
 		user := plaid.LinkTokenCreateRequestUser{
@@ -45,7 +45,7 @@ func CreateLinkToken(ctx context.Context, a *app.App) func(w http.ResponseWriter
 		request.SetProducts(products)
 
 		linkTokenCreateResp, _, err :=
-			a.PlaidClient.ApiClient.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
+			a.PlaidClient.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -73,7 +73,7 @@ func SetAccessToken(ctx context.Context, a *app.App) func(w http.ResponseWriter,
 
 		// exchange the public_token for an access_token
 		exchangePublicTokenResp, _, err :=
-			a.PlaidClient.ApiClient.PlaidApi.ItemPublicTokenExchange(ctx).
+			a.PlaidClient.PlaidApi.ItemPublicTokenExchange(ctx).
 				ItemPublicTokenExchangeRequest(
 					*plaid.NewItemPublicTokenExchangeRequest(publicToken),
 				).Execute()

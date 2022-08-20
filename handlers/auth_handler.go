@@ -28,7 +28,7 @@ func LoginEmail(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *
 
 		// Find existing user
 		var user *models.User
-		coll := a.MongoClient.Database(a.DbName).Collection(a.UserCollection)
+		coll := a.MongoClient.Database(a.Db).Collection(a.Coll.Users)
 		err = coll.FindOne(ctx, bson.D{{Key: "email", Value: input.Email}}).Decode(&user)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -36,7 +36,7 @@ func LoginEmail(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *
 		}
 
 		// Verify password
-		decrypted, _ := auth.Decrypt(a.AuthKey, user.Password)
+		decrypted, _ := auth.Decrypt(a.Secret, user.Password)
 		if input.Password != decrypted {
 			w.WriteHeader(http.StatusBadRequest)
 			return
