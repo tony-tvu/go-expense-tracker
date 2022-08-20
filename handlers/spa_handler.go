@@ -11,9 +11,7 @@ func SpaHandler(staticPath string, indexPath string) func(w http.ResponseWriter,
 		// get the absolute path to prevent directory traversal
 		path, err := filepath.Abs(r.URL.Path)
 		if err != nil {
-			// if we failed to get the absolute path respond with a 400 bad request
-			// and stop
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
@@ -27,9 +25,7 @@ func SpaHandler(staticPath string, indexPath string) func(w http.ResponseWriter,
 			http.ServeFile(w, r, filepath.Join(staticPath, indexPath))
 			return
 		} else if err != nil {
-			// if we got an error (that wasn't that the file doesn't exist) stating the
-			// file, return a 500 internal server error and stop
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 

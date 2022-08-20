@@ -48,8 +48,7 @@ func CreateLinkToken(ctx context.Context, a *app.App) func(w http.ResponseWriter
 			a.PlaidClient.ApiClient.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
 
 		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError),
-				http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		linkToken := linkTokenCreateResp.GetLinkToken()
@@ -57,8 +56,7 @@ func CreateLinkToken(ctx context.Context, a *app.App) func(w http.ResponseWriter
 		body["link_token"] = linkToken
 		jData, err := json.Marshal(body)
 		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError),
-				http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		w.Write(jData)
@@ -69,8 +67,7 @@ func SetAccessToken(ctx context.Context, a *app.App) func(w http.ResponseWriter,
 	return func(w http.ResponseWriter, r *http.Request) {
 		publicToken := r.Header.Get("Public-Token")
 		if publicToken == "" {
-			http.Error(w, http.StatusText(http.StatusBadRequest),
-				http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
@@ -81,8 +78,7 @@ func SetAccessToken(ctx context.Context, a *app.App) func(w http.ResponseWriter,
 					*plaid.NewItemPublicTokenExchangeRequest(publicToken),
 				).Execute()
 		if err != nil {
-			http.Error(w, http.StatusText(http.StatusBadRequest),
-				http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 

@@ -18,16 +18,14 @@ func CreateUser(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *
 		err := json.NewDecoder(r.Body).Decode(&u)
 
 		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError),
-				http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		// Encrypt password
 		encrypted, err := auth.Encrypt(a.AuthKey, u.Password)
 		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError),
-				http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
@@ -43,13 +41,7 @@ func CreateUser(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *
 
 		_, err = coll.InsertOne(ctx, doc)
 		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError),
-				http.StatusInternalServerError)
-			return
-		}
-
-		if err != nil {
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
