@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { usePlaidLink } from 'react-plaid-link'
 import Button from 'plaid-threads/Button'
-import axios from 'axios'
 import {
   Box,
   Grid,
@@ -12,22 +11,12 @@ import {
   Flex,
 } from '@chakra-ui/react'
 import { useNavigate } from 'react-router-dom'
+import logger from '../logger'
 
 function Homepage() {
   const [linkToken, setLinkToken] = useState(null)
 
-  const onSuccess = (public_token) => {
-    console.log(public_token)
-  }
-
-  const config = {
-    token: linkToken,
-    onSuccess,
-  }
-
-  const { open, ready } = usePlaidLink(config)
-
-  // load link_token
+  // fetch link_token on page load
   useEffect(() => {
     fetchLinkToken()
   }, [])
@@ -43,14 +32,34 @@ function Homepage() {
           'Content-Type': 'application/json',
         },
       }
-    )
-    if (!response.ok) {
-      console.error('error fetching link_token')
-      return
-    }
+    ).catch(e => {
+      logger('error fetching link_token', e)
+    })
+    if (!response) return
     const data = await response.json()
     setLinkToken(data.link_token)
   }
+
+  const onSuccess = async (public_token) => {
+    await fetch(
+      `${process.env.REACT_APP_API_URL}/api/set_access_token`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Public-Token': public_token
+        },
+      }
+    ).catch(e => {
+      logger('error setting access token', e)
+    })
+  }
+
+  const config = {
+    token: linkToken,
+    onSuccess,
+  }
+  const { open, ready } = usePlaidLink(config)
 
   return (
     <div>

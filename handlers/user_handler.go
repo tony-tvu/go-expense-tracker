@@ -5,20 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/models"
-
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func CreateUser(a *app.App) func(w http.ResponseWriter, r *http.Request) {
+func CreateUser(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
 		var u models.User
 		err := json.NewDecoder(r.Body).Decode(&u)
 

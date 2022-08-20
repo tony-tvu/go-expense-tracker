@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/plaid/plaid-go/plaid"
@@ -19,12 +20,12 @@ type Server struct {
 	App *app.App
 }
 
-func (s *Server) Init(ctx context.Context, env, port, authKey, mongoURI, dbName, plaidClientID, plaidSecret, plaidEnv, plaidProducts, plaidountryCodes string) *mongo.Client {
+func (s *Server) Init(ctx context.Context, env, port, authKey, jwtKey, refreshTokenExp, accessTokenExp, mongoURI, dbName, plaidClientID, plaidSecret, plaidEnv, plaidProducts, plaidountryCodes string) *mongo.Client {
 	s.App = &app.App{}
 
 	s.App.Env = env
 	if env == "" {
-		s.App.Env = "DEV"
+		s.App.Env = "development"
 	}
 	s.App.Port = port
 	if port == "" {
@@ -33,6 +34,20 @@ func (s *Server) Init(ctx context.Context, env, port, authKey, mongoURI, dbName,
 	s.App.AuthKey = authKey
 	if authKey == "" {
 		log.Fatal("failed to start - missing AUTH_KEY")
+	}
+	s.App.JwtKey = jwtKey
+	if jwtKey == "" {
+		log.Fatal("failed to start - missing JWT_KEY")
+	}
+	refreshTokenExpInt, err := strconv.Atoi(refreshTokenExp)
+	s.App.RefreshTokenExp = refreshTokenExpInt
+	if refreshTokenExp == "" || err != nil {
+		s.App.RefreshTokenExp = 86400
+	}
+	accessTokenExpInt, err := strconv.Atoi(refreshTokenExp)
+	s.App.AccessTokenExp = accessTokenExpInt
+	if accessTokenExp == "" || err != nil {
+		s.App.AccessTokenExp = 900
 	}
 	s.App.MongoURI = mongoURI
 	if mongoURI == "" {
@@ -73,12 +88,23 @@ func (s *Server) Init(ctx context.Context, env, port, authKey, mongoURI, dbName,
 	s.App.UserCollection = "users"
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/health", Chain(handlers.Health, Middlewares...)).Methods("GET")
-	router.Handle("/api/user", Chain(handlers.CreateUser(s.App), Middlewares...)).Methods("POST")
-	router.Handle("/api/expense", Chain(handlers.GetExpenses(s.App), Middlewares...)).Methods("GET")
+	router.HandleFunc("/api/health",
+		Chain(handlers.Health, Middlewares...)).Methods("GET")
+	router.Handle("/api/login_email",
+		Chain(handlers.LoginEmail(ctx, s.App), Logging(), LoginRateLimit(), NoCache())).Methods("POST")
+	router.Handle("/api/get_token_exp",
+		Chain(handlers.IsTokenValid(ctx, s.App), Logging(), LoginRateLimit(), NoCache())).Methods("POST")
+	router.Handle("/api/user",
+		Chain(handlers.CreateUser(ctx, s.App), Middlewares...)).Methods("POST")
+	router.Handle("/api/expense",
+		Chain(handlers.GetExpenses(ctx, s.App), Middlewares...)).Methods("GET")
 	// TODO: add auth to this so only registered users can create link tokens
-	router.Handle("/api/create_link_token", Chain(handlers.CreateLinkToken(s.App), Middlewares...)).Methods("GET")
-	router.PathPrefix("/").Handler(Chain(handlers.SpaHandler("web/build", "index.html"), Middlewares...)).Methods("GET")
+	router.Handle("/api/create_link_token",
+		Chain(handlers.CreateLinkToken(ctx, s.App), Middlewares...)).Methods("GET")
+	router.Handle("/api/set_access_token",
+		Chain(handlers.SetAccessToken(ctx, s.App), Middlewares...)).Methods("POST")
+	router.PathPrefix("/").Handler(
+		Chain(handlers.SpaHandler("web/build", "index.html"), Middlewares...)).Methods("GET")
 	s.App.Router = router
 
 	return mongoclient
@@ -88,8 +114,13 @@ func (s *Server) Start() {
 	log.Printf("Listening on port %s", s.App.Port)
 
 	var handler http.Handler
-	if s.App.Env == "DEV" {
-		handler = cors.Default().Handler(s.App.Router)
+	if s.App.Env == "development" {
+		handler = cors.New(cors.Options{
+			AllowedOrigins:   []string{"http://localhost:3000"},
+			AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPut},
+			AllowedHeaders:   []string{"Content-Type", "Public-Token"},
+			AllowCredentials: true,
+		}).Handler(s.App.Router)
 	} else {
 		handler = s.App.Router
 	}

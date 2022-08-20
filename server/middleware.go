@@ -36,7 +36,7 @@ func Logging() Middleware {
 
 // A Limiter controls how frequently events are allowed to happen. 
 // It implements a "token bucket" of size b, initially full and refilled at rate r tokens per second.
-var refillRatePerSecond rate.Limit = 50
+var refillRatePerSecond rate.Limit = 10
 var bucketSize = 100
 var limiter = rate.NewLimiter(refillRatePerSecond, bucketSize)
 
@@ -44,6 +44,20 @@ func RateLimit() Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			if !limiter.Allow() {
+				http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+				return
+			}
+			f(w, r)
+		}
+	}
+
+}
+
+var loginLimiter = rate.NewLimiter(1, 2)
+func LoginRateLimit() Middleware {
+	return func(f http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			if !loginLimiter.Allow() {
 				http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
 				return
 			}

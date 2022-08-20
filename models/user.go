@@ -1,5 +1,9 @@
 package models
 
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
 type Role string
 
 const (
@@ -8,9 +12,10 @@ const (
 )
 
 type User struct {
-	Name     string
-	Email    string
-	Password string
-	Role     Role
-	Verified bool
+	ID       primitive.ObjectID `bson:"_id" json:"id,omitempty"`
+	Name     string             `json:"name"`
+	Email    string             `json:"email"`
+	Password string             `json:"password"`
+	Role     Role               `json:"role"`
+	Verified bool               `json:"verified"`
 }

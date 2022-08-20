@@ -7,15 +7,18 @@ import (
 )
 
 type App struct {
-	Env            string
-	Port           string
-	AuthKey        string
-	MongoURI       string
-	DbName         string
-	UserCollection string
-	MongoClient    *mongo.Client
-	PlaidClient    *PlaidClient
-	Router         *mux.Router
+	Env             string
+	Port            string
+	AuthKey         string
+	JwtKey          string
+	RefreshTokenExp int
+	AccessTokenExp  int
+	MongoURI        string
+	DbName          string
+	UserCollection  string
+	MongoClient     *mongo.Client
+	PlaidClient     *PlaidClient
+	Router          *mux.Router
 }
 
 type PlaidClient struct {
