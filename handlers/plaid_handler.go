@@ -25,11 +25,11 @@ func CreateLinkToken(ctx context.Context, a *app.App) func(w http.ResponseWriter
 		body := make(map[string]string)
 
 		countryCodes := []plaid.CountryCode{}
-		for _, countryCodeStr := range strings.Split(a.CountryCodes, ",") {
+		for _, countryCodeStr := range strings.Split(a.PlaidCountryCodes, ",") {
 			countryCodes = append(countryCodes, plaid.CountryCode(countryCodeStr))
 		}
 		products := []plaid.Products{}
-		for _, productStr := range strings.Split(a.Products, ",") {
+		for _, productStr := range strings.Split(a.PlaidProducts, ",") {
 			products = append(products, plaid.Products(productStr))
 		}
 		user := plaid.LinkTokenCreateRequestUser{

@@ -8,7 +8,8 @@ import (
 
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/auth"
-
+	"github.com/tony-tvu/goexpense/models"
+	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/time/rate"
 )
 
@@ -18,11 +19,6 @@ var SharedMiddlewares = []Middleware{
 	Logging(),
 	RateLimit(),
 	NoCache(),
-}
-
-// Routes can be accessed by all users
-func LoginProtectedRoute() {
-
 }
 
 // Append additional middlewares along with SharedMiddlewares
@@ -41,6 +37,7 @@ func Chain(f http.HandlerFunc, middlewares ...Middleware) http.HandlerFunc {
 	return f
 }
 
+// Log all requests
 func Logging() Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -51,12 +48,12 @@ func Logging() Middleware {
 	}
 }
 
-// A Limiter controls how frequently events are allowed to happen.
-// It implements a "token bucket" of size b, initially full and refilled at rate r tokens per second.
 var refillRatePerSecond rate.Limit = 10
 var bucketSize = 100
 var limiter = rate.NewLimiter(refillRatePerSecond, bucketSize)
 
+// A Limiter controls how frequently events are allowed to happen.
+// It implements a "token bucket" of size b, initially full and refilled at rate r tokens per second.
 func RateLimit() Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -71,6 +68,7 @@ func RateLimit() Middleware {
 
 var loginLimiter = rate.NewLimiter(1, 2)
 
+// Limit number of login attemps per second
 func LoginRateLimit() Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -83,24 +81,54 @@ func LoginRateLimit() Middleware {
 	}
 }
 
+// Restrict access to logged in users only
 func LoginProtected(ctx context.Context, a *app.App) Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			accessCookie, _ := r.Cookie("goexpense_access")
+			cookie, _ := r.Cookie("goexpense_access")
+			accessToken := cookie.Value
 
 			// no access token - make user log in
-			if accessCookie == nil {
+			if accessToken == "" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
-			isAccessValid := auth.IsTokenValid(a, accessCookie.Value)
-
-			// renew access token if expired, else proceed to next middleware
+			// if token is invalid/expired - check for existing session and renew access token
+			isAccessValid, claims := auth.IsTokenValid(a, accessToken)
 			if !isAccessValid {
 
 				// find existing session (refresh_token)
+				var s *models.Session
+				coll := a.MongoClient.Database(a.Db).Collection(a.Coll.Sessions)
+				err := coll.FindOne(ctx, bson.D{{Key: "user_id", Value: claims.UserId}}).Decode(&s)
 
+				// session not found - make user log in
+				if err != nil {
+					w.WriteHeader(http.StatusUnauthorized)
+					return
+				}
+
+				// verify session is still valid
+				isRefreshValid, _ := auth.IsTokenValid(a, s.RefreshToken)
+				if !isRefreshValid {
+					w.WriteHeader(http.StatusUnauthorized)
+					return
+				}
+
+				// renew access token
+				renewed, err := auth.CreateAccessToken(ctx, a, claims.UserId, claims.Role)
+				if err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+
+				http.SetCookie(w, &http.Cookie{
+					Name:     "goexpense_access",
+					Value:    renewed.Value,
+					Expires:  renewed.ExpiresAt,
+					HttpOnly: true,
+				})
 			}
 
 			f(w, r)
@@ -148,11 +176,13 @@ var etagHeaders = []string{
 	"If-Unmodified-Since",
 }
 
-// NoCache sets:
-// Expires: Thu, 01 Jan 1970 00:00:00 UTC
-// Cache-Control: no-cache, private, max-age=0
-// X-Accel-Expires: 0
-// Pragma: no-cache (for HTTP/1.0 proxies/clients)
+/*
+NoCache sets:
+Expires: Thu, 01 Jan 1970 00:00:00 UTC
+Cache-Control: no-cache, private, max-age=0
+X-Accel-Expires: 0
+Pragma: no-cache (for HTTP/1.0 proxies/clients)
+*/
 func NoCache() Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {

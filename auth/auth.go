@@ -10,13 +10,14 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/models"
 )
 
 type Claims struct {
 	UserId string `json:"user_id"`
-	Role   models.Role
+	Role   string
 	jwt.RegisteredClaims
 }
 
@@ -98,12 +99,12 @@ make the user login again to create a new session/refresh_token.
 
 Default expiration time: 15m
 */
-func CreateAccessToken(ctx context.Context, a *app.App, u *models.User) (Token, error) {
+func CreateAccessToken(ctx context.Context, a *app.App, userID, role string) (Token, error) {
 	exp := time.Now().Add(
 		time.Duration(a.AccessTokenExp) * time.Second)
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
-		UserId: u.ObjectID.Hex(),
-		Role:   u.Role,
+		UserId: userID,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -117,20 +118,18 @@ func CreateAccessToken(ctx context.Context, a *app.App, u *models.User) (Token, 
 	return Token{Value: accessTokenStr, ExpiresAt: exp}, nil
 }
 
-func IsTokenValid(a *app.App, tokenStr string) bool {
+func IsTokenValid(a *app.App, tokenStr string) (bool, *Claims) {
 	tkn, err := jwt.ParseWithClaims(tokenStr, &Claims{},
 		func(token *jwt.Token) (interface{}, error) {
 			return a.JwtKey, nil
 		})
 
+	claims := tkn.Claims.(*Claims)
 	if err != nil {
-		return false
-	}
-	if !tkn.Valid {
-		return false
+		return false, nil
 	}
 
-	return true
+	return tkn.Valid, claims
 }
 
 func IsAdmin(a *app.App, tokenStr string) bool {
@@ -138,15 +137,15 @@ func IsAdmin(a *app.App, tokenStr string) bool {
 		func(token *jwt.Token) (interface{}, error) {
 			return a.JwtKey, nil
 		})
-
+	claims := tkn.Claims.(*Claims)
 	if err != nil {
 		return false
 	}
 	if !tkn.Valid {
 		return false
 	}
-	claims := tkn.Claims.(*Claims)
-	return claims.Role == models.AdminUser
+
+	return claims.Role == string(models.AdminUser)
 }
 
 // func AuthenticateToken() (Token, Token) {

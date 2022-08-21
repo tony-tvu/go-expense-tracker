@@ -26,4 +26,4 @@ start:
 
 test:
 	go clean -testcache
-	go test ./...
+	go test ./... -v

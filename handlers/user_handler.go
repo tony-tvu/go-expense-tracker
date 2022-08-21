@@ -112,7 +112,7 @@ func LoginEmail(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *
 		}
 
 		// create access token
-		accessToken, err := auth.CreateAccessToken(ctx, a, u)
+		accessToken, err := auth.CreateAccessToken(ctx, a, u.ObjectID.Hex(), string(u.Role))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -124,5 +124,12 @@ func LoginEmail(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *
 			Expires:  accessToken.ExpiresAt,
 			HttpOnly: true,
 		})
+	}
+}
+
+func GetUserInfo(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "User info")
+
 	}
 }
