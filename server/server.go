@@ -2,12 +2,13 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
+	"sync"
+	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/rs/cors"
 	"github.com/tony-tvu/goexpense/app"
@@ -19,61 +20,61 @@ type Server struct {
 	App *app.App
 }
 
-func (s *Server) Init(ctx context.Context) {
+func (s *Server) Init(
+	ctx context.Context,
+	env,
+	port,
+	secret,
+	jwtKey,
+	refreshTokenExp,
+	accessTokenExp,
+	mongoURI,
+	database,
+	plaidClientID,
+	plaidSecret,
+	plaidEnv,
+	plaidCountryCodes,
+	plaidProducts string,
+) {
 	s.App = &app.App{}
-	if err := godotenv.Load(".env"); err != nil {
-		log.Println("No .env file found")
-	}
 
-	env := os.Getenv("ENV")
 	if env == "" {
 		env = "development"
 	}
-	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-	secret := os.Getenv("SECRET")
 	if secret == "" {
 		log.Fatal("failed to start - missing SECRET")
 	}
-	jwtKey := os.Getenv("JWT_KEY")
 	if jwtKey == "" {
 		log.Fatal("failed to start - missing JWT_KEY")
 	}
-
-	refreshTokenExpInt, err := strconv.Atoi(os.Getenv("REFRESH_TOKEN_EXP"))
-	if err != nil {
-		refreshTokenExpInt = 86400
-	}
-	accessTokenExpInt, err := strconv.Atoi(os.Getenv("ACCESS_TOKEN_EXP"))
-	if err != nil {
-		accessTokenExpInt = 900
-	}
-
-	mongoURI := os.Getenv("MONGODB_URI")
 	if mongoURI == "" {
 		log.Fatal("failed to start - missing MONGODB_URI")
 	}
-
-	database := os.Getenv("DATABASE")
 	if database == "" {
 		database = "goexpense_local"
 	}
 
-	plaidClientID := os.Getenv("PLAID_CLIENT_ID")
-	plaidSecret := os.Getenv("PLAID_SECRET")
-	plaidEnv := os.Getenv("PLAID_ENV")
-	plaidProducts := os.Getenv("PLAID_PRODUCTS")
-	plaidCountryCodes := os.Getenv("PLAID_COUNTRY_CODES")
+	refreshTokenExpInt, err := strconv.Atoi(refreshTokenExp)
+	if err != nil {
+		refreshTokenExpInt = 86400
+	}
+	accessTokenExpInt, err := strconv.Atoi(accessTokenExp)
+	if err != nil {
+		accessTokenExpInt = 900
+	}
+
 	if plaidClientID == "" || plaidSecret == "" || plaidEnv == "" || plaidProducts == "" || plaidCountryCodes == "" {
-		log.Fatal("failed to start - missing Plaid env values")
+		log.Println("plaid configs are missing - service will not work")
 	}
 	plaidCfg := plaid.NewConfiguration()
 	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", plaidClientID)
 	plaidCfg.AddDefaultHeader("PLAID-SECRET", plaidSecret)
 	plaidCfg.UseEnvironment(app.PlaidEnvs[plaidEnv])
 	plaidClient := plaid.NewAPIClient(plaidCfg)
+	s.App.PlaidClient = plaidClient
 
 	s.App = &app.App{
 		Env:             env,
@@ -88,14 +89,16 @@ func (s *Server) Init(ctx context.Context) {
 			Users:    "users",
 			Sessions: "sessions",
 		},
-		PlaidClient:  plaidClient,
-		CountryCodes: plaidCountryCodes,
-		Products:     plaidProducts,
+		PlaidClientID:     plaidClientID,
+		PlaidSecret:       plaidSecret,
+		PlaidEnv:          plaidEnv,
+		PlaidCountryCodes: plaidCountryCodes,
+		PlaidProducts:     plaidProducts,
 	}
 	s.App.Router = InitRouter(ctx, s.App)
 }
 
-func (s *Server) Run(ctx context.Context) {
+func (s *Server) Run(ctx context.Context, wg *sync.WaitGroup) {
 	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(s.App.MongoURI))
 	if err != nil {
 		log.Fatal(err)
@@ -104,12 +107,12 @@ func (s *Server) Run(ctx context.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	s.App.MongoClient = mongoclient
 	defer func() {
 		if err := mongoclient.Disconnect(ctx); err != nil {
 			log.Println("mongo has been disconnected: ", err)
 		}
 	}()
+	s.App.MongoClient = mongoclient
 
 	var handler http.Handler
 	if s.App.Env == "development" {
@@ -123,8 +126,24 @@ func (s *Server) Run(ctx context.Context) {
 		handler = s.App.Router
 	}
 
+	srv := &http.Server{
+		Handler:      handler,
+		Addr:         fmt.Sprintf(":%s", s.App.Port),
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+
+	s.App.Server = srv
 	log.Printf("Listening on port %s", s.App.Port)
-	if err := http.ListenAndServe(":"+s.App.Port, handler); err != nil {
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
+	// go func() {
+	//     defer wg.Done()
+
+	//     log.Printf("Listening on port %s", s.App.Port)
+	//     if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+	//         log.Fatal(err)
+	//     }
+	// }()
 }
