@@ -10,7 +10,7 @@ type App struct {
 	Env             string
 	Port            string
 	Secret          string
-	JwtKey          string
+	JwtKey          []byte
 	RefreshTokenExp int
 	AccessTokenExp  int
 	MongoURI        string

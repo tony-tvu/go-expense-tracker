@@ -79,7 +79,7 @@ func (s *Server) Init(ctx context.Context) {
 		Env:             env,
 		Port:            port,
 		Secret:          secret,
-		JwtKey:          jwtKey,
+		JwtKey:          []byte(jwtKey),
 		RefreshTokenExp: refreshTokenExpInt,
 		AccessTokenExp:  accessTokenExpInt,
 		MongoURI:        mongoURI,

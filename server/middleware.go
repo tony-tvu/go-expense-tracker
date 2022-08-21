@@ -1,18 +1,35 @@
 package server
 
 import (
-	"golang.org/x/time/rate"
+	"context"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/tony-tvu/goexpense/app"
+	"github.com/tony-tvu/goexpense/auth"
+
+	"golang.org/x/time/rate"
 )
 
 type Middleware func(http.HandlerFunc) http.HandlerFunc
 
-var Middlewares = []Middleware{
+var SharedMiddlewares = []Middleware{
 	Logging(),
 	RateLimit(),
 	NoCache(),
+}
+
+// Routes can be accessed by all users
+func LoginProtectedRoute() {
+
+}
+
+// Append additional middlewares along with SharedMiddlewares
+func UseMiddlewares(additional ...Middleware) []Middleware {
+	m := SharedMiddlewares
+	m = append(m, additional...)
+	return m
 }
 
 // Chain applies multiple middlewares to a http.HandlerFunc
@@ -50,7 +67,6 @@ func RateLimit() Middleware {
 			f(w, r)
 		}
 	}
-
 }
 
 var loginLimiter = rate.NewLimiter(1, 2)
@@ -65,8 +81,55 @@ func LoginRateLimit() Middleware {
 			f(w, r)
 		}
 	}
-
 }
+
+func LoginProtected(ctx context.Context, a *app.App) Middleware {
+	return func(f http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			accessCookie, _ := r.Cookie("goexpense_access")
+
+			// no access token - make user log in
+			if accessCookie == nil {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			isAccessValid := auth.IsTokenValid(a, accessCookie.Value)
+
+			// renew access token if expired, else proceed to next middleware
+			if !isAccessValid {
+
+				// find existing session (refresh_token)
+
+			}
+
+			f(w, r)
+		}
+	}
+}
+
+// func AdminOnly(a *app.App) Middleware {
+// 	return func(f http.HandlerFunc) http.HandlerFunc {
+// 		return func(w http.ResponseWriter, r *http.Request) {
+// 			accessCookie, err := r.Cookie("goexpense_access")
+// 			if err != nil {
+// 				log.Fatalf("Error occured while reading cookie")
+// 			}
+
+// 			// verify access token valid
+// 			isValid, accessClaims := auth.IsTokenValid(a, accessCookie.Value)
+// 			if !isValid {
+
+// 			}
+
+// 			if !loginLimiter.Allow() {
+// 				w.WriteHeader(http.StatusTooManyRequests)
+// 				return
+// 			}
+// 			f(w, r)
+// 		}
+// 	}
+// }
 
 var epoch = time.Unix(0, 0).Format(time.RFC1123)
 var noCacheHeaders = map[string]string{
