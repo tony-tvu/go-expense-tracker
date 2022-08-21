@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"os"
-	"sync"
 
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/server"
@@ -14,14 +13,12 @@ func main() {
 	if err := godotenv.Load(".env"); err != nil {
 		log.Println("No .env file found")
 	}
-	httpServerExitDone := &sync.WaitGroup{}
-	httpServerExitDone.Add(1)
 	ctx := context.Background()
 	s := server.Server{}
 	s.Init(
 		ctx,
-		os.Getenv("ENV"),
 		os.Getenv("PORT"),
+		os.Getenv("ENV"),
 		os.Getenv("SECRET"),
 		os.Getenv("JWT_KEY"),
 		os.Getenv("REFRESH_TOKEN_EXP"),
@@ -34,5 +31,19 @@ func main() {
 		os.Getenv("PLAID_COUNTRY_CODES"),
 		os.Getenv("PLAID_PRODUCTS"),
 	)
-	s.Run(ctx, httpServerExitDone)
+
+	// go func() {
+	// 	log.Printf("Listening on port %s", s.App.Port)
+	// 	err := s.App.Server.ListenAndServe()
+	// 	if err != nil {
+	// 		log.Println("While serving HTTP: ", err)
+	// 	}
+	// }()
+
+	log.Printf("Listening on port %s", s.App.Port)
+	err := s.App.Server.ListenAndServe()
+	if err != nil {
+		log.Println("While serving HTTP: ", err)
+	}
+
 }

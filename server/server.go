@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/plaid/plaid-go/plaid"
@@ -22,8 +22,8 @@ type Server struct {
 
 func (s *Server) Init(
 	ctx context.Context,
-	env,
 	port,
+	env,
 	secret,
 	jwtKey,
 	refreshTokenExp,
@@ -96,9 +96,7 @@ func (s *Server) Init(
 		PlaidProducts:     plaidProducts,
 	}
 	s.App.Router = InitRouter(ctx, s.App)
-}
 
-func (s *Server) Run(ctx context.Context, wg *sync.WaitGroup) {
 	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(s.App.MongoURI))
 	if err != nil {
 		log.Fatal(err)
@@ -117,7 +115,7 @@ func (s *Server) Run(ctx context.Context, wg *sync.WaitGroup) {
 	var handler http.Handler
 	if s.App.Env == "development" {
 		handler = cors.New(cors.Options{
-			AllowedOrigins:   []string{"http://localhost:3000"},
+			AllowedOrigins:   []string{"*"},
 			AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPut},
 			AllowedHeaders:   []string{"Content-Type", "Public-Token"},
 			AllowCredentials: true,
@@ -131,19 +129,9 @@ func (s *Server) Run(ctx context.Context, wg *sync.WaitGroup) {
 		Addr:         fmt.Sprintf(":%s", s.App.Port),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
+		BaseContext: func(l net.Listener) context.Context {
+			return ctx
+		},
 	}
-
 	s.App.Server = srv
-	log.Printf("Listening on port %s", s.App.Port)
-	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		log.Fatal(err)
-	}
-	// go func() {
-	//     defer wg.Done()
-
-	//     log.Printf("Listening on port %s", s.App.Port)
-	//     if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-	//         log.Fatal(err)
-	//     }
-	// }()
 }
