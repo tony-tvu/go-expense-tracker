@@ -76,19 +76,18 @@ Default expiration time: 24 hours
 */
 func CreateRefreshToken(ctx context.Context, a *app.App, u *models.User) (Token, error) {
 	exp := time.Now().Add(time.Duration(a.RefreshTokenExp) * time.Second)
-	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
+	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
 		UserId: u.ObjectID.Hex(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
-	})
-	refreshTokenStr, err := refreshToken.SignedString(a.JwtKey)
+	}).SignedString([]byte(a.JwtKey))
 	if err != nil {
 		return Token{}, errors.New("error creating refresh token")
 	}
 
-	return Token{Value: refreshTokenStr, ExpiresAt: exp}, nil
+	return Token{Value: refreshToken, ExpiresAt: exp}, nil
 }
 
 /*
@@ -102,26 +101,25 @@ Default expiration time: 15m
 func CreateAccessToken(ctx context.Context, a *app.App, userID, role string) (Token, error) {
 	exp := time.Now().Add(
 		time.Duration(a.AccessTokenExp) * time.Second)
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
+	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
 		UserId: userID,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
-	})
-	accessTokenStr, err := accessToken.SignedString(a.JwtKey)
+	}).SignedString([]byte(a.JwtKey))
 	if err != nil {
 		return Token{}, errors.New("error creating access token")
 	}
 
-	return Token{Value: accessTokenStr, ExpiresAt: exp}, nil
+	return Token{Value: accessToken, ExpiresAt: exp}, nil
 }
 
 func IsTokenValid(a *app.App, tokenStr string) (bool, *Claims) {
 	tkn, err := jwt.ParseWithClaims(tokenStr, &Claims{},
 		func(token *jwt.Token) (interface{}, error) {
-			return a.JwtKey, nil
+			return []byte(a.JwtKey), nil
 		})
 
 	claims := tkn.Claims.(*Claims)
@@ -135,7 +133,7 @@ func IsTokenValid(a *app.App, tokenStr string) (bool, *Claims) {
 func IsAdmin(a *app.App, tokenStr string) bool {
 	tkn, err := jwt.ParseWithClaims(tokenStr, &Claims{},
 		func(token *jwt.Token) (interface{}, error) {
-			return a.JwtKey, nil
+			return []byte(a.JwtKey), nil
 		})
 	claims := tkn.Claims.(*Claims)
 	if err != nil {

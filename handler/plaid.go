@@ -1,7 +1,6 @@
-package handlers
+package handler
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -20,8 +19,9 @@ will return a public_token. Send the public_token back to this api (GetAccessTok
 to make a request to plaid api for a permanent access_token and associated item_id,
 which can be used to get the user's transactions.
 */
-func CreateLinkToken(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *http.Request) {
+func CreateLinkToken(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		body := make(map[string]string)
 
 		countryCodes := []plaid.CountryCode{}
@@ -63,8 +63,9 @@ func CreateLinkToken(ctx context.Context, a *app.App) func(w http.ResponseWriter
 	}
 }
 
-func SetAccessToken(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *http.Request) {
+func SetAccessToken(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		publicToken := r.Header.Get("Public-Token")
 		if publicToken == "" {
 			w.WriteHeader(http.StatusBadRequest)

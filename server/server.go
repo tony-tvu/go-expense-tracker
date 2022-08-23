@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
-	"strconv"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/rs/cors"
 	"github.com/tony-tvu/goexpense/app"
+	"github.com/tony-tvu/goexpense/handler"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -20,118 +20,125 @@ type Server struct {
 	App *app.App
 }
 
-func (s *Server) Init(
-	ctx context.Context,
-	port,
-	env,
-	secret,
-	jwtKey,
-	refreshTokenExp,
-	accessTokenExp,
-	mongoURI,
-	database,
-	plaidClientID,
-	plaidSecret,
-	plaidEnv,
-	plaidCountryCodes,
-	plaidProducts string,
-) {
-	s.App = &app.App{}
-
-	if env == "" {
-		env = "development"
+func (s *Server) Initialize(ctx context.Context) {
+	if s.App.Env == "" {
+		s.App.Env = "development"
 	}
-	if port == "" {
-		port = "8080"
+	if s.App.Port == "" {
+		s.App.Port = "8080"
 	}
-	if secret == "" {
+	if s.App.Secret == "" {
 		log.Fatal("failed to start - missing SECRET")
 	}
-	if jwtKey == "" {
+	if string(s.App.JwtKey) == "" {
 		log.Fatal("failed to start - missing JWT_KEY")
 	}
-	if mongoURI == "" {
+	if s.App.MongoURI == "" {
 		log.Fatal("failed to start - missing MONGODB_URI")
 	}
-	if database == "" {
-		database = "goexpense_local"
+	if s.App.Db == "" {
+		s.App.Db = "goexpense_local"
 	}
 
-	refreshTokenExpInt, err := strconv.Atoi(refreshTokenExp)
-	if err != nil {
-		refreshTokenExpInt = 86400
-	}
-	accessTokenExpInt, err := strconv.Atoi(accessTokenExp)
-	if err != nil {
-		accessTokenExpInt = 900
-	}
-
-	if plaidClientID == "" || plaidSecret == "" || plaidEnv == "" || plaidProducts == "" || plaidCountryCodes == "" {
+	// Plaid client
+	if s.App.PlaidClientID != "" ||
+		s.App.PlaidSecret != "" ||
+		s.App.PlaidEnv != "" ||
+		s.App.PlaidProducts != "" ||
+		s.App.PlaidCountryCodes != "" {
+		plaidCfg := plaid.NewConfiguration()
+		plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", s.App.PlaidClientID)
+		plaidCfg.AddDefaultHeader("PLAID-SECRET", s.App.PlaidSecret)
+		plaidCfg.UseEnvironment(app.PlaidEnvs[s.App.PlaidEnv])
+		plaidClient := plaid.NewAPIClient(plaidCfg)
+		s.App.PlaidClient = plaidClient
+	} else {
 		log.Println("plaid configs are missing - service will not work")
 	}
-	plaidCfg := plaid.NewConfiguration()
-	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", plaidClientID)
-	plaidCfg.AddDefaultHeader("PLAID-SECRET", plaidSecret)
-	plaidCfg.UseEnvironment(app.PlaidEnvs[plaidEnv])
-	plaidClient := plaid.NewAPIClient(plaidCfg)
-	s.App.PlaidClient = plaidClient
 
-	s.App = &app.App{
-		Env:             env,
-		Port:            port,
-		Secret:          secret,
-		JwtKey:          []byte(jwtKey),
-		RefreshTokenExp: refreshTokenExpInt,
-		AccessTokenExp:  accessTokenExpInt,
-		MongoURI:        mongoURI,
-		Db:              database,
-		Coll: &app.Collections{
-			Users:    "users",
-			Sessions: "sessions",
-		},
-		PlaidClientID:     plaidClientID,
-		PlaidSecret:       plaidSecret,
-		PlaidEnv:          plaidEnv,
-		PlaidCountryCodes: plaidCountryCodes,
-		PlaidProducts:     plaidProducts,
+	// Mongo collections
+	s.App.Coll = &app.Collections{
+		Users:    "users",
+		Sessions: "sessions",
 	}
-	s.App.Router = InitRouter(ctx, s.App)
 
-	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(s.App.MongoURI))
-	if err != nil {
-		log.Fatal(err)
+	// Handlers
+	handlers := &app.Handlers{
+		// Finances
+		GetExpenses: Chain(handler.GetExpenses(s.App), UseMiddlewares()...),
+		// Health
+		Health: Chain(handler.Health, UseMiddlewares()...),
+		// Plaid
+		// TODO: add auth to this so only registered users can create link tokens
+		CreateLinkToken: Chain(handler.CreateLinkToken(s.App), UseMiddlewares()...),
+		SetAccessToken:  Chain(handler.SetAccessToken(s.App), UseMiddlewares()...),
+		// Users
+		CreateUser:  Chain(handler.CreateUser(s.App), UseMiddlewares()...),
+		GetUserInfo: Chain(handler.GetUserInfo(s.App), UseMiddlewares()...),
+		LoginEmail:  Chain(handler.LoginEmail(s.App), UseMiddlewares(LoginRateLimit())...),
+		// Web
+		ServeClient: Chain(handler.ServeClient("web/build", "index.html"), UseMiddlewares()...),
 	}
-	err = mongoclient.Ping(ctx, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err := mongoclient.Disconnect(ctx); err != nil {
-			log.Println("mongo has been disconnected: ", err)
-		}
-	}()
-	s.App.MongoClient = mongoclient
+	s.App.Handlers = handlers
 
-	var handler http.Handler
+	// Routes
+	router := mux.NewRouter()
+	// Finances
+	router.Handle("/api/expense", s.App.Handlers.GetExpenses).Methods("GET")
+	// Health
+	router.HandleFunc("/api/health", s.App.Handlers.Health).Methods("GET")
+	// Users
+	router.Handle("/api/create_user", s.App.Handlers.CreateUser).Methods("POST")
+	router.Handle("/api/login_email", s.App.Handlers.LoginEmail).Methods("POST")
+	router.Handle("/api/user_info", s.App.Handlers.GetUserInfo).Methods("GET")
+	// Plaid
+	router.Handle("/api/create_link_token", s.App.Handlers.CreateLinkToken).Methods("GET")
+	router.Handle("/api/set_access_token", s.App.Handlers.CreateLinkToken).Methods("POST")
+	// Web
+	router.PathPrefix("/").Handler(s.App.Handlers.CreateUser).Methods("GET")
+
+	var h http.Handler
 	if s.App.Env == "development" {
-		handler = cors.New(cors.Options{
+		h = cors.New(cors.Options{
 			AllowedOrigins:   []string{"*"},
 			AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPut},
 			AllowedHeaders:   []string{"Content-Type", "Public-Token"},
 			AllowCredentials: true,
-		}).Handler(s.App.Router)
+		}).Handler(router)
 	} else {
-		handler = s.App.Router
+		h = router
 	}
 
 	srv := &http.Server{
-		Handler:      handler,
+		Handler:      h,
 		Addr:         fmt.Sprintf(":%s", s.App.Port),
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
-		BaseContext: func(l net.Listener) context.Context {
-			return ctx
-		},
+		WriteTimeout: 5 * time.Second,
+		ReadTimeout:  5 * time.Second,
 	}
 	s.App.Server = srv
+}
+
+func (s *Server) Run(ctx context.Context) {
+	if s.App.Env != "test" {
+		mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(s.App.MongoURI))
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = mongoclient.Ping(ctx, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer func() {
+			if err := mongoclient.Disconnect(ctx); err != nil {
+				log.Println("mongo has been disconnected: ", err)
+			}
+		}()
+		s.App.MongoClient = mongoclient
+	}
+
+	log.Printf("Listening on port %s", s.App.Port)
+	err := s.App.Server.ListenAndServe()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

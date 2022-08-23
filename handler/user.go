@@ -1,9 +1,9 @@
-package handlers
+package handler
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -18,8 +18,10 @@ type Credentials struct {
 	Password string
 }
 
-func CreateUser(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *http.Request) {
+func CreateUser(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
 		var u models.User
 		err := json.NewDecoder(r.Body).Decode(&u)
 
@@ -48,6 +50,7 @@ func CreateUser(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *
 
 		_, err = coll.InsertOne(ctx, doc)
 		if err != nil {
+			log.Printf("%v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -56,8 +59,10 @@ func CreateUser(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *
 	}
 }
 
-func LoginEmail(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *http.Request) {
+func LoginEmail(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
 		var c Credentials
 		err := json.NewDecoder(r.Body).Decode(&c)
 		if err != nil {
@@ -127,9 +132,24 @@ func LoginEmail(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *
 	}
 }
 
-func GetUserInfo(ctx context.Context, a *app.App) func(w http.ResponseWriter, r *http.Request) {
+func GetUserInfo(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "User info")
+		ctx := r.Context()
 
+		var u *models.User
+		coll := a.MongoClient.Database(a.Db).Collection(a.Coll.Users)
+		err := coll.FindOne(ctx, bson.D{{Key: "email", Value: "test@email.com"}}).Decode(&u)
+		
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		
+
+		w.Header().Set("Content-Type", "application/json")
+		body := make(map[string]string)
+		body["message"] = u.Email
+		jData, _ := json.Marshal(body)
+		w.Write(jData)
 	}
 }

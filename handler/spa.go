@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"net/http"
@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-func SpaHandler(staticPath string, indexPath string) func(w http.ResponseWriter, r *http.Request) {
+func ServeClient(staticPath string, indexPath string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get the absolute path to prevent directory traversal
 		path, err := filepath.Abs(r.URL.Path)
