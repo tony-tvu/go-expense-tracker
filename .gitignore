@@ -42,7 +42,9 @@ sketch
 
 # env
 .env
+.env.development
 .env.production
+
 
 # Misc
 commands.txt

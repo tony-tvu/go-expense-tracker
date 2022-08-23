@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { usePlaidLink } from 'react-plaid-link'
-import Button from 'plaid-threads/Button'
+import { Button } from '@chakra-ui/react'
 import {
   Box,
   Grid,
@@ -16,9 +16,43 @@ import logger from '../logger'
 function Homepage() {
   const [linkToken, setLinkToken] = useState(null)
 
-  // fetch link_token on page load
+  async function onGoogleLoginSuccess(response) {
+    console.log(response)
+
+    // login user from backend
+    const res = await fetch(
+      `${process.env.REACT_APP_API_URL}/api/login`,
+      {
+        method: 'POST',
+        headers: {
+          'Google-ID-Token': response.credential,
+        },
+      }
+    ).catch(e => {
+      logger('error logging in with google', e)
+    })
+    if (!res) return
+  }
+
+  function signOut() {
+    google.accounts.id.disableAutoSelect();
+  }
+
+
   useEffect(() => {
+    // fetch link_token on page load
     fetchLinkToken()
+
+    /* global google */
+    google.accounts.id.initialize({
+      client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+      callback: onGoogleLoginSuccess
+    })
+
+    google.accounts.id.renderButton(
+      document.getElementById("signInDiv"),
+      { theme: "outline", size: "large" }
+    )
   }, [])
 
   const navigate = useNavigate()
@@ -47,7 +81,7 @@ function Homepage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Public-Token': public_token
+          'Plaid-Public-Token': public_token
         },
       }
     ).catch(e => {
@@ -64,8 +98,12 @@ function Homepage() {
   return (
     <div>
       <Flex color="white" minH="85vh">
-        <Button type="button" large onClick={() => open()} disabled={!ready}>
+        <div id="signInDiv"></div>
+        <Button type="button" onClick={() => open()} disabled={!ready} colorScheme='teal' size='md'>
           Connect Account
+        </Button>
+        <Button type="button" onClick={() => signOut()} colorScheme='teal' size='md'>
+          Sign Out
         </Button>
         {/* <Center w="500px" bg="green.500">
           <Text>Box 1</Text>

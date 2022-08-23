@@ -1,14 +1,12 @@
 package server
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/time/rate"
 )
@@ -82,26 +80,27 @@ func LoginRateLimit() Middleware {
 }
 
 // Restrict access to logged in users only
-func LoginProtected(ctx context.Context, a *app.App) Middleware {
+func LoginProtected(a *app.App) Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			cookie, _ := r.Cookie("goexpense_access")
-			accessToken := cookie.Value
+			ctx := r.Context()
+			cookie, err := r.Cookie("goexpense_access")
 
 			// no access token - make user log in
-			if accessToken == "" {
+			if err != nil {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
+			accessToken := cookie.Value
 
 			// if token is invalid/expired - check for existing session and renew access token
 			isAccessValid, claims := auth.IsTokenValid(a, accessToken)
 			if !isAccessValid {
 
 				// find existing session (refresh_token)
-				var s *models.Session
-				coll := a.MongoClient.Database(a.Db).Collection(a.Coll.Sessions)
-				err := coll.FindOne(ctx, bson.D{{Key: "user_id", Value: claims.UserId}}).Decode(&s)
+				var s *auth.Session
+				err := a.Collections.Sessions.FindOne(
+					ctx, bson.D{{Key: "user_id", Value: claims.UserId}}).Decode(&s)
 
 				// session not found - make user log in
 				if err != nil {

@@ -3,6 +3,7 @@ package app
 import (
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/plaid/plaid-go/plaid"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -10,25 +11,33 @@ import (
 type App struct {
 	Env               string
 	Port              string
-	Secret            string
+	EncryptKey        string
 	JwtKey            string
 	RefreshTokenExp   int
 	AccessTokenExp    int
 	MongoURI          string
-	Db                string
-	Coll              *Collections
-	MongoClient       *mongo.Client
+	DbName            string
+	Collections       *Collections
 	PlaidClient       *plaid.APIClient
 	PlaidClientID     string
 	PlaidSecret       string
 	PlaidEnv          string
 	PlaidCountryCodes string
 	PlaidProducts     string
-	Server            *http.Server
+	GoogleClientID    string
 	Handlers          *Handlers
+	Router            *mux.Router
+}
+
+type Collections struct {
+	Users    *mongo.Collection
+	Sessions *mongo.Collection
 }
 
 type Handlers struct {
+	// Auth
+	GoogleLogin http.HandlerFunc
+	EmailLogin http.HandlerFunc
 	// Health
 	Health http.HandlerFunc
 	// Finances
@@ -43,11 +52,6 @@ type Handlers struct {
 	UserInfo    http.HandlerFunc
 	// Web
 	ServeClient http.HandlerFunc
-}
-
-type Collections struct {
-	Users    string
-	Sessions string
 }
 
 var PlaidEnvs = map[string]plaid.Environment{

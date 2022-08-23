@@ -1,4 +1,4 @@
-package handler
+package plaidapi
 
 import (
 	"encoding/json"
@@ -66,7 +66,7 @@ func CreateLinkToken(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 func SetAccessToken(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		publicToken := r.Header.Get("Public-Token")
+		publicToken := r.Header.Get("Plaid-Public-Token")
 		if publicToken == "" {
 			w.WriteHeader(http.StatusBadRequest)
 			return

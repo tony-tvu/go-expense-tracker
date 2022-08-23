@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,7 +12,10 @@ import (
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/rs/cors"
 	"github.com/tony-tvu/goexpense/app"
-	"github.com/tony-tvu/goexpense/handler"
+	"github.com/tony-tvu/goexpense/auth"
+	"github.com/tony-tvu/goexpense/plaidapi"
+	"github.com/tony-tvu/goexpense/user"
+	"github.com/tony-tvu/goexpense/web"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -20,15 +24,9 @@ type Server struct {
 	App *app.App
 }
 
-func (s *Server) Initialize(ctx context.Context) {
-	if s.App.Env == "" {
-		s.App.Env = "development"
-	}
-	if s.App.Port == "" {
-		s.App.Port = "8080"
-	}
-	if s.App.Secret == "" {
-		log.Fatal("failed to start - missing SECRET")
+func (s *Server) Initialize() {
+	if string(s.App.EncryptKey) == "" {
+		log.Fatal("failed to start - missing ENCRYPT_KEY")
 	}
 	if string(s.App.JwtKey) == "" {
 		log.Fatal("failed to start - missing JWT_KEY")
@@ -36,8 +34,14 @@ func (s *Server) Initialize(ctx context.Context) {
 	if s.App.MongoURI == "" {
 		log.Fatal("failed to start - missing MONGODB_URI")
 	}
-	if s.App.Db == "" {
-		s.App.Db = "goexpense_local"
+	if s.App.Env == "" {
+		s.App.Env = "development"
+	}
+	if s.App.Port == "" {
+		s.App.Port = "8080"
+	}
+	if s.App.GoogleClientID == "" {
+		log.Println("Google configs are missing - Google auth will not work")
 	}
 
 	// Plaid client
@@ -56,40 +60,35 @@ func (s *Server) Initialize(ctx context.Context) {
 		log.Println("plaid configs are missing - service will not work")
 	}
 
-	// Mongo collections
-	s.App.Coll = &app.Collections{
-		Users:    "users",
-		Sessions: "sessions",
-	}
-
 	// Handlers
 	handlers := &app.Handlers{
-		// Finances
-		GetExpenses: Chain(handler.GetExpenses(s.App), UseMiddlewares()...),
+		// Auth
+		GoogleLogin: Chain(auth.GoogleLogin(s.App), UseMiddlewares(LoginRateLimit())...),
+		EmailLogin: Chain(auth.GoogleLogin(s.App), UseMiddlewares(LoginRateLimit())...),
 		// Health
-		Health: Chain(handler.Health, UseMiddlewares()...),
+		Health: Chain(Health, UseMiddlewares()...),
 		// Plaid
 		// TODO: add auth to this so only registered users can create link tokens
-		CreateLinkToken: Chain(handler.CreateLinkToken(s.App), UseMiddlewares()...),
-		SetAccessToken:  Chain(handler.SetAccessToken(s.App), UseMiddlewares()...),
+		CreateLinkToken: Chain(plaidapi.CreateLinkToken(s.App), UseMiddlewares()...),
+		SetAccessToken:  Chain(plaidapi.SetAccessToken(s.App), UseMiddlewares()...),
 		// Users
-		CreateUser:  Chain(handler.CreateUser(s.App), UseMiddlewares()...),
-		GetUserInfo: Chain(handler.GetUserInfo(s.App), UseMiddlewares()...),
-		LoginEmail:  Chain(handler.LoginEmail(s.App), UseMiddlewares(LoginRateLimit())...),
+		CreateUser:  Chain(user.Create(s.App), UseMiddlewares()...),
+		GetUserInfo: Chain(user.GetInfo(s.App), UseMiddlewares(LoginProtected(s.App))...),
 		// Web
-		ServeClient: Chain(handler.ServeClient("web/build", "index.html"), UseMiddlewares()...),
+		ServeClient: Chain(web.Serve("web/build", "index.html"), UseMiddlewares()...),
 	}
 	s.App.Handlers = handlers
 
 	// Routes
 	router := mux.NewRouter()
+	// Auth
+	router.Handle("/api/login", s.App.Handlers.GoogleLogin).Methods("POST")
 	// Finances
 	router.Handle("/api/expense", s.App.Handlers.GetExpenses).Methods("GET")
 	// Health
 	router.HandleFunc("/api/health", s.App.Handlers.Health).Methods("GET")
 	// Users
 	router.Handle("/api/create_user", s.App.Handlers.CreateUser).Methods("POST")
-	router.Handle("/api/login_email", s.App.Handlers.LoginEmail).Methods("POST")
 	router.Handle("/api/user_info", s.App.Handlers.GetUserInfo).Methods("GET")
 	// Plaid
 	router.Handle("/api/create_link_token", s.App.Handlers.CreateLinkToken).Methods("GET")
@@ -97,25 +96,7 @@ func (s *Server) Initialize(ctx context.Context) {
 	// Web
 	router.PathPrefix("/").Handler(s.App.Handlers.CreateUser).Methods("GET")
 
-	var h http.Handler
-	if s.App.Env == "development" {
-		h = cors.New(cors.Options{
-			AllowedOrigins:   []string{"*"},
-			AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPut},
-			AllowedHeaders:   []string{"Content-Type", "Public-Token"},
-			AllowCredentials: true,
-		}).Handler(router)
-	} else {
-		h = router
-	}
-
-	srv := &http.Server{
-		Handler:      h,
-		Addr:         fmt.Sprintf(":%s", s.App.Port),
-		WriteTimeout: 5 * time.Second,
-		ReadTimeout:  5 * time.Second,
-	}
-	s.App.Server = srv
+	s.App.Router = router
 }
 
 func (s *Server) Run(ctx context.Context) {
@@ -133,12 +114,45 @@ func (s *Server) Run(ctx context.Context) {
 				log.Println("mongo has been disconnected: ", err)
 			}
 		}()
-		s.App.MongoClient = mongoclient
+		if s.App.DbName == "" {
+			s.App.DbName = "goexpense_local"
+		}
+		s.App.Collections = &app.Collections{
+			Users:    mongoclient.Database(s.App.DbName).Collection("users"),
+			Sessions: mongoclient.Database(s.App.DbName).Collection("sessions"),
+		}
+	}
+
+	var h http.Handler
+	if s.App.Env == "development" {
+		h = cors.New(cors.Options{
+			AllowedOrigins:   []string{"*"},
+			AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPut},
+			AllowedHeaders:   []string{"Content-Type", "Plaid-Public-Token", "Google-ID-Token"},
+			AllowCredentials: true,
+		}).Handler(s.App.Router)
+	} else {
+		h = s.App.Router
+	}
+
+	srv := &http.Server{
+		Handler:      h,
+		Addr:         fmt.Sprintf(":%s", s.App.Port),
+		WriteTimeout: 5 * time.Second,
+		ReadTimeout:  5 * time.Second,
 	}
 
 	log.Printf("Listening on port %s", s.App.Port)
-	err := s.App.Server.ListenAndServe()
+	err := srv.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func Health(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	body := make(map[string]string)
+	body["message"] = "Ok"
+	jData, _ := json.Marshal(body)
+	w.Write(jData)
 }

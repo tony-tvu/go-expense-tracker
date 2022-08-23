@@ -10,9 +10,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-
 	"github.com/tony-tvu/goexpense/app"
-	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/user"
 )
 
 type Claims struct {
@@ -74,7 +73,7 @@ These can be revoked by deleting the refresh_token in the collection.
 
 Default expiration time: 24 hours
 */
-func CreateRefreshToken(ctx context.Context, a *app.App, u *models.User) (Token, error) {
+func CreateRefreshToken(ctx context.Context, a *app.App, u *user.User) (Token, error) {
 	exp := time.Now().Add(time.Duration(a.RefreshTokenExp) * time.Second)
 	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
 		UserId: u.ObjectID.Hex(),
@@ -143,7 +142,7 @@ func IsAdmin(a *app.App, tokenStr string) bool {
 		return false
 	}
 
-	return claims.Role == string(models.AdminUser)
+	return claims.Role == string(user.AdminUser)
 }
 
 // func AuthenticateToken() (Token, Token) {
