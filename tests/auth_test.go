@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"time"
 
 	"log"
 	"net/http"
@@ -75,54 +74,54 @@ func TestMain(m *testing.M) {
 }
 
 // User needs to be logged in to access GetUserInfo
-func TestGetUserInfo(t *testing.T) {
-	// setup
-	s.App.Collections.Users.Drop(context.TODO())
-	s.App.Collections.Sessions.Drop(context.TODO())
+// func TestGetUserInfo(t *testing.T) {
+// 	// setup
+// 	s.App.Collections.Users.Drop(context.TODO())
+// 	s.App.Collections.Sessions.Drop(context.TODO())
 
-	s.App.Collections.Users.InsertOne(context.TODO(), bson.D{
-		{Key: "email", Value: email},
-		{Key: "name", Value: name},
-		{Key: "password",
-			// Encrypted password
-			Value: "66777bfc0f53772bb2f97e4bb5a4746d80f7bb4a0f416aade824a5001da43452393faf5b"},
-		{Key: "role", Value: user.ExternalUser},
-		{Key: "verified", Value: true},
-		{Key: "created_at", Value: time.Now()},
-	})
-	writer := httptest.NewRecorder()
+// 	s.App.Collections.Users.InsertOne(context.TODO(), bson.D{
+// 		{Key: "email", Value: email},
+// 		{Key: "name", Value: name},
+// 		{Key: "password",
+// 			// Encrypted password
+// 			Value: "66777bfc0f53772bb2f97e4bb5a4746d80f7bb4a0f416aade824a5001da43452393faf5b"},
+// 		{Key: "role", Value: user.ExternalUser},
+// 		{Key: "verified", Value: true},
+// 		{Key: "created_at", Value: time.Now()},
+// 	})
+// 	writer := httptest.NewRecorder()
 
-	// log user in
-	m, body := map[string]string{
-		"email":    "test@email.com",
-		"password": "password"},
-		new(bytes.Buffer)
-	json.NewEncoder(body).Encode(m)
+// 	// log user in
+// 	m, body := map[string]string{
+// 		"email":    "test@email.com",
+// 		"password": "password"},
+// 		new(bytes.Buffer)
+// 	json.NewEncoder(body).Encode(m)
 
-	loginHandler := http.HandlerFunc(s.App.Handlers.LoginEmail)
-	loginReq := httptest.NewRequest(http.MethodPost, "/", body)
-	loginHandler.ServeHTTP(writer, loginReq)
+// 	loginHandler := http.HandlerFunc(s.App.Handlers.LoginEmail)
+// 	loginReq := httptest.NewRequest(http.MethodPost, "/", body)
+// 	loginHandler.ServeHTTP(writer, loginReq)
 
-	assert.Equal(t, http.StatusOK, writer.Code)
+// 	assert.Equal(t, http.StatusOK, writer.Code)
 
-	// infoHandler := http.HandlerFunc(s.App.Handlers.GetUserInfo)
-	// infoReq := httptest.NewRequest(http.MethodGet, "/", nil)
+// 	infoHandler := http.HandlerFunc(s.App.Handlers.GetUserInfo)
+// 	infoReq := httptest.NewRequest(http.MethodGet, "/", nil)
 
-	// // when
-	// infoHandler.ServeHTTP(writer, infoReq)
+// 	// when
+// 	infoHandler.ServeHTTP(writer, infoReq)
 
-	// // then: status is OK
-	// assert.Equal(t, http.StatusOK, writer.Code)
+// 	// then: status is OK
+// 	assert.Equal(t, http.StatusOK, writer.Code)
 
-	// // and: body has correct data
-	// type Body struct {
-	// 	Message string `json:"message"`
-	// }
+// 	// and: body has correct data
+// 	type Body struct {
+// 		Message string `json:"message"`
+// 	}
 
-	// var b Body
-	// json.NewDecoder(writer.Body).Decode(&b)
-	// assert.Equal(t, "test@email.com", b.Message)
-}
+// 	var b Body
+// 	json.NewDecoder(writer.Body).Decode(&b)
+// 	assert.Equal(t, "test@email.com", b.Message)
+// }
 
 func TestEmailLogin(t *testing.T) {
 	// setup
