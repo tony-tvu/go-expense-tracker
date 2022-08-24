@@ -2,7 +2,6 @@ package auth
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -10,7 +9,7 @@ import (
 	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"google.golang.org/api/idtoken"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Session struct {
@@ -24,27 +23,6 @@ type Session struct {
 type Credentials struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
-}
-
-func GoogleLogin(a *app.App) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		idToken := r.Header.Get("Google-ID-Token")
-
-		if idToken == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		payload, err := idtoken.Validate(ctx, idToken, a.GoogleClientID)
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		fmt.Print(payload.Claims)
-	}
 }
 
 func EmailLogin(a *app.App) func(w http.ResponseWriter, r *http.Request) {
@@ -67,8 +45,8 @@ func EmailLogin(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// verify password
-		decrypted, _ := Decrypt(a.EncryptKey, u.Password)
-		if c.Password != decrypted {
+		err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(c.Password))
+		if err != nil {
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}

@@ -11,7 +11,6 @@ import (
 type App struct {
 	Env               string
 	Port              string
-	EncryptKey        string
 	JwtKey            string
 	RefreshTokenExp   int
 	AccessTokenExp    int
@@ -24,7 +23,6 @@ type App struct {
 	PlaidEnv          string
 	PlaidCountryCodes string
 	PlaidProducts     string
-	GoogleClientID    string
 	Handlers          *Handlers
 	Router            *mux.Router
 }
@@ -36,7 +34,6 @@ type Collections struct {
 
 type Handlers struct {
 	// Auth
-	GoogleLogin http.HandlerFunc
 	EmailLogin http.HandlerFunc
 	// Health
 	Health http.HandlerFunc

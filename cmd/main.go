@@ -18,7 +18,6 @@ func main() {
 		App: &app.App{
 			Env:               os.Getenv("ENV"),
 			Port:              os.Getenv("PORT"),
-			EncryptKey:        os.Getenv("ENCRYPT_KEY"),
 			JwtKey:            os.Getenv("JWT_KEY"),
 			RefreshTokenExp:   86400,
 			AccessTokenExp:    900,
@@ -29,7 +28,6 @@ func main() {
 			PlaidEnv:          os.Getenv("PLAID_ENV"),
 			PlaidCountryCodes: "US,CA",
 			PlaidProducts:     "auth,transactions",
-			GoogleClientID:    os.Getenv("GOOGLE_CLIENT_ID"),
 		},
 	}
 	s.Initialize()

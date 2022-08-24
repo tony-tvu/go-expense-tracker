@@ -1,4 +1,4 @@
-package smoketest
+package tests
 
 import (
 	"bytes"
@@ -120,3 +120,12 @@ func TestGetUserInfo(t *testing.T) {
 	// json.NewDecoder(writer.Body).Decode(&b)
 	// assert.Equal(t, "test@email.com", b.Message)
 }
+
+// func TestEmailLogin(t *testing.T) {
+// 	// setup
+// 	s.App.Collections.Users.Drop(context.TODO())
+// 	s.App.Collections.Sessions.Drop(context.TODO())
+// 	writer := httptest.NewRecorder()
+
+
+// }

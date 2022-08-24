@@ -16,43 +16,10 @@ import logger from '../logger'
 function Homepage() {
   const [linkToken, setLinkToken] = useState(null)
 
-  async function onGoogleLoginSuccess(response) {
-    console.log(response)
-
-    // login user from backend
-    const res = await fetch(
-      `${process.env.REACT_APP_API_URL}/api/login`,
-      {
-        method: 'POST',
-        headers: {
-          'Google-ID-Token': response.credential,
-        },
-      }
-    ).catch(e => {
-      logger('error logging in with google', e)
-    })
-    if (!res) return
-  }
-
-  function signOut() {
-    google.accounts.id.disableAutoSelect();
-  }
-
 
   useEffect(() => {
     // fetch link_token on page load
     fetchLinkToken()
-
-    /* global google */
-    google.accounts.id.initialize({
-      client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
-      callback: onGoogleLoginSuccess
-    })
-
-    google.accounts.id.renderButton(
-      document.getElementById("signInDiv"),
-      { theme: "outline", size: "large" }
-    )
   }, [])
 
   const navigate = useNavigate()
@@ -98,12 +65,8 @@ function Homepage() {
   return (
     <div>
       <Flex color="white" minH="85vh">
-        <div id="signInDiv"></div>
         <Button type="button" onClick={() => open()} disabled={!ready} colorScheme='teal' size='md'>
           Connect Account
-        </Button>
-        <Button type="button" onClick={() => signOut()} colorScheme='teal' size='md'>
-          Sign Out
         </Button>
         {/* <Center w="500px" bg="green.500">
           <Text>Box 1</Text>

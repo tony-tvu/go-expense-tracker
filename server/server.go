@@ -25,9 +25,6 @@ type Server struct {
 }
 
 func (s *Server) Initialize() {
-	if string(s.App.EncryptKey) == "" {
-		log.Fatal("failed to start - missing ENCRYPT_KEY")
-	}
 	if string(s.App.JwtKey) == "" {
 		log.Fatal("failed to start - missing JWT_KEY")
 	}
@@ -39,9 +36,6 @@ func (s *Server) Initialize() {
 	}
 	if s.App.Port == "" {
 		s.App.Port = "8080"
-	}
-	if s.App.GoogleClientID == "" {
-		log.Println("Google configs are missing - Google auth will not work")
 	}
 
 	// Plaid client
@@ -63,8 +57,7 @@ func (s *Server) Initialize() {
 	// Handlers
 	handlers := &app.Handlers{
 		// Auth
-		GoogleLogin: Chain(auth.GoogleLogin(s.App), UseMiddlewares(LoginRateLimit())...),
-		EmailLogin: Chain(auth.GoogleLogin(s.App), UseMiddlewares(LoginRateLimit())...),
+		EmailLogin: Chain(auth.EmailLogin(s.App), UseMiddlewares(LoginRateLimit())...),
 		// Health
 		Health: Chain(Health, UseMiddlewares()...),
 		// Plaid
@@ -82,7 +75,7 @@ func (s *Server) Initialize() {
 	// Routes
 	router := mux.NewRouter()
 	// Auth
-	router.Handle("/api/login", s.App.Handlers.GoogleLogin).Methods("POST")
+	router.Handle("/api/email_login", s.App.Handlers.EmailLogin).Methods("POST")
 	// Finances
 	router.Handle("/api/expense", s.App.Handlers.GetExpenses).Methods("GET")
 	// Health

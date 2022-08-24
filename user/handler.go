@@ -7,6 +7,7 @@ import (
 
 	"github.com/tony-tvu/goexpense/app"
 	"go.mongodb.org/mongo-driver/bson"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Create(a *app.App) func(w http.ResponseWriter, r *http.Request) {
@@ -21,17 +22,18 @@ func Create(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Encrypt password
-		// encrypted, err := auth.Encrypt(a.Secret, u.Password)
-		// if err != nil {
-		// 	w.WriteHeader(http.StatusInternalServerError)
-		// 	return
-		// }
+		// Hash password
+		hash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 		// Save new user
 		doc := &bson.D{
 			{Key: "email", Value: u.Email},
 			{Key: "name", Value: u.Name},
+			{Key: "password", Value: string(hash)},
 			{Key: "role", Value: ExternalUser},
 			{Key: "verified", Value: false},
 			{Key: "created_at", Value: time.Now()},
