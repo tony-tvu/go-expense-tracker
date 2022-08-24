@@ -132,7 +132,11 @@ func (s *Server) Run(ctx context.Context) {
 			AllowCredentials: true,
 		}).Handler(s.App.Router)
 	} else {
-		h = s.App.Router
+		h = cors.New(cors.Options{
+			AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPut},
+			AllowedHeaders:   []string{"Content-Type", "Plaid-Public-Token", "Google-ID-Token"},
+			AllowCredentials: true,
+		}).Handler(s.App.Router)
 	}
 
 	srv := &http.Server{
