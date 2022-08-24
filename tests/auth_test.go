@@ -14,6 +14,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tony-tvu/goexpense/app"
+	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/server"
 	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/bson"
@@ -132,6 +133,7 @@ func TestEmailLogin(t *testing.T) {
 
 	// create user
 	m, body := map[string]string{
+		"name":     name,
 		"email":    email,
 		"password": password},
 		new(bytes.Buffer)
@@ -176,4 +178,15 @@ func TestEmailLogin(t *testing.T) {
 		httptest.NewRequest(http.MethodPost, "/", body))
 
 	assert.Equal(t, http.StatusOK, writer.Code)
+
+	// and: user login session should be created
+	var u *user.User
+	s.App.Collections.Users.FindOne(context.TODO(),
+		bson.D{{Key: "email", Value: email}}).Decode(&u)
+
+	var ss *auth.Session
+	s.App.Collections.Sessions.FindOne(context.TODO(),
+		bson.D{{Key: "user_id", Value: u.ObjectID.Hex()}}).Decode(&ss)
+
+	assert.NotNil(t, ss)
 }
