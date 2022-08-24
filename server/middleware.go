@@ -64,7 +64,7 @@ func RateLimit() Middleware {
 	}
 }
 
-var loginLimiter = rate.NewLimiter(1, 2)
+var loginLimiter = rate.NewLimiter(1, 10)
 
 // Limit number of login attemps per second
 func LoginRateLimit() Middleware {

@@ -22,9 +22,10 @@ import (
 )
 
 var (
-	s     *server.Server
-	name  string
-	email string
+	s        *server.Server
+	name     string
+	email    string
+	password string
 )
 
 func TestMain(m *testing.M) {
@@ -63,6 +64,7 @@ func TestMain(m *testing.M) {
 
 	name = "Test"
 	email = "test@email.com"
+	password = "password123"
 
 	// Run tests
 	exitVal := m.Run()
@@ -121,11 +123,57 @@ func TestGetUserInfo(t *testing.T) {
 	// assert.Equal(t, "test@email.com", b.Message)
 }
 
-// func TestEmailLogin(t *testing.T) {
-// 	// setup
-// 	s.App.Collections.Users.Drop(context.TODO())
-// 	s.App.Collections.Sessions.Drop(context.TODO())
-// 	writer := httptest.NewRecorder()
+func TestEmailLogin(t *testing.T) {
+	// setup
+	s.App.Collections.Users.Drop(context.TODO())
+	s.App.Collections.Sessions.Drop(context.TODO())
+	writer := httptest.NewRecorder()
+	lh := http.HandlerFunc(s.App.Handlers.EmailLogin)
 
+	// create user
+	m, body := map[string]string{
+		"email":    email,
+		"password": password},
+		new(bytes.Buffer)
+	json.NewEncoder(body).Encode(m)
+	ch := http.HandlerFunc(s.App.Handlers.CreateUser)
+	ch.ServeHTTP(writer,
+		httptest.NewRequest(http.MethodPost, "/", body))
 
-// }
+	// when: login with wrong password
+	writer = httptest.NewRecorder()
+	m, body = map[string]string{
+		"email":    email,
+		"password": "wrongPassword"},
+		new(bytes.Buffer)
+	json.NewEncoder(body).Encode(m)
+	lh.ServeHTTP(writer,
+		httptest.NewRequest(http.MethodPost, "/", body))
+
+	// then: 403 returned
+	assert.Equal(t, http.StatusForbidden, writer.Code)
+
+	// and: login with unfound email
+	writer = httptest.NewRecorder()
+	m, body = map[string]string{
+		"email":    "unfound@email.com",
+		"password": password},
+		new(bytes.Buffer)
+	json.NewEncoder(body).Encode(m)
+	lh.ServeHTTP(writer,
+		httptest.NewRequest(http.MethodPost, "/", body))
+
+	assert.Equal(t, http.StatusNotFound, writer.Code)
+
+	// and: login with correct password
+	writer = httptest.NewRecorder()
+	m, body = map[string]string{
+		"email":    email,
+		"password": password},
+		new(bytes.Buffer)
+	json.NewEncoder(body).Encode(m)
+	lh.ServeHTTP(writer,
+		httptest.NewRequest(http.MethodPost, "/", body))
+
+	assert.Equal(t, http.StatusOK, writer.Code)
+}
