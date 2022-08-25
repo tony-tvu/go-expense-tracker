@@ -14,11 +14,11 @@ const (
 )
 
 type User struct {
-	ObjectID  primitive.ObjectID `bson:"_id" json:"_id"`
-	Name      string             `json:"name"`
-	Email     string             `json:"email"`
-	Password  string             `json:"password"`
-	Role      Role               `json:"role"`
-	Verified  bool               `json:"verified"`
-	CreatedAt time.Time          `json:"created_at"`
+	ObjectID  primitive.ObjectID `json:"_id" bson:"_id"`
+	Name      string             `json:"name" bson:"name"`
+	Email     string             `json:"email" bson:"email"`
+	Password  string             `json:"password" bson:"password"`
+	Role      Role               `json:"role" bson:"role"`
+	Verified  bool               `json:"verified" bson:"verified"`
+	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"testing"
 	"time"
@@ -71,13 +70,18 @@ func TestLoginProtectedLoggedIn(t *testing.T) {
 	cookies = GetCookies(t, res.Cookies())
 	assert.NotEqual(t, original_token, cookies["goexpense_access"])
 
+	// and: returned user info is correct
 	var u *user.User
 	json.NewDecoder(res.Body).Decode(&u)
-
-	log.Printf("%v", u)
+	assert.Equal(t, name, u.Name)
+	assert.Equal(t, email, u.Email)
+	assert.Equal(t, "", u.Password)
+	assert.Equal(t, false, u.Verified)
+	assert.Equal(t, user.ExternalUser, u.Role)
 
 	// and: wait for refresh_token to expire
 	time.Sleep(1 * time.Second)
+	
 	// make request with expired access_token
 	res, _ = client.Do(req)
 
