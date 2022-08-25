@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/tony-tvu/goexpense/app"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -38,7 +40,7 @@ func Create(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 			{Key: "verified", Value: false},
 			{Key: "created_at", Value: time.Now()},
 		}
-		_, err = a.Collections.Users.InsertOne(ctx, doc)
+		_, err = a.Users.InsertOne(ctx, doc)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -49,19 +51,41 @@ func Create(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 func GetInfo(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		cookie, err := r.Cookie("goexpense_access")
+
+		// no access token - make user log in
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		type Claims struct {
+			UserID string `json:"user_id"`
+			jwt.RegisteredClaims
+		}
+
+		tkn, _ := jwt.ParseWithClaims(cookie.Value, &Claims{},
+			func(token *jwt.Token) (interface{}, error) {
+				return []byte(a.JwtKey), nil
+			})
+		claims := tkn.Claims.(*Claims)
 
 		var u *User
-		err := a.Collections.Users.FindOne(ctx, bson.D{{Key: "email", Value: "test@email.com"}}).Decode(&u)
+		objID, err := primitive.ObjectIDFromHex(claims.UserID)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 
+		err = a.Users.FindOne(ctx, bson.D{{Key: "_id", Value: objID}}).Decode(&u)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		body := make(map[string]string)
-		body["message"] = u.Email
-		jData, _ := json.Marshal(body)
-		w.Write(jData)
+		// do not send back hashed password
+		u.Password = ""
+		json.NewEncoder(w).Encode(u)
 	}
 }

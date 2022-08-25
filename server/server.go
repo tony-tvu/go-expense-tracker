@@ -57,18 +57,18 @@ func (s *Server) Initialize() {
 	// Handlers
 	handlers := &app.Handlers{
 		// Auth
-		EmailLogin: Chain(auth.EmailLogin(s.App), UseMiddlewares(LoginRateLimit())...),
+		EmailLogin: Chain(auth.EmailLogin(s.App), UseMiddlewares(s.App, LoginRateLimit())...),
 		// Health
-		Health: Chain(Health, UseMiddlewares()...),
+		Health: Chain(Health, UseMiddlewares(s.App)...),
 		// Plaid
 		// TODO: add auth to this so only registered users can create link tokens
-		CreateLinkToken: Chain(plaidapi.CreateLinkToken(s.App), UseMiddlewares()...),
-		SetAccessToken:  Chain(plaidapi.SetAccessToken(s.App), UseMiddlewares()...),
+		CreateLinkToken: Chain(plaidapi.CreateLinkToken(s.App), UseMiddlewares(s.App)...),
+		SetAccessToken:  Chain(plaidapi.SetAccessToken(s.App), UseMiddlewares(s.App)...),
 		// Users
-		CreateUser:  Chain(user.Create(s.App), UseMiddlewares()...),
-		GetUserInfo: Chain(user.GetInfo(s.App), UseMiddlewares(LoginProtected(s.App))...),
+		CreateUser:  Chain(user.Create(s.App), UseMiddlewares(s.App)...),
+		GetUserInfo: Chain(user.GetInfo(s.App), UseMiddlewares(s.App, LoginProtected(s.App))...),
 		// Web
-		ServeClient: Chain(web.Serve("web/build", "index.html"), UseMiddlewares()...),
+		ServeClient: Chain(web.Serve("web/build", "index.html"), UseMiddlewares(s.App)...),
 	}
 	s.App.Handlers = handlers
 
@@ -110,10 +110,8 @@ func (s *Server) Run(ctx context.Context) {
 		if s.App.DbName == "" {
 			s.App.DbName = "goexpense_local"
 		}
-		s.App.Collections = &app.Collections{
-			Users:    mongoclient.Database(s.App.DbName).Collection("users"),
-			Sessions: mongoclient.Database(s.App.DbName).Collection("sessions"),
-		}
+		s.App.Users = mongoclient.Database(s.App.DbName).Collection("users")
+		s.App.Users = mongoclient.Database(s.App.DbName).Collection("sessions")
 	}
 
 	var h http.Handler

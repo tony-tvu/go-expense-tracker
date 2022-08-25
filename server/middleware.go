@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/auth"
 	"go.mongodb.org/mongo-driver/bson"
@@ -13,15 +14,13 @@ import (
 
 type Middleware func(http.HandlerFunc) http.HandlerFunc
 
-var SharedMiddlewares = []Middleware{
-	Logging(),
-	RateLimit(),
-	NoCache(),
-}
-
 // Append additional middlewares along with SharedMiddlewares
-func UseMiddlewares(additional ...Middleware) []Middleware {
-	m := SharedMiddlewares
+func UseMiddlewares(a *app.App, additional ...Middleware) []Middleware {
+	m := []Middleware{
+		Logging(a),
+		RateLimit(),
+		NoCache(),
+	}
 	m = append(m, additional...)
 	return m
 }
@@ -36,11 +35,13 @@ func Chain(f http.HandlerFunc, middlewares ...Middleware) http.HandlerFunc {
 }
 
 // Log all requests
-func Logging() Middleware {
+func Logging(a *app.App) Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
-			defer func() { log.Println(r.URL.Path, r.Method, time.Since(start)) }()
+			if a.Env != "test" {
+				start := time.Now()
+				defer func() { log.Println(r.URL.Path, r.Method, time.Since(start)) }()
+			}
 			f(w, r)
 		}
 	}
@@ -91,16 +92,26 @@ func LoginProtected(a *app.App) Middleware {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
-			accessToken := cookie.Value
+
+			tkn, err := jwt.ParseWithClaims(cookie.Value, &auth.Claims{},
+				func(token *jwt.Token) (interface{}, error) {
+					return []byte(a.JwtKey), nil
+				})
+			claims := tkn.Claims.(*auth.Claims)
+
+			// token is expired and missing correct claims - make user log in
+			if err != nil && claims.UserID == "" && claims.Role  == "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
 
 			// if token is invalid/expired - check for existing session and renew access token
-			isAccessValid, claims := auth.IsTokenValid(a, accessToken)
-			if !isAccessValid {
+			if !tkn.Valid {
 
 				// find existing session (refresh_token)
 				var s *auth.Session
-				err := a.Collections.Sessions.FindOne(
-					ctx, bson.D{{Key: "user_id", Value: claims.UserId}}).Decode(&s)
+				err := a.Sessions.FindOne(
+					ctx, bson.D{{Key: "user_id", Value: claims.UserID}}).Decode(&s)
 
 				// session not found - make user log in
 				if err != nil {
@@ -109,14 +120,18 @@ func LoginProtected(a *app.App) Middleware {
 				}
 
 				// verify session is still valid
-				isRefreshValid, _ := auth.IsTokenValid(a, s.RefreshToken)
-				if !isRefreshValid {
+				_, err = jwt.ParseWithClaims(s.RefreshToken, &auth.Claims{},
+					func(token *jwt.Token) (interface{}, error) {
+						return []byte(a.JwtKey), nil
+					})
+			
+				if err != nil {
 					w.WriteHeader(http.StatusUnauthorized)
 					return
 				}
 
 				// renew access token
-				renewed, err := auth.CreateAccessToken(ctx, a, claims.UserId, claims.Role)
+				renewed, err := auth.CreateAccessToken(ctx, a, claims.UserID, claims.Role)
 				if err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					return

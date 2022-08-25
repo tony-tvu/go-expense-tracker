@@ -16,7 +16,8 @@ type App struct {
 	AccessTokenExp    int
 	MongoURI          string
 	DbName            string
-	Collections       *Collections
+	Users             *mongo.Collection
+	Sessions          *mongo.Collection
 	PlaidClient       *plaid.APIClient
 	PlaidClientID     string
 	PlaidSecret       string
@@ -25,11 +26,6 @@ type App struct {
 	PlaidProducts     string
 	Handlers          *Handlers
 	Router            *mux.Router
-}
-
-type Collections struct {
-	Users    *mongo.Collection
-	Sessions *mongo.Collection
 }
 
 type Handlers struct {

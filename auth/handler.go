@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/tony-tvu/goexpense/app"
-	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
+	"github.com/tony-tvu/goexpense/user"
 )
 
 type Session struct {
@@ -38,7 +38,7 @@ func EmailLogin(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 
 		// find existing user
 		var u *user.User
-		err = a.Collections.Users.FindOne(ctx, bson.D{{Key: "email", Value: c.Email}}).Decode(&u)
+		err = a.Users.FindOne(ctx, bson.D{{Key: "email", Value: c.Email}}).Decode(&u)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -59,7 +59,7 @@ func EmailLogin(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// delete existing sessions
-		_, err = a.Collections.Sessions.DeleteOne(ctx, bson.M{"user_id": u.ObjectID.Hex()})
+		_, err = a.Sessions.DeleteOne(ctx, bson.M{"user_id": u.ObjectID.Hex()})
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -73,7 +73,7 @@ func EmailLogin(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 			{Key: "expires_at", Value: refreshToken.ExpiresAt},
 		}
 
-		_, err = a.Collections.Sessions.InsertOne(ctx, doc)
+		_, err = a.Sessions.InsertOne(ctx, doc)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

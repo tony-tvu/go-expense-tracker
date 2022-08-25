@@ -11,7 +11,7 @@ import (
 )
 
 type Claims struct {
-	UserId string `json:"user_id"`
+	UserID string `json:"user_id"`
 	Role   string
 	jwt.RegisteredClaims
 }
@@ -31,7 +31,7 @@ Default expiration time: 24 hours
 func CreateRefreshToken(ctx context.Context, a *app.App, u *user.User) (Token, error) {
 	exp := time.Now().Add(time.Duration(a.RefreshTokenExp) * time.Second)
 	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
-		UserId: u.ObjectID.Hex(),
+		UserID: u.ObjectID.Hex(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -56,7 +56,7 @@ func CreateAccessToken(ctx context.Context, a *app.App, userID, role string) (To
 	exp := time.Now().Add(
 		time.Duration(a.AccessTokenExp) * time.Second)
 	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
-		UserId: userID,
+		UserID: userID,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
@@ -69,37 +69,3 @@ func CreateAccessToken(ctx context.Context, a *app.App, userID, role string) (To
 
 	return Token{Value: accessToken, ExpiresAt: exp}, nil
 }
-
-func IsTokenValid(a *app.App, tokenStr string) (bool, *Claims) {
-	tkn, err := jwt.ParseWithClaims(tokenStr, &Claims{},
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(a.JwtKey), nil
-		})
-
-	claims := tkn.Claims.(*Claims)
-	if err != nil {
-		return false, nil
-	}
-
-	return tkn.Valid, claims
-}
-
-func IsAdmin(a *app.App, tokenStr string) bool {
-	tkn, err := jwt.ParseWithClaims(tokenStr, &Claims{},
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(a.JwtKey), nil
-		})
-	claims := tkn.Claims.(*Claims)
-	if err != nil {
-		return false
-	}
-	if !tkn.Valid {
-		return false
-	}
-
-	return claims.Role == string(user.AdminUser)
-}
-
-// func AuthenticateToken() (Token, Token) {
-
-// }
