@@ -57,7 +57,9 @@ func (s *Server) Initialize() {
 	// Handlers
 	handlers := &app.Handlers{
 		// Auth
-		EmailLogin: Chain(auth.EmailLogin(s.App), UseMiddlewares(s.App, LoginRateLimit())...),
+		Login:       Chain(auth.Login(s.App), UseMiddlewares(s.App, LoginRateLimit())...),
+		Logout:      Chain(auth.Logout(s.App), UseMiddlewares(s.App)...),
+		GetSessions: Chain(auth.GetSessions(s.App), UseMiddlewares(s.App, LoggedIn(s.App), Admin(s.App))...),
 		// Health
 		Health: Chain(Health, UseMiddlewares(s.App)...),
 		// Plaid
@@ -66,7 +68,7 @@ func (s *Server) Initialize() {
 		SetAccessToken:  Chain(plaidapi.SetAccessToken(s.App), UseMiddlewares(s.App)...),
 		// Users
 		CreateUser:  Chain(user.Create(s.App), UseMiddlewares(s.App)...),
-		GetUserInfo: Chain(user.GetInfo(s.App), UseMiddlewares(s.App, LoginProtected(s.App))...),
+		GetUserInfo: Chain(user.GetInfo(s.App), UseMiddlewares(s.App, LoggedIn(s.App))...),
 		// Web
 		ServeClient: Chain(web.Serve("web/build", "index.html"), UseMiddlewares(s.App)...),
 	}
@@ -75,19 +77,21 @@ func (s *Server) Initialize() {
 	// Routes
 	router := mux.NewRouter()
 	// Auth
-	router.Handle("/api/email_login", s.App.Handlers.EmailLogin).Methods("POST")
+	router.Handle("/api/login", s.App.Handlers.Login).Methods(http.MethodPost)
+	router.Handle("/api/logout", s.App.Handlers.Logout).Methods(http.MethodDelete)
+	router.Handle("/api/sessions", s.App.Handlers.GetSessions).Methods(http.MethodGet)
 	// Finances
-	router.Handle("/api/expense", s.App.Handlers.GetExpenses).Methods("GET")
+	router.Handle("/api/expense", s.App.Handlers.GetExpenses).Methods(http.MethodGet)
 	// Health
-	router.HandleFunc("/api/health", s.App.Handlers.Health).Methods("GET")
+	router.HandleFunc("/api/health", s.App.Handlers.Health).Methods(http.MethodGet)
 	// Users
-	router.Handle("/api/create_user", s.App.Handlers.CreateUser).Methods("POST")
-	router.Handle("/api/user_info", s.App.Handlers.GetUserInfo).Methods("GET")
+	router.Handle("/api/create_user", s.App.Handlers.CreateUser).Methods(http.MethodPost)
+	router.Handle("/api/user_info", s.App.Handlers.GetUserInfo).Methods(http.MethodGet)
 	// Plaid
-	router.Handle("/api/create_link_token", s.App.Handlers.CreateLinkToken).Methods("GET")
-	router.Handle("/api/set_access_token", s.App.Handlers.CreateLinkToken).Methods("POST")
+	router.Handle("/api/create_link_token", s.App.Handlers.CreateLinkToken).Methods(http.MethodGet)
+	router.Handle("/api/set_access_token", s.App.Handlers.CreateLinkToken).Methods(http.MethodPost)
 	// Web
-	router.PathPrefix("/").Handler(s.App.Handlers.CreateUser).Methods("GET")
+	router.PathPrefix("/").Handler(s.App.Handlers.CreateUser).Methods(http.MethodGet)
 
 	s.App.Router = router
 }

@@ -9,17 +9,20 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/user"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// LoginProtected routes should be accessible to logged in users
-func TestLoginProtectedLoggedIn(t *testing.T) {
+// LoggedIn routes should be accessible to logged in users
+func TestLoggedIn(t *testing.T) {
 	t.Parallel()
 
 	// given
-	name := "TestLoginProtectedLoggedInName"
-	email := "TestLoginProtectedLoggedIn@email.com"
-	password := "TestLoginProtectedLoggedInPassword"
+	name := "LoggedInName"
+	email := "LoggedIn@email.com"
+	password := "LoggedInPassword"
 
 	// create user
 	m, b := map[string]string{
@@ -38,7 +41,7 @@ func TestLoginProtectedLoggedIn(t *testing.T) {
 		new(bytes.Buffer)
 	json.NewEncoder(b).Encode(m)
 
-	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/email_login", srv.URL), b)
+	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/login", srv.URL), b)
 	res, _ := client.Do(req)
 
 	// get cookies from response
@@ -81,7 +84,7 @@ func TestLoginProtectedLoggedIn(t *testing.T) {
 
 	// and: wait for refresh_token to expire
 	time.Sleep(1 * time.Second)
-	
+
 	// make request with expired access_token
 	res, _ = client.Do(req)
 
@@ -91,8 +94,8 @@ func TestLoginProtectedLoggedIn(t *testing.T) {
 	assert.Equal(t, "", cookies["goexpense_access"])
 }
 
-// LoginProtected routes should not be accessible when users aren't logged in
-func TestLoginProtectedLoggedOut(t *testing.T) {
+// LoggedIn routes should not be accessible when users aren't logged in
+func TestLoggedIn2(t *testing.T) {
 	t.Parallel()
 
 	// given
@@ -123,4 +126,107 @@ func TestLoginProtectedLoggedOut(t *testing.T) {
 
 	// then: 401 unauthorized returned
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+}
+
+func TestAdmin(t *testing.T) {
+	t.Parallel()
+
+	// given
+	name := "TestAdminName"
+	email := "TestAdmin@email.com"
+	password := "TestAdminPassword"
+	client := &http.Client{}
+
+	// create user
+	m, b := map[string]string{
+		"name":     name,
+		"email":    email,
+		"password": password},
+		new(bytes.Buffer)
+	json.NewEncoder(b).Encode(m)
+	http.Post(fmt.Sprintf("%s/api/create_user", srv.URL), "application/json", b)
+
+	// when: request made to GetSessions by non-admin user and logged out
+	res, _ := http.Get(fmt.Sprintf("%s/api/sessions", srv.URL))
+
+	// then: 401 unauthorized returned
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+
+	// and: log user in as non-admin
+	m, b = map[string]string{
+		"email":    email,
+		"password": password},
+		new(bytes.Buffer)
+	json.NewEncoder(b).Encode(m)
+
+	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/login", srv.URL), b)
+	res, _ = client.Do(req)
+
+	// get cookies from response
+	cookies := GetCookies(t, res.Cookies())
+	access_token := cookies["goexpense_access"]
+
+	// make request to GetSessions
+	req, _ = http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/sessions", srv.URL), nil)
+	req.AddCookie(&http.Cookie{
+		Name:  "goexpense_access",
+		Value: access_token})
+	res, _ = client.Do(req)
+
+	// then: 401 unauthorized returned
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+
+	// and: logout user
+	req, _ = http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/api/logout", srv.URL), nil)
+	req.AddCookie(&http.Cookie{
+		Name:  "goexpense_access",
+		Value: access_token})
+	res, _ = client.Do(req)
+
+	// then: logout is successful
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	var u *user.User
+	s.App.Users.FindOne(
+		ctx, bson.D{{Key: "email", Value: email}}).Decode(&u)
+	assert.Equal(t, name, u.Name)
+
+	var ss *auth.Session
+	err := s.App.Sessions.FindOne(
+		ctx, bson.D{{Key: "user_id", Value: u.ObjectID.Hex()}}).Decode(&ss)
+
+	// sessions with current user should be deleted
+	assert.Equal(t, mongo.ErrNoDocuments, err)
+
+	// and: make user an admin
+	s.App.Users.UpdateOne(
+		ctx,
+		bson.M{"email": email},
+		bson.D{
+			{Key: "$set", Value: bson.D{{Key: "role", Value: user.AdminUser}}},
+		},
+	)
+
+	// log user in as admin
+	m, b = map[string]string{
+		"email":    email,
+		"password": password},
+		new(bytes.Buffer)
+	json.NewEncoder(b).Encode(m)
+
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/login", srv.URL), b)
+	res, _ = client.Do(req)
+
+	// get cookies from response
+	cookies = GetCookies(t, res.Cookies())
+	access_token = cookies["goexpense_access"]
+
+	// make request to GetSessions as admin
+	req, _ = http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/sessions", srv.URL), nil)
+	req.AddCookie(&http.Cookie{
+		Name:  "goexpense_access",
+		Value: access_token})
+	res, _ = client.Do(req)
+
+	// then: 200 success returned
+	assert.Equal(t, http.StatusOK, res.StatusCode)
 }

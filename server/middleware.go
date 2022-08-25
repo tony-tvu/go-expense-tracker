@@ -8,6 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/auth"
+	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/time/rate"
 )
@@ -80,8 +81,8 @@ func LoginRateLimit() Middleware {
 	}
 }
 
-// Restrict access to logged in users only
-func LoginProtected(a *app.App) Middleware {
+// Restricts access to logged in users only
+func LoggedIn(a *app.App) Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -150,28 +151,35 @@ func LoginProtected(a *app.App) Middleware {
 	}
 }
 
-// func AdminOnly(a *app.App) Middleware {
-// 	return func(f http.HandlerFunc) http.HandlerFunc {
-// 		return func(w http.ResponseWriter, r *http.Request) {
-// 			accessCookie, err := r.Cookie("goexpense_access")
-// 			if err != nil {
-// 				log.Fatalf("Error occured while reading cookie")
-// 			}
+// Restricts access to admins only
+func Admin(a *app.App) Middleware {
+	return func(f http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			cookie, err := r.Cookie("goexpense_access")
 
-// 			// verify access token valid
-// 			isValid, accessClaims := auth.IsTokenValid(a, accessCookie.Value)
-// 			if !isValid {
+			// access token missing
+			if err != nil {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			tkn, err := jwt.ParseWithClaims(cookie.Value, &auth.Claims{},
+				func(token *jwt.Token) (interface{}, error) {
+					return []byte(a.JwtKey), nil
+				})
+			claims := tkn.Claims.(*auth.Claims)
 
-// 			}
-
-// 			if !loginLimiter.Allow() {
-// 				w.WriteHeader(http.StatusTooManyRequests)
-// 				return
-// 			}
-// 			f(w, r)
-// 		}
-// 	}
-// }
+			if err != nil {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			if claims.Role != string(user.AdminUser) {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			f(w, r)
+		}
+	}
+}
 
 var epoch = time.Unix(0, 0).Format(time.RFC1123)
 var noCacheHeaders = map[string]string{

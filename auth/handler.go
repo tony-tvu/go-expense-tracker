@@ -2,14 +2,16 @@ package auth
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/tony-tvu/goexpense/app"
+	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
-	"github.com/tony-tvu/goexpense/user"
 )
 
 type Session struct {
@@ -25,7 +27,7 @@ type Credentials struct {
 	Password string `json:"password"`
 }
 
-func EmailLogin(a *app.App) func(w http.ResponseWriter, r *http.Request) {
+func Login(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -92,5 +94,41 @@ func EmailLogin(a *app.App) func(w http.ResponseWriter, r *http.Request) {
 			Expires:  accessToken.ExpiresAt,
 			HttpOnly: true,
 		})
+	}
+}
+
+func Logout(a *app.App) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		cookie, err := r.Cookie("goexpense_access")
+
+		// missing access_token
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		tkn, err := jwt.ParseWithClaims(cookie.Value, &Claims{},
+			func(token *jwt.Token) (interface{}, error) {
+				return []byte(a.JwtKey), nil
+			})
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		claims := tkn.Claims.(*Claims)
+
+		_, err = a.Sessions.DeleteMany(ctx, bson.M{"user_id": claims.UserID})
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func GetSessions(a *app.App) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("GetSessions called")
 	}
 }

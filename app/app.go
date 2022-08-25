@@ -30,7 +30,9 @@ type App struct {
 
 type Handlers struct {
 	// Auth
-	EmailLogin http.HandlerFunc
+	Login       http.HandlerFunc
+	Logout      http.HandlerFunc
+	GetSessions http.HandlerFunc
 	// Health
 	Health http.HandlerFunc
 	// Finances
