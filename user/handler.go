@@ -27,7 +27,7 @@ func (h UserHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type Claims struct {
-		UserID string `json:"user_id"`
+		UserID string
 		jwt.RegisteredClaims
 	}
 

@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -21,22 +23,19 @@ func TestEmailLogin(t *testing.T) {
 	password := "TestEmailLoginPassword"
 
 	// create user
-	m, b := map[string]string{
-		"name":     name,
-		"email":    email,
-		"password": password},
-		new(bytes.Buffer)
-	json.NewEncoder(b).Encode(m)
-	res, _ := http.Post(fmt.Sprintf("%s/api/create_user", srv.URL), "application/json", b)
-	assert.Equal(t, 200, res.StatusCode)
+	user.SaveUser(context.TODO(), s.App, &models.User{
+		Name: name,
+		Email: email,
+		Password: password,
+	})
 
 	// when: login with wrong password
-	m, b = map[string]string{
+	m, b := map[string]string{
 		"email":    email,
 		"password": "wrongPassword"},
 		new(bytes.Buffer)
 	json.NewEncoder(b).Encode(m)
-	res, _ = http.Post(fmt.Sprintf("%s/api/login", srv.URL), "application/json", b)
+	res, _ := http.Post(fmt.Sprintf("%s/api/login", srv.URL), "application/json", b)
 
 	// then: 403 returned
 	assert.Equal(t, http.StatusForbidden, res.StatusCode)

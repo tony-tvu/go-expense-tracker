@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -24,25 +26,22 @@ func TestLoggedIn(t *testing.T) {
 	password := "LoggedInPassword"
 
 	// create user
-	m, b := map[string]string{
-		"name":     name,
-		"email":    email,
-		"password": password},
-		new(bytes.Buffer)
-	json.NewEncoder(b).Encode(m)
-	res, _ := http.Post(fmt.Sprintf("%s/api/create_user", srv.URL), "application/json", b)
-	assert.Equal(t, 200, res.StatusCode)
+	user.SaveUser(context.TODO(), s.App, &models.User{
+		Name: name,
+		Email: email,
+		Password: password,
+	})
 
 	// when: user logs in
 	client := &http.Client{}
-	m, b = map[string]string{
+	m, b := map[string]string{
 		"email":    email,
 		"password": password},
 		new(bytes.Buffer)
 	json.NewEncoder(b).Encode(m)
 
 	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/login", srv.URL), b)
-	res, _ = client.Do(req)
+	res, _ := client.Do(req)
 
 	// get cookies from response
 	cookies := GetCookies(t, res.Cookies())
@@ -138,13 +137,11 @@ func TestAdmin(t *testing.T) {
 	client := &http.Client{}
 
 	// create user
-	m, b := map[string]string{
-		"name":     name,
-		"email":    email,
-		"password": password},
-		new(bytes.Buffer)
-	json.NewEncoder(b).Encode(m)
-	http.Post(fmt.Sprintf("%s/api/create_user", srv.URL), "application/json", b)
+	user.SaveUser(context.TODO(), s.App, &models.User{
+		Name: name,
+		Email: email,
+		Password: password,
+	})
 
 	// when: request made to GetSessions by non-admin user and logged out
 	res, _ := http.Get(fmt.Sprintf("%s/api/sessions", srv.URL))
@@ -153,7 +150,7 @@ func TestAdmin(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 	// and: log user in as non-admin
-	m, b = map[string]string{
+	m, b := map[string]string{
 		"email":    email,
 		"password": password},
 		new(bytes.Buffer)
