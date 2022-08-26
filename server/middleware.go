@@ -16,7 +16,7 @@ import (
 type Middleware func(http.HandlerFunc) http.HandlerFunc
 
 // Append additional middlewares along with common middlewares
-func Use(a *app.App, additional ...Middleware) []Middleware {
+func Middlewares(a *app.App, additional ...Middleware) []Middleware {
 	m := []Middleware{
 		Logging(a),
 		RateLimit(),

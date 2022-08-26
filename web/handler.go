@@ -35,5 +35,4 @@ func (h SpaHandler) Serve(w http.ResponseWriter, r *http.Request) {
 
 	// otherwise, use http.FileServer to serve the static dir
 	http.FileServer(http.Dir(h.StaticPath)).ServeHTTP(w, r)
-
 }

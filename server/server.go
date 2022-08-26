@@ -65,20 +65,35 @@ func (s *Server) Initialize() {
 
 	// Routes
 	router := mux.NewRouter()
+
 	// Auth
-	router.Handle("/api/login", Chain(authHandler.Login, Use(s.App, Method("POST"), LoginRateLimit())...))
-	router.Handle("/api/logout", Chain(authHandler.Logout, Use(s.App)...)).Methods(http.MethodDelete)
-	router.Handle("/api/sessions", Chain(authHandler.GetSessions, Use(s.App, Method("GET"), LoggedIn(s.App), Admin(s.App))...))
+	router.Handle("/api/login", Chain(authHandler.Login,
+		Middlewares(s.App, Method("POST"), LoginRateLimit())...))
+	router.Handle("/api/logout", Chain(authHandler.Logout,
+		Middlewares(s.App, Method("DELETE"))...))
+	router.Handle("/api/sessions", Chain(authHandler.GetSessions,
+		Middlewares(s.App, Method("GET"), LoggedIn(s.App), Admin(s.App))...))
+
 	// Health
-	router.Handle("/api/health", Chain(Health, Use(s.App, Method("GET"))...))
+	router.Handle("/api/health", Chain(Health,
+		Middlewares(s.App, Method("GET"))...))
+
 	// Users
-	router.Handle("/api/create_user", Chain(userHandler.Create, Use(s.App, Method("POST"))...))
-	router.Handle("/api/user_info", Chain(userHandler.GetInfo, Use(s.App, Method("GET"), LoggedIn(s.App))...))
+	router.Handle("/api/user_info", Chain(userHandler.GetInfo,
+		Middlewares(s.App, Method("GET"), LoggedIn(s.App))...))
+	// only admins can creates new users
+	router.Handle("/api/create_user", Chain(userHandler.Create,
+		Middlewares(s.App, Method("POST"), Admin(s.App))...))
+
 	// Plaid
-	router.Handle("/api/create_link_token", Chain(plaidHandler.CreateLinkToken, Use(s.App, Method("GET"))...))
-	router.Handle("/api/set_access_token", Chain(plaidHandler.SetAccessToken, Use(s.App, Method("POST"))...))
+	router.Handle("/api/create_link_token", Chain(plaidHandler.CreateLinkToken,
+		Middlewares(s.App, Method("GET"), LoggedIn(s.App))...))
+	router.Handle("/api/set_access_token", Chain(plaidHandler.SetAccessToken,
+		Middlewares(s.App, Method("POST"), LoggedIn(s.App))...))
+
 	// Web
-	router.PathPrefix("/").Handler(Chain(spaHandler.Serve, Use(s.App, Method("GET"))...))
+	router.PathPrefix("/").Handler(Chain(spaHandler.Serve,
+		Middlewares(s.App, Method("GET"))...))
 
 	s.App.Router = router
 }
