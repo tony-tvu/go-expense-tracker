@@ -104,21 +104,11 @@ func (s *Server) Run(ctx context.Context) {
 		s.App.Sessions = mongoclient.Database(s.App.DbName).Collection("sessions")
 	}
 
-	var h http.Handler
-	if s.App.Env == "development" {
-		h = cors.New(cors.Options{
-			AllowedOrigins:   []string{"*"},
-			AllowedMethods:   []string{"*"},
-			AllowedHeaders:   []string{"Content-Type", "Plaid-Public-Token"},
-			AllowCredentials: true,
-		}).Handler(s.App.Router)
-	} else {
-		h = cors.New(cors.Options{
-			AllowedMethods:   []string{"*"},
-			AllowedHeaders:   []string{"Content-Type", "Plaid-Public-Token"},
-			AllowCredentials: true,
-		}).Handler(s.App.Router)
-	}
+	h := cors.New(cors.Options{
+		AllowedMethods:   []string{"*"},
+		AllowedHeaders:   []string{"Content-Type", "Plaid-Public-Token"},
+		AllowCredentials: true,
+	}).Handler(s.App.Router)
 
 	srv := &http.Server{
 		Handler:      h,
