@@ -66,16 +66,16 @@ func (s *Server) Initialize() {
 	// Routes
 	router := mux.NewRouter()
 	// Auth
-	router.Handle("/api/login", GuestUserMiddleware(authHandler.Login, s.App)).Methods("POST")
-	router.Handle("/api/logout", RegularUserMiddleware(authHandler.Logout, s.App)).Methods("POST")
-	router.Handle("/api/sessions", AdminUserMiddleware(authHandler.GetSessions, s.App)).Methods("GET")
+	router.Handle("/login", GuestUserMiddleware(authHandler.Login, s.App)).Methods("POST")
+	router.Handle("/logout", RegularUserMiddleware(authHandler.Logout, s.App)).Methods("POST")
+	router.Handle("/sessions", AdminUserMiddleware(authHandler.GetSessions, s.App)).Methods("GET")
 	// Health
-	router.Handle("/api/health", GuestUserMiddleware(Health, s.App)).Methods("GET")
+	router.Handle("/health", GuestUserMiddleware(Health, s.App)).Methods("GET")
 	// Users
-	router.Handle("/api/user_info", RegularUserMiddleware(userHandler.GetInfo, s.App)).Methods("GET")
+	router.Handle("/user_info", RegularUserMiddleware(userHandler.GetInfo, s.App)).Methods("GET")
 	// Plaid
-	router.Handle("/api/create_link_token", RegularUserMiddleware(plaidHandler.CreateLinkToken, s.App)).Methods("GET")
-	router.Handle("/api/set_access_token", RegularUserMiddleware(plaidHandler.SetAccessToken, s.App)).Methods("POST")
+	router.Handle("/create_link_token", RegularUserMiddleware(plaidHandler.CreateLinkToken, s.App)).Methods("GET")
+	router.Handle("/set_access_token", RegularUserMiddleware(plaidHandler.SetAccessToken, s.App)).Methods("POST")
 	// Web
 	router.PathPrefix("/").Handler(GuestUserMiddleware(spaHandler.Serve, s.App)).Methods("GET")
 
