@@ -18,6 +18,7 @@ func main() {
 		App: &app.App{
 			Env:               os.Getenv("ENV"),
 			Port:              os.Getenv("PORT"),
+			EncryptionKey:     os.Getenv("ENCRYPTION_KEY"),
 			JwtKey:            os.Getenv("JWT_KEY"),
 			RefreshTokenExp:   86400,
 			AccessTokenExp:    900,

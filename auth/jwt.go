@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/tony-tvu/goexpense/app"
-	"github.com/tony-tvu/goexpense/user"
+	"github.com/tony-tvu/goexpense/models"
 )
 
 type Claims struct {
@@ -28,9 +28,9 @@ These can be revoked by deleting the refresh_token in the collection.
 
 Default expiration time: 24 hours
 */
-func CreateRefreshToken(ctx context.Context, a *app.App, u *user.User) (Token, error) {
+func CreateRefreshToken(ctx context.Context, a *app.App, u *models.User) (Token, error) {
 	exp := time.Now().Add(time.Duration(a.RefreshTokenExp) * time.Second)
-	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
+	refreshTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
 		UserID: u.ObjectID.Hex(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
@@ -41,7 +41,12 @@ func CreateRefreshToken(ctx context.Context, a *app.App, u *user.User) (Token, e
 		return Token{}, errors.New("error creating refresh token")
 	}
 
-	return Token{Value: refreshToken, ExpiresAt: exp}, nil
+	encrpyted, err := Encrypt(a.EncryptionKey, refreshTokenStr)
+	if err != nil {
+		return Token{}, errors.New("error creating refresh token")
+	}
+
+	return Token{Value: encrpyted, ExpiresAt: exp}, nil
 }
 
 /*
@@ -55,7 +60,7 @@ Default expiration time: 15m
 func CreateAccessToken(ctx context.Context, a *app.App, userID, role string) (Token, error) {
 	exp := time.Now().Add(
 		time.Duration(a.AccessTokenExp) * time.Second)
-	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
+	accessTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
 		UserID: userID,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -67,5 +72,10 @@ func CreateAccessToken(ctx context.Context, a *app.App, userID, role string) (To
 		return Token{}, errors.New("error creating access token")
 	}
 
-	return Token{Value: accessToken, ExpiresAt: exp}, nil
+	encrpyted, err := Encrypt(a.EncryptionKey, accessTokenStr)
+	if err != nil {
+		return Token{}, errors.New("error creating refresh token")
+	}
+
+	return Token{Value: encrpyted, ExpiresAt: exp}, nil
 }

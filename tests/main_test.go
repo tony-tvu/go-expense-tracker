@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	s        *server.Server
-	srv      *httptest.Server
-	ctx      context.Context
+	s   *server.Server
+	srv *httptest.Server
+	ctx context.Context
 )
 
 func TestMain(m *testing.M) {
@@ -30,6 +30,7 @@ func TestMain(m *testing.M) {
 		App: &app.App{
 			Env:               "test",
 			Port:              "5000",
+			EncryptionKey:     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 			JwtKey:            "jwt_key",
 			RefreshTokenExp:   2,
 			AccessTokenExp:    1,

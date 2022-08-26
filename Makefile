@@ -6,11 +6,11 @@ build:
 	cd web && npm install
 	cd web && npm run build
 	rm -r web/node_modules
-	go build -o ./bin/main main.go
+	go build -o ./bin/main cmd/main.go
 
 build_local:
 	cd web && npm run build
-	go build -o ./bin/main main.go
+	go build -o ./bin/main cmd/main.go
 
 run_binary:
 	./bin/main

@@ -9,8 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/user"
+	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -74,13 +73,13 @@ func TestLoggedIn(t *testing.T) {
 	assert.NotEqual(t, original_token, cookies["goexpense_access"])
 
 	// and: returned user info is correct
-	var u *user.User
+	var u *models.User
 	json.NewDecoder(res.Body).Decode(&u)
 	assert.Equal(t, name, u.Name)
 	assert.Equal(t, email, u.Email)
 	assert.Equal(t, "", u.Password)
 	assert.Equal(t, false, u.Verified)
-	assert.Equal(t, user.ExternalUser, u.Role)
+	assert.Equal(t, models.ExternalUser, u.Role)
 
 	// and: wait for refresh_token to expire
 	time.Sleep(1 * time.Second)
@@ -185,12 +184,12 @@ func TestAdmin(t *testing.T) {
 
 	// then: logout is successful
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	var u *user.User
+	var u *models.User
 	s.App.Users.FindOne(
 		ctx, bson.D{{Key: "email", Value: email}}).Decode(&u)
 	assert.Equal(t, name, u.Name)
 
-	var ss *auth.Session
+	var ss *models.Session
 	err := s.App.Sessions.FindOne(
 		ctx, bson.D{{Key: "user_id", Value: u.ObjectID.Hex()}}).Decode(&ss)
 
@@ -202,7 +201,7 @@ func TestAdmin(t *testing.T) {
 		ctx,
 		bson.M{"email": email},
 		bson.D{
-			{Key: "$set", Value: bson.D{{Key: "role", Value: user.AdminUser}}},
+			{Key: "$set", Value: bson.D{{Key: "role", Value: models.AdminUser}}},
 		},
 	)
 
