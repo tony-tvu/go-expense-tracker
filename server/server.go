@@ -25,17 +25,20 @@ type Server struct {
 }
 
 func (s *Server) Initialize() {
+	if string(s.App.EncryptionKey) == "" {
+		log.Fatal("fatal: missing ENCRYPTION_KEY")
+	}
 	if string(s.App.JwtKey) == "" {
-		log.Fatal("failed to start - missing JWT_KEY")
+		log.Fatal("fatal: missing JWT_KEY")
 	}
 	if s.App.MongoURI == "" {
-		log.Fatal("failed to start - missing MONGODB_URI")
+		log.Fatal("fatal: missing MONGODB_URI")
 	}
 	if s.App.Env == "" {
 		s.App.Env = "development"
 	}
 	if s.App.Port == "" {
-		s.App.Port = "8080"
+		s.App.Port = "80"
 	}
 
 	// Plaid client
@@ -55,43 +58,27 @@ func (s *Server) Initialize() {
 	}
 
 	// Handlers
-	handlers := &app.Handlers{
-		// Auth
-		Login:       Chain(auth.Login(s.App), UseMiddlewares(s.App, LoginRateLimit())...),
-		Logout:      Chain(auth.Logout(s.App), UseMiddlewares(s.App)...),
-		GetSessions: Chain(auth.GetSessions(s.App), UseMiddlewares(s.App, LoggedIn(s.App), Admin(s.App))...),
-		// Health
-		Health: Chain(Health, UseMiddlewares(s.App)...),
-		// Plaid
-		// TODO: add auth to this so only registered users can create link tokens
-		CreateLinkToken: Chain(plaidapi.CreateLinkToken(s.App), UseMiddlewares(s.App)...),
-		SetAccessToken:  Chain(plaidapi.SetAccessToken(s.App), UseMiddlewares(s.App)...),
-		// Users
-		CreateUser:  Chain(user.Create(s.App), UseMiddlewares(s.App)...),
-		GetUserInfo: Chain(user.GetInfo(s.App), UseMiddlewares(s.App, LoggedIn(s.App))...),
-		// Web
-		ServeClient: Chain(web.Serve("web/build", "index.html"), UseMiddlewares(s.App)...),
-	}
-	s.App.Handlers = handlers
+	authHandler := &auth.AuthHandler{App: s.App}
+	plaidHandler := &plaidapi.PlaidHandler{App: s.App}
+	userHandler := &user.UserHandler{App: s.App}
+	spaHandler := &web.SpaHandler{StaticPath: "web/build", IndexPath: "index.html"}
 
 	// Routes
 	router := mux.NewRouter()
 	// Auth
-	router.Handle("/api/login", s.App.Handlers.Login).Methods(http.MethodPost)
-	router.Handle("/api/logout", s.App.Handlers.Logout).Methods(http.MethodDelete)
-	router.Handle("/api/sessions", s.App.Handlers.GetSessions).Methods(http.MethodGet)
-	// Finances
-	router.Handle("/api/expense", s.App.Handlers.GetExpenses).Methods(http.MethodGet)
+	router.Handle("/api/login", Chain(authHandler.Login, Use(s.App, Method("POST"), LoginRateLimit())...))
+	router.Handle("/api/logout", Chain(authHandler.Logout, Use(s.App)...)).Methods(http.MethodDelete)
+	router.Handle("/api/sessions", Chain(authHandler.GetSessions, Use(s.App, Method("GET"), LoggedIn(s.App), Admin(s.App))...))
 	// Health
-	router.HandleFunc("/api/health", s.App.Handlers.Health).Methods(http.MethodGet)
+	router.Handle("/api/health", Chain(Health, Use(s.App, Method("GET"))...))
 	// Users
-	router.Handle("/api/create_user", s.App.Handlers.CreateUser).Methods(http.MethodPost)
-	router.Handle("/api/user_info", s.App.Handlers.GetUserInfo).Methods(http.MethodGet)
+	router.Handle("/api/create_user", Chain(userHandler.Create, Use(s.App, Method("POST"))...))
+	router.Handle("/api/user_info", Chain(userHandler.GetInfo, Use(s.App, Method("GET"), LoggedIn(s.App))...))
 	// Plaid
-	router.Handle("/api/create_link_token", s.App.Handlers.CreateLinkToken).Methods(http.MethodGet)
-	router.Handle("/api/set_access_token", s.App.Handlers.CreateLinkToken).Methods(http.MethodPost)
+	router.Handle("/api/create_link_token", Chain(plaidHandler.CreateLinkToken, Use(s.App, Method("GET"))...))
+	router.Handle("/api/set_access_token", Chain(plaidHandler.SetAccessToken, Use(s.App, Method("POST"))...))
 	// Web
-	router.PathPrefix("/").Handler(s.App.Handlers.CreateUser).Methods(http.MethodGet)
+	router.PathPrefix("/").Handler(Chain(spaHandler.Serve, Use(s.App, Method("GET"))...))
 
 	s.App.Router = router
 }
@@ -115,21 +102,21 @@ func (s *Server) Run(ctx context.Context) {
 			s.App.DbName = "goexpense_local"
 		}
 		s.App.Users = mongoclient.Database(s.App.DbName).Collection("users")
-		s.App.Users = mongoclient.Database(s.App.DbName).Collection("sessions")
+		s.App.Sessions = mongoclient.Database(s.App.DbName).Collection("sessions")
 	}
 
 	var h http.Handler
 	if s.App.Env == "development" {
 		h = cors.New(cors.Options{
 			AllowedOrigins:   []string{"*"},
-			AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPut},
-			AllowedHeaders:   []string{"Content-Type", "Plaid-Public-Token", "Google-ID-Token"},
+			AllowedMethods:   []string{"*"},
+			AllowedHeaders:   []string{"Content-Type", "Plaid-Public-Token"},
 			AllowCredentials: true,
 		}).Handler(s.App.Router)
 	} else {
 		h = cors.New(cors.Options{
-			AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPut},
-			AllowedHeaders:   []string{"Content-Type", "Plaid-Public-Token", "Google-ID-Token"},
+			AllowedMethods:   []string{"*"},
+			AllowedHeaders:   []string{"Content-Type", "Plaid-Public-Token"},
 			AllowCredentials: true,
 		}).Handler(s.App.Router)
 	}
