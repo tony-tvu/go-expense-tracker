@@ -97,31 +97,8 @@ func TestLoggedIn(t *testing.T) {
 func TestLoggedIn2(t *testing.T) {
 	t.Parallel()
 
-	// given
-	client := &http.Client{}
-
 	// when: request made with no access token cookie
 	res, _ := http.Get(fmt.Sprintf("%s/api/user_info", srv.URL))
-
-	// then: 401 unauthorized returned
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
-
-	// and: access_token cookie with missing claims set
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/user_info", srv.URL), nil)
-	req.AddCookie(&http.Cookie{
-		Name:  "goexpense_access",
-		Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"})
-	res, _ = client.Do(req)
-
-	// then: 401 unauthorized returned
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
-
-	// and: access_token cookie with correct claims that's expired
-	req, _ = http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/user_info", srv.URL), nil)
-	req.AddCookie(&http.Cookie{
-		Name:  "goexpense_access",
-		Value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjMwNjJjMmQ1ZjMzOGQzNzBlY2VkZDE2IiwiUm9sZSI6IkV4dGVybmFsIiwiZXhwIjoxNjYxMzQ4OTEwLCJpYXQiOjE2NjEzNDg5MDl9.OhYTbTAsVvXHgnkzqsRXSvLLZYuAWJdTVUd-u-AsCD0"})
-	res, _ = client.Do(req)
 
 	// then: 401 unauthorized returned
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
