@@ -6,11 +6,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type Role string
+type Type string
 
 const (
-	AdminUser    Role = "Admin"
-	ExternalUser Role = "External"
+	AdminUser   Type = "Admin"
+	RegularUser Type = "Regular"
 )
 
 type User struct {
@@ -18,7 +18,7 @@ type User struct {
 	Name      string             `json:"name" bson:"name"`
 	Email     string             `json:"email" bson:"email"`
 	Password  string             `json:"password" bson:"password"`
-	Role      Role               `json:"role" bson:"role"`
+	Type      Type               `json:"type" bson:"type"`
 	Verified  bool               `json:"verified" bson:"verified"`
 	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
 }

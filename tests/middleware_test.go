@@ -80,7 +80,7 @@ func TestLoggedIn(t *testing.T) {
 	assert.Equal(t, email, u.Email)
 	assert.Equal(t, "", u.Password)
 	assert.Equal(t, false, u.Verified)
-	assert.Equal(t, models.ExternalUser, u.Role)
+	assert.Equal(t, models.RegularUser, u.Type)
 
 	// and: wait for refresh_token to expire
 	time.Sleep(1 * time.Second)
@@ -202,7 +202,7 @@ func TestAdmin(t *testing.T) {
 		ctx,
 		bson.M{"email": email},
 		bson.D{
-			{Key: "$set", Value: bson.D{{Key: "role", Value: models.AdminUser}}},
+			{Key: "$set", Value: bson.D{{Key: "type", Value: models.AdminUser}}},
 		},
 	)
 

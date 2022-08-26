@@ -32,7 +32,7 @@ func (h AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// find existing user
+	// find existing user account
 	var u *models.User
 	err = h.App.Users.FindOne(ctx, bson.D{{Key: "email", Value: c.Email}}).Decode(&u)
 	if err != nil {
@@ -76,7 +76,7 @@ func (h AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create access token
-	accessToken, err := CreateAccessToken(ctx, h.App, u.ObjectID.Hex(), string(u.Role))
+	accessToken, err := CreateAccessToken(ctx, h.App, u.ObjectID.Hex(), string(u.Type))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

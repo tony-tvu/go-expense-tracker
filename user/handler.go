@@ -3,7 +3,6 @@ package user
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/tony-tvu/goexpense/app"
@@ -11,46 +10,10 @@ import (
 	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type UserHandler struct {
 	App *app.App
-}
-
-func (h UserHandler) Create(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var u models.User
-	err := json.NewDecoder(r.Body).Decode(&u)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	// Hash password
-	hash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	// Save new user
-	doc := &bson.D{
-		{Key: "email", Value: u.Email},
-		{Key: "name", Value: u.Name},
-		{Key: "password", Value: string(hash)},
-		{Key: "role", Value: models.ExternalUser},
-		{Key: "verified", Value: false},
-		{Key: "created_at", Value: time.Now()},
-	}
-	_, err = h.App.Users.InsertOne(ctx, doc)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 }
 
 func (h UserHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
@@ -103,5 +66,6 @@ func (h UserHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
 	// do not send back hashed password
 	u.Password = ""
 	json.NewEncoder(w).Encode(u)
-
 }
+
+// TODO: Admin-only handler to send email invitation for new user

@@ -121,7 +121,7 @@ func LoggedIn(a *app.App) Middleware {
 			claims := tkn.Claims.(*auth.Claims)
 
 			// token is expired and missing correct claims - make user log in
-			if err != nil && claims.UserID == "" && claims.Role == "" {
+			if err != nil && claims.UserID == "" && claims.UserType == "" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -159,7 +159,7 @@ func LoggedIn(a *app.App) Middleware {
 				}
 
 				// renew access token
-				renewed, err := auth.CreateAccessToken(ctx, a, claims.UserID, claims.Role)
+				renewed, err := auth.CreateAccessToken(ctx, a, claims.UserID, claims.UserType)
 				if err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
@@ -207,7 +207,7 @@ func Admin(a *app.App) Middleware {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
-			if claims.Role != string(models.AdminUser) {
+			if claims.UserType != string(models.AdminUser) {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}

@@ -30,7 +30,6 @@ func TestMain(m *testing.M) {
 		App: &app.App{
 			Env:               "test",
 			Port:              "5000",
-			AllowCreateUsers:  "TRUE",
 			EncryptionKey:     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 			JwtKey:            "jwt_key",
 			RefreshTokenExp:   2,

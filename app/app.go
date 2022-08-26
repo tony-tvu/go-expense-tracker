@@ -9,7 +9,6 @@ import (
 type App struct {
 	Env               string
 	Port              string
-	AllowCreateUsers  string
 	EncryptionKey     string
 	JwtKey            string
 	RefreshTokenExp   int
