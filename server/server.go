@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/rs/cors"
 	"github.com/tony-tvu/goexpense/app"
@@ -113,7 +116,10 @@ func (s *Server) Run(ctx context.Context) {
 			AllowCredentials: true,
 		}).Handler(s.App.Router)
 	} else {
+		godotenv.Load(".env")
+		allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 		h = cors.New(cors.Options{
+			AllowedOrigins:   allowedOrigins,
 			AllowedMethods:   []string{"*"},
 			AllowedHeaders:   []string{"Content-Type", "Plaid-Public-Token"},
 			AllowCredentials: true,

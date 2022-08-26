@@ -2,9 +2,14 @@ package user
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
+	"net/mail"
+	"net/smtp"
+	"os"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/models"
@@ -66,4 +71,48 @@ func (h UserHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(u)
 }
 
-// TODO: Admin-only handler to send email invitation for new user
+// Send email invite to new user
+func (h UserHandler) Invite(w http.ResponseWriter, r *http.Request) {
+	type Body struct {
+		Email string `json:"email"`
+	}
+
+	var b Body
+	err := json.NewDecoder(r.Body).Decode(&b)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// validate email address
+	_, err = mail.ParseAddress(b.Email)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	to := []string{b.Email}
+
+	godotenv.Load(".env")
+	from := os.Getenv("EMAIL_SENDER")
+	password := os.Getenv("EMAIL_PASSWORD")
+	smtpHost := os.Getenv("SMTP_HOST")
+	smtpPort := os.Getenv("SMTP_PORT")
+
+	if from == "" || password == "" || smtpHost == "" || smtpPort == "" {
+		log.Println("error - email sender configs are missing")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+
+	subject := "Subject: This is the subject of the mail\n"
+	body := "This is the body of the mail"
+	message := []byte(subject + body)
+
+	err = smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, message)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
