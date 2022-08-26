@@ -15,23 +15,27 @@ import (
 
 type Middleware func(http.HandlerFunc) http.HandlerFunc
 
-// Append additional middlewares along with common middlewares
-func Middlewares(a *app.App, additional ...Middleware) []Middleware {
-	m := []Middleware{
-		Logging(a),
-		RateLimit(),
-		NoCache(),
-	}
-	m = append(m, additional...)
-	return m
+func AdminUserMiddleware(f http.HandlerFunc, a *app.App) http.HandlerFunc {
+	f = NoCache()(f)
+	f = Admin(a)(f)
+	f = LoggedIn(a)(f)
+	f = RateLimit()(f)
+	f = Logging(a)(f)
+	return f
 }
 
-// Chain applies multiple middlewares to a http.HandlerFunc
-func Chain(f http.HandlerFunc, middlewares ...Middleware) http.HandlerFunc {
-	// loop in reverse to preserve middleware order
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		f = middlewares[i](f)
-	}
+func RegularUserMiddleware(f http.HandlerFunc, a *app.App) http.HandlerFunc {
+	f = NoCache()(f)
+	f = LoggedIn(a)(f)
+	f = RateLimit()(f)
+	f = Logging(a)(f)
+	return f
+}
+
+func GuestUserMiddleware(f http.HandlerFunc, a *app.App) http.HandlerFunc {
+	f = NoCache()(f)
+	f = RateLimit()(f)
+	f = Logging(a)(f)
 	return f
 }
 
