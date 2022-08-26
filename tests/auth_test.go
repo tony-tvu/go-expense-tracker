@@ -24,8 +24,8 @@ func TestEmailLogin(t *testing.T) {
 
 	// create user
 	user.SaveUser(context.TODO(), s.App, &models.User{
-		Name: name,
-		Email: email,
+		Name:     name,
+		Email:    email,
 		Password: password,
 	})
 
@@ -62,11 +62,8 @@ func TestEmailLogin(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// and: user login session should be created
-	var u *models.User
-	s.App.Users.FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&u)
-
 	var ss *models.Session
-	s.App.Sessions.FindOne(ctx, bson.D{{Key: "user_id", Value: u.ObjectID.Hex()}}).Decode(&ss)
+	s.App.Sessions.FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
 
 	assert.NotNil(t, ss)
 }

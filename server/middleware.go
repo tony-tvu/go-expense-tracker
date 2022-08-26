@@ -19,23 +19,23 @@ func AdminUserMiddleware(f http.HandlerFunc, a *app.App) http.HandlerFunc {
 	f = NoCache()(f)
 	f = Admin(a)(f)
 	f = LoggedIn(a)(f)
-	f = RateLimit()(f)
 	f = Logging(a)(f)
+	f = RateLimit()(f)
 	return f
 }
 
 func RegularUserMiddleware(f http.HandlerFunc, a *app.App) http.HandlerFunc {
 	f = NoCache()(f)
 	f = LoggedIn(a)(f)
-	f = RateLimit()(f)
 	f = Logging(a)(f)
+	f = RateLimit()(f)
 	return f
 }
 
 func GuestUserMiddleware(f http.HandlerFunc, a *app.App) http.HandlerFunc {
 	f = NoCache()(f)
-	f = RateLimit()(f)
 	f = Logging(a)(f)
+	f = RateLimit()(f)
 	return f
 }
 
@@ -125,7 +125,7 @@ func LoggedIn(a *app.App) Middleware {
 			claims := tkn.Claims.(*auth.Claims)
 
 			// token is expired and missing correct claims - make user log in
-			if err != nil && claims.UserID == "" && claims.UserType == "" {
+			if err != nil && claims.Email == "" && claims.UserType == "" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -136,7 +136,7 @@ func LoggedIn(a *app.App) Middleware {
 				// find existing session (refresh_token)
 				var s *models.Session
 				err := a.Sessions.FindOne(
-					ctx, bson.D{{Key: "user_id", Value: claims.UserID}}).Decode(&s)
+					ctx, bson.D{{Key: "email", Value: claims.Email}}).Decode(&s)
 
 				// session not found - make user log in
 				if err != nil {
@@ -163,7 +163,7 @@ func LoggedIn(a *app.App) Middleware {
 				}
 
 				// renew access token
-				renewed, err := auth.CreateAccessToken(ctx, a, claims.UserID, claims.UserType)
+				renewed, err := auth.CreateAccessToken(ctx, a, claims.Email, claims.UserType)
 				if err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					return

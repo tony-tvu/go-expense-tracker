@@ -159,14 +159,10 @@ func TestAdmin(t *testing.T) {
 
 	// then: logout is successful
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	var u *models.User
-	s.App.Users.FindOne(
-		ctx, bson.D{{Key: "email", Value: email}}).Decode(&u)
-	assert.Equal(t, name, u.Name)
 
 	var ss *models.Session
 	err := s.App.Sessions.FindOne(
-		ctx, bson.D{{Key: "user_id", Value: u.ObjectID.Hex()}}).Decode(&ss)
+		ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
 
 	// sessions with current user should be deleted
 	assert.Equal(t, mongo.ErrNoDocuments, err)

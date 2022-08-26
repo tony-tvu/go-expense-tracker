@@ -8,7 +8,7 @@ import (
 
 type Session struct {
 	ObjectID     primitive.ObjectID `bson:"_id" json:"_id"`
-	UserID       string             `bson:"user_id"`
+	Email        string             `bson:"email"`
 	RefreshToken string             `bson:"refresh_token"`
 	CreatedAt    time.Time          `bson:"created_at"`
 	ExpiresAt    time.Time          `bson:"expires_at"`

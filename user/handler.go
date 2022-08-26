@@ -9,7 +9,6 @@ import (
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserHandler struct {
@@ -27,7 +26,7 @@ func (h UserHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type Claims struct {
-		UserID string
+		Email string
 		jwt.RegisteredClaims
 	}
 
@@ -40,7 +39,7 @@ func (h UserHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
 	/*
 		No need to check if access token is valid/expired because LoggedIn middleware
 		has already validated it and might've refreshed the access token already, which
-		would be in w http.ResponseWriter. We only care about the user_id from the
+		would be in w http.ResponseWriter. We only care about the email from the
 		original r *http.Request here.
 	*/
 	tkn, _ := jwt.ParseWithClaims(decrypted, &Claims{},
@@ -49,14 +48,13 @@ func (h UserHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
 		})
 	claims := tkn.Claims.(*Claims)
 
-	var u *models.User
-	objID, err := primitive.ObjectIDFromHex(claims.UserID)
-	if err != nil {
+	if claims.Email == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	err = h.App.Users.FindOne(ctx, bson.D{{Key: "_id", Value: objID}}).Decode(&u)
+	var u *models.User
+	err = h.App.Users.FindOne(ctx, bson.D{{Key: "email", Value: claims.Email}}).Decode(&u)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return

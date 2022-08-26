@@ -2,17 +2,17 @@ install:
 	go mod download
 	cd web && npm install
 
-build:
+build_prod:
 	cd web && npm install
 	cd web && npm run build
 	rm -r web/node_modules
 	go build -o ./bin/main cmd/main.go
 
-build_local:
+build:
 	cd web && npm run build
 	go build -o ./bin/main cmd/main.go
 
-run_binary:
+run:
 	./bin/main
 
 api:

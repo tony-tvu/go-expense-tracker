@@ -55,7 +55,7 @@ func (h AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// delete existing sessions
-	_, err = h.App.Sessions.DeleteOne(ctx, bson.M{"user_id": u.ObjectID.Hex()})
+	_, err = h.App.Sessions.DeleteOne(ctx, bson.M{"email": u.Email})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -63,7 +63,7 @@ func (h AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	// save new session
 	doc := bson.D{
-		{Key: "user_id", Value: u.ObjectID.Hex()},
+		{Key: "email", Value: u.Email},
 		{Key: "refresh_token", Value: refreshToken.Value},
 		{Key: "created_at", Value: time.Now()},
 		{Key: "expires_at", Value: refreshToken.ExpiresAt},
@@ -76,7 +76,7 @@ func (h AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create access token
-	accessToken, err := CreateAccessToken(ctx, h.App, u.ObjectID.Hex(), string(u.Type))
+	accessToken, err := CreateAccessToken(ctx, h.App, u.Email, string(u.Type))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -119,7 +119,7 @@ func (h AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	claims := tkn.Claims.(*Claims)
 
-	_, err = h.App.Sessions.DeleteMany(ctx, bson.M{"user_id": claims.UserID})
+	_, err = h.App.Sessions.DeleteMany(ctx, bson.M{"email": claims.Email})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -11,7 +11,7 @@ import (
 )
 
 type Claims struct {
-	UserID   string
+	Email   string
 	UserType string
 	jwt.RegisteredClaims
 }
@@ -31,7 +31,7 @@ Default expiration time: 24 hours
 func CreateRefreshToken(ctx context.Context, a *app.App, u *models.User) (Token, error) {
 	exp := time.Now().Add(time.Duration(a.RefreshTokenExp) * time.Second)
 	refreshTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
-		UserID: u.ObjectID.Hex(),
+		Email: u.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -57,11 +57,11 @@ make the user login again to create a new session/refresh_token.
 
 Default expiration time: 15m
 */
-func CreateAccessToken(ctx context.Context, a *app.App, userID, userType string) (Token, error) {
+func CreateAccessToken(ctx context.Context, a *app.App, email, userType string) (Token, error) {
 	exp := time.Now().Add(
 		time.Duration(a.AccessTokenExp) * time.Second)
 	accessTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
-		UserID:   userID,
+		Email:   email,
 		UserType: userType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
