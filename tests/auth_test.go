@@ -27,7 +27,8 @@ func TestEmailLogin(t *testing.T) {
 		"password": password},
 		new(bytes.Buffer)
 	json.NewEncoder(b).Encode(m)
-	http.Post(fmt.Sprintf("%s/api/create_user", srv.URL), "application/json", b)
+	res, _ := http.Post(fmt.Sprintf("%s/api/create_user", srv.URL), "application/json", b)
+	assert.Equal(t, 200, res.StatusCode)
 
 	// when: login with wrong password
 	m, b = map[string]string{
@@ -35,7 +36,7 @@ func TestEmailLogin(t *testing.T) {
 		"password": "wrongPassword"},
 		new(bytes.Buffer)
 	json.NewEncoder(b).Encode(m)
-	res, _ := http.Post(fmt.Sprintf("%s/api/login", srv.URL), "application/json", b)
+	res, _ = http.Post(fmt.Sprintf("%s/api/login", srv.URL), "application/json", b)
 
 	// then: 403 returned
 	assert.Equal(t, http.StatusForbidden, res.StatusCode)

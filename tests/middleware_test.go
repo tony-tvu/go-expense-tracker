@@ -30,7 +30,8 @@ func TestLoggedIn(t *testing.T) {
 		"password": password},
 		new(bytes.Buffer)
 	json.NewEncoder(b).Encode(m)
-	http.Post(fmt.Sprintf("%s/api/create_user", srv.URL), "application/json", b)
+	res, _ := http.Post(fmt.Sprintf("%s/api/create_user", srv.URL), "application/json", b)
+	assert.Equal(t, 200, res.StatusCode)
 
 	// when: user logs in
 	client := &http.Client{}
@@ -41,7 +42,7 @@ func TestLoggedIn(t *testing.T) {
 	json.NewEncoder(b).Encode(m)
 
 	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/login", srv.URL), b)
-	res, _ := client.Do(req)
+	res, _ = client.Do(req)
 
 	// get cookies from response
 	cookies := GetCookies(t, res.Cookies())

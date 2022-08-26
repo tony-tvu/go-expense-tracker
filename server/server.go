@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -81,9 +82,20 @@ func (s *Server) Initialize() {
 	// Users
 	router.Handle("/api/user_info", Chain(userHandler.GetInfo,
 		Middlewares(s.App, Method("GET"), LoggedIn(s.App))...))
-	// only admins can creates new users
-	router.Handle("/api/create_user", Chain(userHandler.Create,
-		Middlewares(s.App, Method("POST"), Admin(s.App))...))
+
+	// If true, the '/api/create_user' endpoint is available to everyone.
+	// If false, only admins can create new users.
+	isAllowed, err := strconv.ParseBool(s.App.AllowCreateUsers)
+	if err != nil {
+		isAllowed = false
+	}
+	if isAllowed {
+		router.Handle("/api/create_user", Chain(userHandler.Create,
+			Middlewares(s.App, Method("POST"))...))
+	} else {
+		router.Handle("/api/create_user", Chain(userHandler.Create,
+			Middlewares(s.App, Method("POST"), LoggedIn(s.App), Admin(s.App))...))
+	}
 
 	// Plaid
 	router.Handle("/api/create_link_token", Chain(plaidHandler.CreateLinkToken,

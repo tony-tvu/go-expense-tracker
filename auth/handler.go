@@ -96,7 +96,7 @@ func (h AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("goexpense_access")
 
 	// missing access_token
-	if err != nil {
+	if err != nil || cookie.Value == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

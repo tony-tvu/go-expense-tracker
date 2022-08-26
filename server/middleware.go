@@ -102,7 +102,7 @@ func LoggedIn(a *app.App) Middleware {
 			cookie, err := r.Cookie("goexpense_access")
 
 			// no access token - make user log in
-			if err != nil {
+			if err != nil || cookie.Value == "" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -185,7 +185,7 @@ func Admin(a *app.App) Middleware {
 			cookie, err := r.Cookie("goexpense_access")
 
 			// access token missing
-			if err != nil {
+			if err != nil || cookie.Value == "" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}

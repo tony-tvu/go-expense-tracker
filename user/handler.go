@@ -58,7 +58,7 @@ func (h UserHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("goexpense_access")
 
 	// no access token - make user log in
-	if err != nil {
+	if err != nil || cookie.Value == "" {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -69,10 +69,10 @@ func (h UserHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	decrypted, err := auth.Decrypt(h.App.EncryptionKey, cookie.Value)
-			if err != nil {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 
 	/*
 		No need to check if access token is valid/expired because LoggedIn middleware

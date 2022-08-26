@@ -9,6 +9,7 @@ import (
 type App struct {
 	Env               string
 	Port              string
+	AllowCreateUsers  string
 	EncryptionKey     string
 	JwtKey            string
 	RefreshTokenExp   int
@@ -23,7 +24,7 @@ type App struct {
 	PlaidEnv          string
 	PlaidCountryCodes string
 	PlaidProducts     string
-	Router *mux.Router
+	Router            *mux.Router
 }
 
 var PlaidEnvs = map[string]plaid.Environment{
