@@ -65,32 +65,19 @@ func (s *Server) Initialize() {
 
 	// Routes
 	router := mux.NewRouter()
-
 	// Auth
-	router.Handle("/api/login", Chain(authHandler.Login,
-		Middlewares(s.App, Method("POST"), LoginRateLimit())...))
-	router.Handle("/api/logout", Chain(authHandler.Logout,
-		Middlewares(s.App, Method("DELETE"))...))
-	router.Handle("/api/sessions", Chain(authHandler.GetSessions,
-		Middlewares(s.App, Method("GET"), LoggedIn(s.App), Admin(s.App))...))
-
+	router.Handle("/api/login", GuestUserMiddleware(authHandler.Login, s.App)).Methods("POST")
+	router.Handle("/api/logout", RegularUserMiddleware(authHandler.Logout, s.App)).Methods("POST")
+	router.Handle("/api/sessions", AdminUserMiddleware(authHandler.GetSessions, s.App)).Methods("GET")
 	// Health
-	router.Handle("/api/health", Chain(Health,
-		Middlewares(s.App, Method("GET"))...))
-
+	router.Handle("/api/health", GuestUserMiddleware(Health, s.App)).Methods("GET")
 	// Users
-	router.Handle("/api/user_info", Chain(userHandler.GetInfo,
-		Middlewares(s.App, Method("GET"), LoggedIn(s.App))...))
-
+	router.Handle("/api/user_info", RegularUserMiddleware(userHandler.GetInfo, s.App)).Methods("GET")
 	// Plaid
-	router.Handle("/api/create_link_token", Chain(plaidHandler.CreateLinkToken,
-		Middlewares(s.App, Method("GET"), LoggedIn(s.App))...))
-	router.Handle("/api/set_access_token", Chain(plaidHandler.SetAccessToken,
-		Middlewares(s.App, Method("POST"), LoggedIn(s.App))...))
-
+	router.Handle("/api/create_link_token", RegularUserMiddleware(plaidHandler.CreateLinkToken, s.App)).Methods("GET")
+	router.Handle("/api/set_access_token", RegularUserMiddleware(plaidHandler.SetAccessToken, s.App)).Methods("POST")
 	// Web
-	router.PathPrefix("/").Handler(Chain(spaHandler.Serve,
-		Middlewares(s.App, Method("GET"))...))
+	router.PathPrefix("/").Handler(GuestUserMiddleware(spaHandler.Serve, s.App)).Methods("GET")
 
 	s.App.Router = router
 }

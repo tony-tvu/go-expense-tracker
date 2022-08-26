@@ -27,8 +27,8 @@ func TestLoggedIn(t *testing.T) {
 
 	// create user
 	user.SaveUser(context.TODO(), s.App, &models.User{
-		Name: name,
-		Email: email,
+		Name:     name,
+		Email:    email,
 		Password: password,
 	})
 
@@ -115,8 +115,8 @@ func TestAdmin(t *testing.T) {
 
 	// create user
 	user.SaveUser(context.TODO(), s.App, &models.User{
-		Name: name,
-		Email: email,
+		Name:     name,
+		Email:    email,
 		Password: password,
 	})
 
@@ -151,7 +151,7 @@ func TestAdmin(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 	// and: logout user
-	req, _ = http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/api/logout", srv.URL), nil)
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/logout", srv.URL), nil)
 	req.AddCookie(&http.Cookie{
 		Name:  "goexpense_access",
 		Value: access_token})
