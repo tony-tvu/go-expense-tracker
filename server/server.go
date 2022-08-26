@@ -6,12 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/rs/cors"
 	"github.com/tony-tvu/goexpense/app"
@@ -69,16 +66,16 @@ func (s *Server) Initialize() {
 	// Routes
 	router := mux.NewRouter()
 	// Auth
-	router.Handle("/login", GuestUserMiddleware(authHandler.Login, s.App)).Methods("POST")
-	router.Handle("/logout", RegularUserMiddleware(authHandler.Logout, s.App)).Methods("POST")
-	router.Handle("/sessions", AdminUserMiddleware(authHandler.GetSessions, s.App)).Methods("GET")
+	router.Handle("/api/login", GuestUserMiddleware(authHandler.Login, s.App)).Methods("POST")
+	router.Handle("/api/logout", RegularUserMiddleware(authHandler.Logout, s.App)).Methods("POST")
+	router.Handle("/api/sessions", AdminUserMiddleware(authHandler.GetSessions, s.App)).Methods("GET")
 	// Health
-	router.Handle("/health", GuestUserMiddleware(Health, s.App)).Methods("GET")
+	router.Handle("/api/health", GuestUserMiddleware(Health, s.App)).Methods("GET")
 	// Users
-	router.Handle("/user_info", RegularUserMiddleware(userHandler.GetInfo, s.App)).Methods("GET")
+	router.Handle("/api/user_info", RegularUserMiddleware(userHandler.GetInfo, s.App)).Methods("GET")
 	// Plaid
-	router.Handle("/create_link_token", RegularUserMiddleware(plaidHandler.CreateLinkToken, s.App)).Methods("GET")
-	router.Handle("/set_access_token", RegularUserMiddleware(plaidHandler.SetAccessToken, s.App)).Methods("POST")
+	router.Handle("/api/create_link_token", RegularUserMiddleware(plaidHandler.CreateLinkToken, s.App)).Methods("GET")
+	router.Handle("/api/set_access_token", RegularUserMiddleware(plaidHandler.SetAccessToken, s.App)).Methods("POST")
 	// Web
 	router.PathPrefix("/").Handler(GuestUserMiddleware(spaHandler.Serve, s.App)).Methods("GET")
 
@@ -116,10 +113,7 @@ func (s *Server) Run(ctx context.Context) {
 			AllowCredentials: true,
 		}).Handler(s.App.Router)
 	} else {
-		godotenv.Load(".env")
-		allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 		h = cors.New(cors.Options{
-			AllowedOrigins:   allowedOrigins,
 			AllowedMethods:   []string{"*"},
 			AllowedHeaders:   []string{"Content-Type", "Plaid-Public-Token"},
 			AllowCredentials: true,
