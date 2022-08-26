@@ -33,12 +33,13 @@ function Homepage() {
           'Content-Type': 'application/json',
         },
       }
-    ).catch(e => {
-      logger('error fetching link_token', e)
+    ).catch(err => {
+      logger('error fetching link_token', err)
     })
+
     if (!response) return
-    const data = await response.json()
-    setLinkToken(data.link_token)
+    const data = await response.json().catch(err => logger(err))
+    setLinkToken(data?.link_token)
   }
 
   const onSuccess = async (public_token) => {

@@ -58,28 +58,28 @@ func (s *Server) Initialize() {
 	}
 
 	// Handlers
-	authHandler := &auth.AuthHandler{App: s.App}
-	plaidHandler := &plaidapi.PlaidHandler{App: s.App}
-	userHandler := &user.UserHandler{App: s.App}
-	spaHandler := &web.SpaHandler{StaticPath: "web/build", IndexPath: "index.html"}
+	ah := &auth.AuthHandler{App: s.App}
+	ph := &plaidapi.PlaidHandler{App: s.App}
+	uh := &user.UserHandler{App: s.App}
+	sh := &web.SpaHandler{StaticPath: "web/build", IndexPath: "index.html"}
 
 	// Routes
-	router := mux.NewRouter()
+	r := mux.NewRouter()
 	// Auth
-	router.Handle("/api/login", GuestUserMiddleware(authHandler.Login, s.App)).Methods("POST")
-	router.Handle("/api/logout", RegularUserMiddleware(authHandler.Logout, s.App)).Methods("POST")
-	router.Handle("/api/sessions", AdminUserMiddleware(authHandler.GetSessions, s.App)).Methods("GET")
+	r.Handle("/api/login", GuestUser(ah.Login, s.App)).Methods("POST")
+	r.Handle("/api/logout", RegularUser(ah.Logout, s.App)).Methods("POST")
+	r.Handle("/api/sessions", AdminUser(ah.GetSessions, s.App)).Methods("GET")
 	// Health
-	router.Handle("/api/health", GuestUserMiddleware(Health, s.App)).Methods("GET")
+	r.Handle("/api/health", GuestUser(Health, s.App)).Methods("GET")
 	// Users
-	router.Handle("/api/user_info", RegularUserMiddleware(userHandler.GetInfo, s.App)).Methods("GET")
+	r.Handle("/api/user_info", RegularUser(uh.GetInfo, s.App)).Methods("GET")
 	// Plaid
-	router.Handle("/api/create_link_token", RegularUserMiddleware(plaidHandler.CreateLinkToken, s.App)).Methods("GET")
-	router.Handle("/api/set_access_token", RegularUserMiddleware(plaidHandler.SetAccessToken, s.App)).Methods("POST")
+	r.Handle("/api/create_link_token", RegularUser(ph.CreateLinkToken, s.App)).Methods("GET")
+	r.Handle("/api/set_access_token", RegularUser(ph.SetAccessToken, s.App)).Methods("POST")
 	// Web
-	router.PathPrefix("/").Handler(GuestUserMiddleware(spaHandler.Serve, s.App)).Methods("GET")
+	r.PathPrefix("/").Handler(GuestUser(sh.Serve, s.App)).Methods("GET")
 
-	s.App.Router = router
+	s.App.Router = r
 }
 
 func (s *Server) Run(ctx context.Context) {

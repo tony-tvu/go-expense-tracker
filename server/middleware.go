@@ -15,7 +15,8 @@ import (
 
 type Middleware func(http.HandlerFunc) http.HandlerFunc
 
-func AdminUserMiddleware(f http.HandlerFunc, a *app.App) http.HandlerFunc {
+// Middleware to allow only admin users
+func AdminUser(f http.HandlerFunc, a *app.App) http.HandlerFunc {
 	f = NoCache()(f)
 	f = Admin(a)(f)
 	f = LoggedIn(a)(f)
@@ -24,7 +25,8 @@ func AdminUserMiddleware(f http.HandlerFunc, a *app.App) http.HandlerFunc {
 	return f
 }
 
-func RegularUserMiddleware(f http.HandlerFunc, a *app.App) http.HandlerFunc {
+// Middleware to allow only regular users
+func RegularUser(f http.HandlerFunc, a *app.App) http.HandlerFunc {
 	f = NoCache()(f)
 	f = LoggedIn(a)(f)
 	f = Logging(a)(f)
@@ -32,7 +34,8 @@ func RegularUserMiddleware(f http.HandlerFunc, a *app.App) http.HandlerFunc {
 	return f
 }
 
-func GuestUserMiddleware(f http.HandlerFunc, a *app.App) http.HandlerFunc {
+// Middleware to allow all users
+func GuestUser(f http.HandlerFunc, a *app.App) http.HandlerFunc {
 	f = NoCache()(f)
 	f = Logging(a)(f)
 	f = RateLimit()(f)

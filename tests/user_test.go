@@ -13,9 +13,9 @@ func TestInvite(t *testing.T) {
 	t.Parallel()
 
 	// given
-	name := "TestEmailLoginName"
-	email := "TestEmailLogin@email.com"
-	password := "TestEmailLoginPassword"
+	name := "TestInvite"
+	email := "TestInvite@email.com"
+	password := "TestInvitePassword"
 
 	// create user
 	user.SaveUser(context.TODO(), s.App, &models.User{
@@ -32,5 +32,6 @@ func TestInvite(t *testing.T) {
 			{Key: "$set", Value: bson.D{{Key: "type", Value: models.AdminUser}}},
 		},
 	)
+	
 
 }
