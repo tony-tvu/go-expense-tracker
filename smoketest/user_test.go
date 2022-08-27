@@ -1,4 +1,4 @@
-package tests
+package smoketest
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+// TODO:
 func TestInvite(t *testing.T) {
 	t.Parallel()
 

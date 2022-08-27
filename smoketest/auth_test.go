@@ -1,4 +1,4 @@
-package tests
+package smoketest
 
 import (
 	"net/http"
@@ -10,7 +10,7 @@ import (
 )
 
 // EmailLogin handler works correctly and saves new user session upon successful login
-func TestEmailLogin(t *testing.T) {
+func TestEmailLoginHandler(t *testing.T) {
 	t.Parallel()
 
 	name := "TestEmailLoginName"
