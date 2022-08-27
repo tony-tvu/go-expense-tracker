@@ -1,8 +1,6 @@
 package tests
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,68 +9,50 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tony-tvu/goexpense/models"
-	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// LoggedIn routes should be accessible to logged in users
-func TestLoggedIn(t *testing.T) {
+// LoggedIn middleware should issue access tokens correctly
+func TestLoggedInMiddleware(t *testing.T) {
 	t.Parallel()
-
-	// given
 	name := "LoggedInName"
 	email := "LoggedIn@email.com"
 	password := "LoggedInPassword"
 
-	// create user
-	user.SaveUser(context.TODO(), s.App, &models.User{
-		Name:     name,
-		Email:    email,
-		Password: password,
-	})
+	// create user and login
+	createUser(t, s.App, name, email, password)
+	accessToken := logUserIn(t, email, password)
 
-	// when: user logs in
+	// make request to endpoint where user must be logged in
 	client := &http.Client{}
-	m, b := map[string]string{
-		"email":    email,
-		"password": password},
-		new(bytes.Buffer)
-	json.NewEncoder(b).Encode(m)
-
-	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/login", srv.URL), b)
-	res, _ := client.Do(req)
-
-	// get cookies from response
-	cookies := GetCookies(t, res.Cookies())
-
-	// then: access_token cookie should exist in login response
-	original_token := cookies["goexpense_access"]
-	assert.NotEmpty(t, original_token)
-
-	// and: make request to GetUserInfo endpoint with access_token
-	req, _ = http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/user_info", srv.URL), nil)
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/user_info", srv.URL), nil)
 	req.AddCookie(&http.Cookie{
 		Name:  "goexpense_access",
-		Value: original_token})
-	res, _ = client.Do(req)
+		Value: accessToken})
+	res, _ := client.Do(req)
 
-	// then: status OK and access_token is unchanged
+	// should return 200
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	cookies = GetCookies(t, res.Cookies())
+
+	// should have returned a new access token cookie
+	cookies := getCookies(t, res.Cookies())
 	assert.Equal(t, "", cookies["goexpense_access"])
 
-	// and: wait for access_token to expire
-	time.Sleep(1 * time.Second)
-	// make request with expired token
+	// wait for access token to expire
+	time.Sleep(time.Duration(accessTokenExp) * time.Second)
+
+	// make request with expired access token
 	res, _ = client.Do(req)
 
-	// then: status OK and access_token is refreshed
+	// should return 200
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	cookies = GetCookies(t, res.Cookies())
-	assert.NotEqual(t, original_token, cookies["goexpense_access"])
 
-	// and: returned user info is correct
+	// should have new access token in response
+	cookies = getCookies(t, res.Cookies())
+	assert.NotEqual(t, accessToken, cookies["goexpense_access"])
+
+	// should have correct user info returned
 	var u *models.User
 	json.NewDecoder(res.Body).Decode(&u)
 	assert.Equal(t, name, u.Name)
@@ -81,93 +61,101 @@ func TestLoggedIn(t *testing.T) {
 	assert.Equal(t, false, u.Verified)
 	assert.Equal(t, models.RegularUser, u.Type)
 
-	// and: wait for refresh_token to expire
-	time.Sleep(1 * time.Second)
+	// wait for refresh token to expire
+	time.Sleep(time.Duration(refreshTokenExp) * time.Second)
 
-	// make request with expired access_token
+	// make request with expired refresh and access tokens
 	res, _ = client.Do(req)
 
-	// then: 401 unauthorized returns and no cookie set
+	// should return 401 unauthorized
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
-	cookies = GetCookies(t, res.Cookies())
+
+	// response should not have new token cookie
+	cookies = getCookies(t, res.Cookies())
 	assert.Equal(t, "", cookies["goexpense_access"])
 }
 
-// LoggedIn routes should not be accessible when users aren't logged in
-func TestLoggedIn2(t *testing.T) {
+// RegularUser middleware should not allow access to guest users
+func TestRegularUserMiddleware(t *testing.T) {
 	t.Parallel()
+	name := "TestRegularUserMiddleware"
+	email := "TestRegularUserMiddleware@email.com"
+	password := "TestRegularUserMiddlewarePassword"
 
-	// when: request made with no access token cookie
-	res, _ := http.Get(fmt.Sprintf("%s/api/user_info", srv.URL))
+	// make request to endpoint where user must be logged in without access token
+	client := &http.Client{}
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/user_info", srv.URL), nil)
+	res, _ := client.Do(req)
 
-	// then: 401 unauthorized returned
+	// should return 401
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+
+	// make request to same endpoint with invalid access token
+	req.AddCookie(&http.Cookie{
+		Name:  "goexpense_access",
+		Value: "invalid"})
+	res, _ = client.Do(req)
+
+	// should return 401
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+
+	// create user and login
+	createUser(t, s.App, name, email, password)
+	accessToken := logUserIn(t, email, password)
+
+	// make request to same endpoint when logged in
+	req.AddCookie(&http.Cookie{
+		Name:  "goexpense_access",
+		Value: accessToken})
+	res, _ = client.Do(req)
+
+	// should return 200
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 }
 
-func TestAdmin(t *testing.T) {
+// AdminUser middleware should not allow access to guest or regular users
+func TestAdminUserMiddleware(t *testing.T) {
 	t.Parallel()
 
-	// given
 	name := "TestAdminName"
 	email := "TestAdmin@email.com"
 	password := "TestAdminPassword"
 	client := &http.Client{}
 
-	// create user
-	user.SaveUser(context.TODO(), s.App, &models.User{
-		Name:     name,
-		Email:    email,
-		Password: password,
-	})
-
-	// when: request made to GetSessions by non-admin user and logged out
+	// make request to admin-only route as a guest user
 	res, _ := http.Get(fmt.Sprintf("%s/api/sessions", srv.URL))
 
-	// then: 401 unauthorized returned
+	// should return 401 
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
-	// and: log user in as non-admin
-	m, b := map[string]string{
-		"email":    email,
-		"password": password},
-		new(bytes.Buffer)
-	json.NewEncoder(b).Encode(m)
+	// create user and login
+	createUser(t, s.App, name, email, password)
+	access_token := logUserIn(t, email, password)
 
-	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/login", srv.URL), b)
-	res, _ = client.Do(req)
-
-	// get cookies from response
-	cookies := GetCookies(t, res.Cookies())
-	access_token := cookies["goexpense_access"]
-
-	// make request to GetSessions
-	req, _ = http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/sessions", srv.URL), nil)
+	// make request to admin-only route as regulard user
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/sessions", srv.URL), nil)
 	req.AddCookie(&http.Cookie{
 		Name:  "goexpense_access",
 		Value: access_token})
 	res, _ = client.Do(req)
 
-	// then: 401 unauthorized returned
+	// should return 401 
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
-	// and: logout user
+	// logout user
 	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/logout", srv.URL), nil)
 	req.AddCookie(&http.Cookie{
 		Name:  "goexpense_access",
 		Value: access_token})
 	res, _ = client.Do(req)
-
-	// then: logout is successful
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
+	// should no longer have user session saved after logging out
 	var ss *models.Session
-	err := s.App.Sessions.FindOne(
-		ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
-
-	// sessions with current user should be deleted
+	err := s.App.Sessions.FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
 	assert.Equal(t, mongo.ErrNoDocuments, err)
 
-	// and: make user an admin
+	// make user an admin
 	s.App.Users.UpdateOne(
 		ctx,
 		bson.M{"email": email},
@@ -176,27 +164,16 @@ func TestAdmin(t *testing.T) {
 		},
 	)
 
-	// log user in as admin
-	m, b = map[string]string{
-		"email":    email,
-		"password": password},
-		new(bytes.Buffer)
-	json.NewEncoder(b).Encode(m)
+	// login
+	access_token = logUserIn(t, email, password)
 
-	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/login", srv.URL), b)
-	res, _ = client.Do(req)
-
-	// get cookies from response
-	cookies = GetCookies(t, res.Cookies())
-	access_token = cookies["goexpense_access"]
-
-	// make request to GetSessions as admin
+	// make request to admin-only endpoint as admin
 	req, _ = http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/sessions", srv.URL), nil)
 	req.AddCookie(&http.Cookie{
 		Name:  "goexpense_access",
 		Value: access_token})
 	res, _ = client.Do(req)
 
-	// then: 200 success returned
+	// should return 200
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 }

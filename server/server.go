@@ -73,6 +73,7 @@ func (s *Server) Initialize() {
 	r.Handle("/api/health", GuestUser(Health, s.App)).Methods("GET")
 	// Users
 	r.Handle("/api/user_info", RegularUser(uh.GetInfo, s.App)).Methods("GET")
+	r.Handle("/api/invite", AdminUser(uh.Invite, s.App)).Methods("POST")
 	// Plaid
 	r.Handle("/api/create_link_token", RegularUser(ph.CreateLinkToken, s.App)).Methods("GET")
 	r.Handle("/api/set_access_token", RegularUser(ph.SetAccessToken, s.App)).Methods("POST")

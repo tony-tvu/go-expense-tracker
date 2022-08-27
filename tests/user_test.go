@@ -32,6 +32,11 @@ func TestInvite(t *testing.T) {
 			{Key: "$set", Value: bson.D{{Key: "type", Value: models.AdminUser}}},
 		},
 	)
+
+	// login and get cookies
 	
+
+	// when: invited with bad email
+
 
 }

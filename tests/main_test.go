@@ -3,7 +3,6 @@ package tests
 import (
 	"context"
 	"log"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -16,9 +15,11 @@ import (
 )
 
 var (
-	s             *server.Server
-	srv           *httptest.Server
-	ctx           context.Context
+	s               *server.Server
+	srv             *httptest.Server
+	ctx             context.Context
+	refreshTokenExp int
+	accessTokenExp  int
 )
 
 func TestMain(m *testing.M) {
@@ -26,14 +27,17 @@ func TestMain(m *testing.M) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*5))
 	defer cancel()
 
+	refreshTokenExp = 2
+	accessTokenExp = 1
+
 	s = &server.Server{
 		App: &app.App{
 			Env:               "test",
 			Port:              "5000",
 			EncryptionKey:     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 			JwtKey:            "jwt_key",
-			RefreshTokenExp:   2,
-			AccessTokenExp:    1,
+			RefreshTokenExp:   refreshTokenExp,
+			AccessTokenExp:    accessTokenExp,
 			MongoURI:          "mongodb://localhost:27017/local_db",
 			DbName:            "goexpense_test",
 			PlaidClientID:     "plaidClientID",
@@ -67,13 +71,4 @@ func TestMain(m *testing.M) {
 
 	// Teardown
 	os.Exit(exitVal)
-}
-
-func GetCookies(t *testing.T, c []*http.Cookie) map[string]string {
-	t.Helper()
-	cookies := make(map[string]string)
-	for _, cookie := range c {
-		cookies[cookie.Name] = cookie.Value
-	}
-	return cookies
 }
