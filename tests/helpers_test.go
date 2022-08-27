@@ -15,7 +15,7 @@ import (
 )
 
 // Log user in and return access token
-func logUserIn(t *testing.T, email, password string) string {
+func logUserIn(t *testing.T, email, password string) (string, int) {
 	t.Helper()
 	m, b := map[string]string{
 		"email":    email,
@@ -27,15 +27,18 @@ func logUserIn(t *testing.T, email, password string) string {
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/login", srv.URL), b)
 	require.NoError(t, err)
-	res, err := client.Do(req)
-	require.NoError(t, err)
+
+	res, _ := client.Do(req)
+	if res.StatusCode != 200 {
+		return "", res.StatusCode
+	}
+
 	cookies := getCookies(t, res.Cookies())
 	access_token := cookies["goexpense_access"]
-
 	if access_token == "" {
 		t.FailNow()
 	}
-	return access_token
+	return access_token, res.StatusCode
 }
 
 // Save a new user to db

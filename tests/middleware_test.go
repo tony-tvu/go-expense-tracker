@@ -22,7 +22,7 @@ func TestLoggedInMiddleware(t *testing.T) {
 
 	// create user and login
 	createUser(t, s.App, name, email, password)
-	accessToken := logUserIn(t, email, password)
+	accessToken, _ := logUserIn(t, email, password)
 
 	// make request to endpoint where user must be logged in
 	client := &http.Client{}
@@ -101,7 +101,7 @@ func TestRegularUserMiddleware(t *testing.T) {
 
 	// create user and login
 	createUser(t, s.App, name, email, password)
-	accessToken := logUserIn(t, email, password)
+	accessToken, _ := logUserIn(t, email, password)
 
 	// make request to same endpoint when logged in
 	req.AddCookie(&http.Cookie{
@@ -130,7 +130,7 @@ func TestAdminUserMiddleware(t *testing.T) {
 
 	// create user and login
 	createUser(t, s.App, name, email, password)
-	access_token := logUserIn(t, email, password)
+	access_token, _ := logUserIn(t, email, password)
 
 	// make request to admin-only route as regulard user
 	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/sessions", srv.URL), nil)
@@ -165,7 +165,7 @@ func TestAdminUserMiddleware(t *testing.T) {
 	)
 
 	// login
-	access_token = logUserIn(t, email, password)
+	access_token, _ = logUserIn(t, email, password)
 
 	// make request to admin-only endpoint as admin
 	req, _ = http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/sessions", srv.URL), nil)

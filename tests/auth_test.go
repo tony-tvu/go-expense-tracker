@@ -1,69 +1,50 @@
 package tests
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tony-tvu/goexpense/models"
-	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+// EmailLogin handler works correctly and saves new user session upon successful login
 func TestEmailLogin(t *testing.T) {
 	t.Parallel()
 
-	// given
 	name := "TestEmailLoginName"
 	email := "TestEmailLogin@email.com"
 	password := "TestEmailLoginPassword"
 
 	// create user
-	user.SaveUser(context.TODO(), s.App, &models.User{
-		Name:     name,
-		Email:    email,
-		Password: password,
-	})
+	createUser(t, s.App, name, email, password)
 
-	// when: login with wrong password
-	m, b := map[string]string{
-		"email":    email,
-		"password": "wrongPassword"},
-		new(bytes.Buffer)
-	json.NewEncoder(b).Encode(m)
-	res, _ := http.Post(fmt.Sprintf("%s/api/login", srv.URL), "application/json", b)
+	// login with invalid email
+	_, statusCode := logUserIn(t, "notAnEmail", password)
 
-	// then: 403 returned
-	assert.Equal(t, http.StatusForbidden, res.StatusCode)
+	// should return 400
+	assert.Equal(t, http.StatusBadRequest, statusCode)
 
-	// and: login with unfound email
-	m, b = map[string]string{
-		"email":    "unfound@email.com",
-		"password": password},
-		new(bytes.Buffer)
-	json.NewEncoder(b).Encode(m)
-	res, _ = http.Post(fmt.Sprintf("%s/api/login", srv.URL), "application/json", b)
+	// login with wrong password
+	_, statusCode = logUserIn(t, email, "wrong")
 
-	// then: 404 returned
-	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	// should return 403
+	assert.Equal(t, http.StatusForbidden, statusCode)
 
-	// and: login with correct password
-	m, b = map[string]string{
-		"email":    email,
-		"password": password},
-		new(bytes.Buffer)
-	json.NewEncoder(b).Encode(m)
-	res, _ = http.Post(fmt.Sprintf("%s/api/login", srv.URL), "application/json", b)
+	// login with unknown email
+	_, statusCode = logUserIn(t, "unknown@email.com", password)
 
-	assert.Equal(t, http.StatusOK, res.StatusCode)
+	// should return 404
+	assert.Equal(t, http.StatusNotFound, statusCode)
 
-	// and: user login session should be created
+	// login with correct password
+	_, statusCode = logUserIn(t, email, password)
+
+	assert.Equal(t, http.StatusOK, statusCode)
+
+	// should have user session saved in db
 	var ss *models.Session
 	s.App.Sessions.FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
-
 	assert.NotNil(t, ss)
 }

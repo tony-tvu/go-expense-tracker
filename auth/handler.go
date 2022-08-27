@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/mail"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -27,6 +28,13 @@ func (h AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	var c Credentials
 	err := json.NewDecoder(r.Body).Decode(&c)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// validate email address
+	_, err = mail.ParseAddress(c.Email)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
