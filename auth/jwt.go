@@ -35,23 +35,20 @@ func init() {
 	if err := godotenv.Load(".env"); err != nil {
 		log.Println("no .env file found")
 	}
+
 	encryptionKey = os.Getenv("ENCRYPTION_KEY")
 	jwtKey = os.Getenv("JWT_KEY")
-	refreshExpStr := os.Getenv("REFRESH_TOKEN_EXP")
-	accessExpStr := os.Getenv("ACCESS_TOKEN_EXP")
-
 	if util.ContainsEmpty(encryptionKey, jwtKey) {
 		log.Fatal("auth keys are missing")
 	}
 
-	refreshExp, err := strconv.Atoi(refreshExpStr)
+	refreshExp, err := strconv.Atoi(os.Getenv("REFRESH_TOKEN_EXP"))
 	if err != nil {
 		refreshTokenExp = 86400
 	} else {
 		refreshTokenExp = refreshExp
 	}
-
-	accessExp, err := strconv.Atoi(accessExpStr)
+	accessExp, err := strconv.Atoi(os.Getenv("ACCESS_TOKEN_EXP"))
 	if err != nil {
 		accessTokenExp = 900
 	} else {

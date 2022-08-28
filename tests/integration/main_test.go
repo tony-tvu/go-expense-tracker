@@ -29,28 +29,30 @@ var (
 	ctx             context.Context
 	refreshTokenExp int
 	accessTokenExp  int
+	name            string
+	email           string
+	password        string
 )
 
 func TestMain(m *testing.M) {
 	// BeforeAll
-	
-	if err := godotenv.Load(".env"); err != nil {
-		log.Println("no .env file found")
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*5))
 	defer cancel()
 
-	refreshExpStr := os.Getenv("REFRESH_TOKEN_EXP")
-	accessExpStr := os.Getenv("ACCESS_TOKEN_EXP")
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("no .env file found")
+	}
+	name = "TestName"
+	email = "test@email.com"
+	password = "password"
 
-	refreshExp, err := strconv.Atoi(refreshExpStr)
+	refreshExp, err := strconv.Atoi(os.Getenv("REFRESH_TOKEN_EXP"))
 	if err != nil {
 		log.Fatal(err)
 	}
 	refreshTokenExp = refreshExp
 
-	accessExp, err := strconv.Atoi(accessExpStr)
+	accessExp, err := strconv.Atoi(os.Getenv("ACCESS_TOKEN_EXP"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,7 +76,6 @@ func TestMain(m *testing.M) {
 
 	s.App.Users.Drop(ctx)
 	s.App.Sessions.Drop(ctx)
-
 	srv = httptest.NewServer(s.App.Router)
 
 	// Run tests

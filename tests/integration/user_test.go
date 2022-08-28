@@ -10,31 +10,28 @@ import (
 )
 
 // TODO:
-func TestInvite(t *testing.T) {
-	name := "TestInvite"
-	email := "TestInvite@email.com"
-	password := "TestInvitePassword"
+func TestUserHandlers(t *testing.T) {
 
-	// create user
-	user.SaveUser(context.TODO(), s.App, &models.User{
-		Name:     name,
-		Email:    email,
-		Password: password,
+	t.Run("", func(t *testing.T) {
+		// create user
+		user.SaveUser(context.TODO(), s.App, &models.User{
+			Name:     name,
+			Email:    email,
+			Password: password,
+		})
+
+		// make user an admin
+		s.App.Users.UpdateOne(
+			ctx,
+			bson.M{"email": email},
+			bson.D{
+				{Key: "$set", Value: bson.D{{Key: "type", Value: models.AdminUser}}},
+			},
+		)
+
+		// login and get cookies
+
+		// when: invited with bad email
 	})
-
-	// make user an admin
-	s.App.Users.UpdateOne(
-		ctx,
-		bson.M{"email": email},
-		bson.D{
-			{Key: "$set", Value: bson.D{{Key: "type", Value: models.AdminUser}}},
-		},
-	)
-
-	// login and get cookies
-	
-
-	// when: invited with bad email
-
 
 }

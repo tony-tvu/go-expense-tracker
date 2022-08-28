@@ -9,46 +9,39 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// EmailLogin handler works correctly and saves new user session upon successful login
-func TestEmailLoginHandler(t *testing.T) {
-	t.Parallel()
+func TestAuthHandlers(t *testing.T) {
 
-	t.Run("", func(t *testing.T) {
-		name := "TestEmailLoginName"
-		email := "TestEmailLogin@email.com"
-		password := "TestEmailLoginPassword"
-	
+	t.Run("EmailLogin handler should work correctly and save new user session upon successful login", func(t *testing.T) {
 		// create user
 		assert.NotNil(t, s.App)
 		createUser(t, s.App, name, email, password)
-	
+
 		// login with invalid email
 		_, statusCode := logUserIn(t, "notAnEmail", password)
-	
+
 		// should return 400
 		assert.Equal(t, http.StatusBadRequest, statusCode)
-	
+
 		// login with wrong password
 		_, statusCode = logUserIn(t, email, "wrong")
-	
+
 		// should return 403
 		assert.Equal(t, http.StatusForbidden, statusCode)
-	
+
 		// login with unknown email
 		_, statusCode = logUserIn(t, "unknown@email.com", password)
-	
+
 		// should return 404
 		assert.Equal(t, http.StatusNotFound, statusCode)
-	
+
 		// login with correct password
 		_, statusCode = logUserIn(t, email, password)
-	
+
 		assert.Equal(t, http.StatusOK, statusCode)
-	
+
 		// should have user session saved in db
 		var ss *models.Session
 		s.App.Sessions.FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
 		assert.NotNil(t, ss)
 	})
-
 }

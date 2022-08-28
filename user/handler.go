@@ -132,5 +132,5 @@ func (h UserHandler) Invite(c *gin.Context) {
 }
 
 func (h UserHandler) GetSessions(c *gin.Context) {
-	log.Println("GetSessions called")
+	c.JSON(http.StatusOK, gin.H{"message": "User sessions called"})
 }

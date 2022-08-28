@@ -13,168 +13,157 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// LoggedIn middleware should issue access tokens correctly
-func TestLoggedInMiddleware(t *testing.T) {
-	t.Parallel()
+func TestMiddlware(t *testing.T) {
 
-	name := "LoggedInName"
-	email := "LoggedIn@email.com"
-	password := "LoggedInPassword"
+	t.Run("AuthRequired middleware should issue access tokens correctly", func(t *testing.T) {
+		name := "LoggedInName"
+		email := "LoggedIn@email.com"
+		password := "LoggedInPassword"
 
-	// create user and login
-	createUser(t, s.App, name, email, password)
-	accessToken, _ := logUserIn(t, email, password)
+		// create user and login
+		createUser(t, s.App, name, email, password)
+		accessToken, _ := logUserIn(t, email, password)
 
-	// make request to endpoint where user must be logged in
-	client := &http.Client{}
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/user_info", srv.URL), nil)
-	req.AddCookie(&http.Cookie{
-		Name:  "goexpense_access",
-		Value: accessToken})
-	res, _ := client.Do(req)
+		// make request to endpoint where user must be logged in
+		client := &http.Client{}
+		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/user_info", srv.URL), nil)
+		req.AddCookie(&http.Cookie{
+			Name:  "goexpense_access",
+			Value: accessToken})
+		res, _ := client.Do(req)
 
-	// should return 200
-	assert.Equal(t, http.StatusOK, res.StatusCode)
+		// should return 200
+		assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	// should not return a new access token
-	cookies := getCookies(t, res.Cookies())
-	assert.Equal(t, "", cookies["goexpense_access"])
+		// should not return a new access token
+		cookies := getCookies(t, res.Cookies())
+		assert.Equal(t, "", cookies["goexpense_access"])
 
-	// wait for access token to expire
-	time.Sleep(time.Duration(accessTokenExp) * time.Second)
+		// wait for access token to expire
+		time.Sleep(time.Duration(accessTokenExp) * time.Second)
 
-	// make request with expired access token
-	res, _ = client.Do(req)
+		// make request with expired access token
+		res, _ = client.Do(req)
 
-	// should return 200
-	assert.Equal(t, http.StatusOK, res.StatusCode)
+		// should return 200
+		assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	// should have new access token in response
-	cookies = getCookies(t, res.Cookies())
-	assert.NotEqual(t, accessToken, cookies["goexpense_access"])
+		// should have new access token in response
+		cookies = getCookies(t, res.Cookies())
+		assert.NotEqual(t, accessToken, cookies["goexpense_access"])
 
-	// should have correct user info returned
-	var u *models.User
-	json.NewDecoder(res.Body).Decode(&u)
-	assert.Equal(t, name, u.Name)
-	assert.Equal(t, email, u.Email)
-	assert.Equal(t, "", u.Password)
-	assert.Equal(t, false, u.Verified)
-	assert.Equal(t, models.RegularUser, u.Type)
+		// should have correct user info returned
+		var u *models.User
+		json.NewDecoder(res.Body).Decode(&u)
+		assert.Equal(t, name, u.Name)
+		assert.Equal(t, email, u.Email)
+		assert.Equal(t, "", u.Password)
+		assert.Equal(t, false, u.Verified)
+		assert.Equal(t, models.RegularUser, u.Type)
 
-	// wait for refresh token to expire
-	time.Sleep(2 * time.Second)
+		// wait for refresh token to expire
+		time.Sleep(2 * time.Second)
 
-	// make request with expired refresh and access tokens
-	res, _ = client.Do(req)
+		// make request with expired refresh and access tokens
+		res, _ = client.Do(req)
 
-	// should return 401 unauthorized
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+		// should return 401 unauthorized
+		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
-	// response should not have new token cookie
-	cookies = getCookies(t, res.Cookies())
-	assert.Equal(t, "", cookies["goexpense_access"])
+		// response should not have new token cookie
+		cookies = getCookies(t, res.Cookies())
+		assert.Equal(t, "", cookies["goexpense_access"])
 
-}
+	})
 
-// RegularUser middleware should not allow access to guest users
-func TestRegularUserMiddleware(t *testing.T) {
-	t.Parallel()
+	t.Run("AuthRequired middleware should not allow access to guest users", func(t *testing.T) {
+		// make request to endpoint where user must be logged in without access token
+		client := &http.Client{}
+		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/user_info", srv.URL), nil)
+		res, _ := client.Do(req)
 
-	name := "TestRegularUserMiddleware"
-	email := "TestRegularUserMiddleware@email.com"
-	password := "TestRegularUserMiddlewarePassword"
+		// should return 401
+		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
-	// make request to endpoint where user must be logged in without access token
-	client := &http.Client{}
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/user_info", srv.URL), nil)
-	res, _ := client.Do(req)
+		// make request to same endpoint with invalid access token
+		req.AddCookie(&http.Cookie{
+			Name:  "goexpense_access",
+			Value: "invalid"})
+		res, _ = client.Do(req)
 
-	// should return 401
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+		// should return 401
+		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
-	// make request to same endpoint with invalid access token
-	req.AddCookie(&http.Cookie{
-		Name:  "goexpense_access",
-		Value: "invalid"})
-	res, _ = client.Do(req)
+		// create user and login
+		createUser(t, s.App, name, email, password)
+		accessToken, _ := logUserIn(t, email, password)
 
-	// should return 401
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+		// make request to same endpoint when logged in
+		req.AddCookie(&http.Cookie{
+			Name:  "goexpense_access",
+			Value: accessToken})
+		res, _ = client.Do(req)
 
-	// create user and login
-	createUser(t, s.App, name, email, password)
-	accessToken, _ := logUserIn(t, email, password)
+		// should return 200
+		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	})
 
-	// make request to same endpoint when logged in
-	req.AddCookie(&http.Cookie{
-		Name:  "goexpense_access",
-		Value: accessToken})
-	res, _ = client.Do(req)
+	t.Run("AdminRequired middleware should not allow access to guest or regular users", func(t *testing.T) {
+		client := &http.Client{}
 
-	// should return 200
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
-}
+		// make request to admin-only route as a guest user
+		res, _ := http.Get(fmt.Sprintf("%s/api/sessions", srv.URL))
 
-// AdminUser middleware should not allow access to guest or regular users
-func TestAdminUserMiddleware(t *testing.T) {
-	name := "TestAdminName"
-	email := "TestAdmin@email.com"
-	password := "TestAdminPassword"
-	client := &http.Client{}
+		// should return 401
+		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
-	// make request to admin-only route as a guest user
-	res, _ := http.Get(fmt.Sprintf("%s/api/sessions", srv.URL))
+		// create user and login
+		createUser(t, s.App, name, email, password)
+		access_token, _ := logUserIn(t, email, password)
 
-	// should return 401
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+		// make request to admin-only route as regulard user
+		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/sessions", srv.URL), nil)
+		req.AddCookie(&http.Cookie{
+			Name:  "goexpense_access",
+			Value: access_token})
+		res, _ = client.Do(req)
 
-	// create user and login
-	createUser(t, s.App, name, email, password)
-	access_token, _ := logUserIn(t, email, password)
+		// should return 401
+		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
-	// make request to admin-only route as regulard user
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/sessions", srv.URL), nil)
-	req.AddCookie(&http.Cookie{
-		Name:  "goexpense_access",
-		Value: access_token})
-	res, _ = client.Do(req)
+		// logout user
+		req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/logout", srv.URL), nil)
+		req.AddCookie(&http.Cookie{
+			Name:  "goexpense_access",
+			Value: access_token})
+		res, _ = client.Do(req)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	// should return 401
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+		// should no longer have user session saved after logging out
+		var ss *models.Session
+		err := s.App.Sessions.FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
+		assert.Equal(t, mongo.ErrNoDocuments, err)
 
-	// logout user
-	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/logout", srv.URL), nil)
-	req.AddCookie(&http.Cookie{
-		Name:  "goexpense_access",
-		Value: access_token})
-	res, _ = client.Do(req)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
+		// make user an admin
+		s.App.Users.UpdateOne(
+			ctx,
+			bson.M{"email": email},
+			bson.D{
+				{Key: "$set", Value: bson.D{{Key: "type", Value: models.AdminUser}}},
+			},
+		)
 
-	// should no longer have user session saved after logging out
-	var ss *models.Session
-	err := s.App.Sessions.FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
-	assert.Equal(t, mongo.ErrNoDocuments, err)
+		// login
+		access_token, _ = logUserIn(t, email, password)
 
-	// make user an admin
-	s.App.Users.UpdateOne(
-		ctx,
-		bson.M{"email": email},
-		bson.D{
-			{Key: "$set", Value: bson.D{{Key: "type", Value: models.AdminUser}}},
-		},
-	)
+		// make request to admin-only endpoint as admin
+		req, _ = http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/sessions", srv.URL), nil)
+		req.AddCookie(&http.Cookie{
+			Name:  "goexpense_access",
+			Value: access_token})
+		res, _ = client.Do(req)
 
-	// login
-	access_token, _ = logUserIn(t, email, password)
-
-	// make request to admin-only endpoint as admin
-	req, _ = http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/sessions", srv.URL), nil)
-	req.AddCookie(&http.Cookie{
-		Name:  "goexpense_access",
-		Value: access_token})
-	res, _ = client.Do(req)
-
-	// should return 200
-	assert.Equal(t, http.StatusOK, res.StatusCode)
+		// should return 200
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+	})
 }
