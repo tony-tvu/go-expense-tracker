@@ -8,6 +8,7 @@ import (
 	"net/smtp"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/app"
@@ -20,13 +21,13 @@ type UserHandler struct {
 	App *app.App
 }
 
-func (h UserHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	cookie, err := r.Cookie("goexpense_access")
+func (h UserHandler) GetInfo(c *gin.Context) {
+	ctx := c.Request.Context()
+	cookie, err := c.Request.Cookie("goexpense_access")
 
 	// no access token - make user log in
 	if err != nil || cookie.Value == "" {
-		w.WriteHeader(http.StatusUnauthorized)
+		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
@@ -37,7 +38,7 @@ func (h UserHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
 
 	decrypted, err := auth.Decrypt(h.App.EncryptionKey, cookie.Value)
 	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
+		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
@@ -54,40 +55,39 @@ func (h UserHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
 	claims := tkn.Claims.(*Claims)
 
 	if claims.Email == "" {
-		w.WriteHeader(http.StatusBadRequest)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
 	var u *models.User
 	err = h.App.Users.FindOne(ctx, bson.D{{Key: "email", Value: claims.Email}}).Decode(&u)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
 	// do not send back hashed password
 	u.Password = ""
-	json.NewEncoder(w).Encode(u)
+	c.JSON(200, u)
 }
 
 // Send email invite to new user
-func (h UserHandler) Invite(w http.ResponseWriter, r *http.Request) {
+func (h UserHandler) Invite(c *gin.Context) {
 	type Body struct {
 		Email string `json:"email"`
 	}
+	defer c.Request.Body.Close()
 
 	var b Body
-	err := json.NewDecoder(r.Body).Decode(&b)
+	err := json.NewDecoder(c.Request.Body).Decode(&b)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
 	// validate email address
 	_, err = mail.ParseAddress(b.Email)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 	to := []string{b.Email}
@@ -100,7 +100,7 @@ func (h UserHandler) Invite(w http.ResponseWriter, r *http.Request) {
 
 	if from == "" || password == "" || smtpHost == "" || smtpPort == "" {
 		log.Println("error - email sender configs are missing")
-		w.WriteHeader(http.StatusInternalServerError)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
@@ -112,7 +112,11 @@ func (h UserHandler) Invite(w http.ResponseWriter, r *http.Request) {
 
 	err = smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, message)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h UserHandler) GetSessions(c *gin.Context) {
+	log.Println("GetSessions called")
 }

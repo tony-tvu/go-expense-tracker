@@ -12,9 +12,15 @@ build:
 	cd web && npm run build
 	go build -o ./bin/main main.go
 
+api:
+	go run main.go
+
+client:
+	cd web && npm start
+
 start:
 	air
 
 test:
 	go clean -testcache
-	go test ./tests -v
+	go test ./... -v

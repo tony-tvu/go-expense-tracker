@@ -7,17 +7,17 @@ import (
 )
 
 func TestEncryptAndDecrypt(t *testing.T) {
-	// given
+	t.Parallel()
+
 	key := "ThisKeyStringIs32BytesLongTest01"
 	pw := "thisIsAPassword"
 
-	// when
 	ciphertext, _ := Encrypt(key, pw)
 
-	// then: verify encrypted pw isn't the same as pw string
+	// should have ciphertext not equal password string
 	assert.Equal(t, true, ciphertext != pw)
 
-	// and: decrypted pw matches original pw string
+	// should have decrypyted password equal original password string
 	decrypted, _ := Decrypt(key, ciphertext)
 	assert.Equal(t, pw, decrypted)
 }

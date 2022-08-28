@@ -2,20 +2,20 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/contrib/static"
+	"github.com/gin-gonic/gin"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/rs/cors"
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/auth"
+	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/plaidapi"
 	"github.com/tony-tvu/goexpense/user"
-	"github.com/tony-tvu/goexpense/web"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -57,30 +57,49 @@ func (s *Server) Initialize() {
 		log.Println("plaid configs are missing - service will not work")
 	}
 
-	// Handlers
-	ah := &auth.AuthHandler{App: s.App}
-	ph := &plaidapi.PlaidHandler{App: s.App}
-	uh := &user.UserHandler{App: s.App}
-	sh := &web.SpaHandler{StaticPath: "web/build", IndexPath: "index.html"}
+	// Init handlers
+	authHandler := &auth.AuthHandler{App: s.App}
+	plaidHandler := &plaidapi.PlaidHandler{App: s.App}
+	userHandler := &user.UserHandler{App: s.App}
 
-	// Routes
-	r := mux.NewRouter()
-	// Auth
-	r.Handle("/api/login", GuestUser(ah.Login, s.App)).Methods("POST")
-	r.Handle("/api/logout", RegularUser(ah.Logout, s.App)).Methods("POST")
-	r.Handle("/api/sessions", AdminUser(ah.GetSessions, s.App)).Methods("GET")
-	// Health
-	r.Handle("/api/health", GuestUser(Health, s.App)).Methods("GET")
-	// Users
-	r.Handle("/api/user_info", RegularUser(uh.GetInfo, s.App)).Methods("GET")
-	r.Handle("/api/invite", AdminUser(uh.Invite, s.App)).Methods("POST")
-	// Plaid
-	r.Handle("/api/create_link_token", RegularUser(ph.CreateLinkToken, s.App)).Methods("GET")
-	r.Handle("/api/set_access_token", RegularUser(ph.SetAccessToken, s.App)).Methods("POST")
-	// Web
-	r.PathPrefix("/").Handler(GuestUser(sh.Serve, s.App)).Methods("GET")
+	if s.App.Env == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
-	s.App.Router = r
+	router := gin.Default()
+	router.ForwardedByClientIP = true
+
+	// apply global middleware
+	router.Use(middleware.RateLimit())
+	router.Use(middleware.NoCache)
+
+	router.GET("/api/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "Ok"})
+	})
+	router.POST("/api/login", authHandler.Login, middleware.LoginRateLimit())
+
+	authRequired := router.Group("/api", middleware.AuthRequired(s.App))
+	{
+		authRequired.POST("/logout", authHandler.Logout)
+		authRequired.GET("/user_info", userHandler.GetInfo)
+		authRequired.GET("/create_link_token", plaidHandler.CreateLinkToken)
+		authRequired.POST("/set_access_token", plaidHandler.SetAccessToken)
+
+		adminRequired := authRequired.Group("/", middleware.AdminRequired(s.App))
+		{
+			adminRequired.POST("/invite", userHandler.Invite)
+			adminRequired.GET("/sessions", userHandler.GetSessions)
+		}
+	}
+
+	// serve frontend
+	router.Use(static.Serve("/", static.LocalFile("./web/build", true)))
+	// prevent returning 404 when reloading page on frontend route
+	router.NoRoute(func(ctx *gin.Context) {
+		ctx.File("./web/build")
+	})
+
+	s.App.Router = router
 }
 
 func (s *Server) Run(ctx context.Context) {
@@ -123,12 +142,4 @@ func (s *Server) Run(ctx context.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-func Health(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	body := make(map[string]string)
-	body["message"] = "Ok"
-	jData, _ := json.Marshal(body)
-	w.Write(jData)
 }

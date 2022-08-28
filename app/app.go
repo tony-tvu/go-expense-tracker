@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/plaid/plaid-go/plaid"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -23,7 +23,7 @@ type App struct {
 	PlaidEnv          string
 	PlaidCountryCodes string
 	PlaidProducts     string
-	Router            *mux.Router
+	Router            *gin.Engine
 }
 
 var PlaidEnvs = map[string]plaid.Environment{

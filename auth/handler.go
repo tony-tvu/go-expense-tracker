@@ -2,11 +2,11 @@ package auth
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/mail"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/models"
@@ -23,49 +23,50 @@ type Credentials struct {
 	Password string `json:"password"`
 }
 
-func (h AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+func (h AuthHandler) Login(c *gin.Context) {
+	ctx := c.Request.Context()
+	defer c.Request.Body.Close()
 
-	var c Credentials
-	err := json.NewDecoder(r.Body).Decode(&c)
+	var cred Credentials
+	err := json.NewDecoder(c.Request.Body).Decode(&cred)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
 	// validate email address
-	_, err = mail.ParseAddress(c.Email)
+	_, err = mail.ParseAddress(cred.Email)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
 	// find existing user account
 	var u *models.User
-	err = h.App.Users.FindOne(ctx, bson.D{{Key: "email", Value: c.Email}}).Decode(&u)
+	err = h.App.Users.FindOne(ctx, bson.D{{Key: "email", Value: cred.Email}}).Decode(&u)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 
 	// verify password
-	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(c.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(cred.Password))
 	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
+		c.AbortWithStatus(http.StatusForbidden)
 		return
 	}
 
 	// create refresh token
 	refreshToken, err := CreateRefreshToken(ctx, h.App, u)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	// delete existing sessions
 	_, err = h.App.Sessions.DeleteOne(ctx, bson.M{"email": u.Email})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
@@ -79,40 +80,39 @@ func (h AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	_, err = h.App.Sessions.InsertOne(ctx, doc)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	// create access token
 	accessToken, err := CreateAccessToken(ctx, h.App, u.Email, string(u.Type))
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
+	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     "goexpense_access",
 		Value:    accessToken.Value,
 		Expires:  accessToken.ExpiresAt,
 		HttpOnly: true,
 	})
-
 }
 
-func (h AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	cookie, err := r.Cookie("goexpense_access")
+func (h AuthHandler) Logout(c *gin.Context) {
+	ctx := c.Request.Context()
+	cookie, err := c.Request.Cookie("goexpense_access")
 
 	// missing access_token
 	if err != nil || cookie.Value == "" {
-		w.WriteHeader(http.StatusBadRequest)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
 	// decrypt access token
 	decrypted, err := Decrypt(h.App.EncryptionKey, cookie.Value)
 	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
+		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
@@ -121,7 +121,7 @@ func (h AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 			return []byte(h.App.JwtKey), nil
 		})
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
@@ -129,12 +129,7 @@ func (h AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	_, err = h.App.Sessions.DeleteMany(ctx, bson.M{"email": claims.Email})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-
-}
-
-func (h AuthHandler) GetSessions(w http.ResponseWriter, r *http.Request) {
-	log.Println("GetSessions called")
 }

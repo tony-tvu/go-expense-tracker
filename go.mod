@@ -8,15 +8,21 @@ require (
 	go.mongodb.org/mongo-driver v1.10.1
 )
 
-require gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
-
 require (
+	github.com/gin-gonic/contrib v0.0.0-20201101042839-6a891bf89f19
+	github.com/gin-gonic/gin v1.8.1
+	github.com/go-playground/validator/v10 v10.11.0 // indirect
+	github.com/goccy/go-json v0.9.11 // indirect
 	github.com/golang-jwt/jwt/v4 v4.4.2
-	github.com/gorilla/mux v1.8.0
-	github.com/klauspost/compress v1.15.0 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/plaid/plaid-go v1.10.0
 	github.com/rs/cors v1.8.2
-	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
+	github.com/ulule/limiter/v3 v3.10.0
+	golang.org/x/crypto v0.0.0-20220826181053-bd7e27e6170d
+	golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b // indirect
 	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094 // indirect
-	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9
+	golang.org/x/sys v0.0.0-20220825204002-c680a09ffe64 // indirect
+	google.golang.org/protobuf v1.28.1 // indirect
 )

@@ -1,12 +1,12 @@
 package plaidapi
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/app"
 )
@@ -23,9 +23,8 @@ will return a public_token. Send the public_token back to this api (GetAccessTok
 to make a request to plaid api for a permanent access_token and associated item_id,
 which can be used to get the user's transactions.
 */
-func (h PlaidHandler) CreateLinkToken(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	body := make(map[string]string)
+func (h PlaidHandler) CreateLinkToken(c *gin.Context) {
+	ctx := c.Request.Context()
 
 	countryCodes := []plaid.CountryCode{}
 	for _, countryCodeStr := range strings.Split(h.App.PlaidCountryCodes, ",") {
@@ -51,26 +50,18 @@ func (h PlaidHandler) CreateLinkToken(w http.ResponseWriter, r *http.Request) {
 		h.App.PlaidClient.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	linkToken := linkTokenCreateResp.GetLinkToken()
-
-	body["link_token"] = linkToken
-	jData, err := json.Marshal(body)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.Write(jData)
-
+	c.JSON(http.StatusOK, gin.H{"link_token": linkToken})
 }
 
-func (h PlaidHandler) SetAccessToken(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	publicToken := r.Header.Get("Plaid-Public-Token")
+func (h PlaidHandler) SetAccessToken(c *gin.Context) {
+	ctx := c.Request.Context()
+	publicToken := c.Request.Header.Get("Plaid-Public-Token")
 	if publicToken == "" {
-		w.WriteHeader(http.StatusBadRequest)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
@@ -81,7 +72,7 @@ func (h PlaidHandler) SetAccessToken(w http.ResponseWriter, r *http.Request) {
 				*plaid.NewItemPublicTokenExchangeRequest(publicToken),
 			).Execute()
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 

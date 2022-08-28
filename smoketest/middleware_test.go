@@ -35,7 +35,7 @@ func TestLoggedInMiddleware(t *testing.T) {
 	// should return 200
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
-	// should have returned a new access token cookie
+	// should not return a new access token
 	cookies := getCookies(t, res.Cookies())
 	assert.Equal(t, "", cookies["goexpense_access"])
 
