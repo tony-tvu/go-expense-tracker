@@ -3,16 +3,45 @@ package plaidapi
 import (
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
-	"github.com/tony-tvu/goexpense/app"
+	"github.com/tony-tvu/goexpense/util"
 )
 
-type PlaidHandler struct {
-	App *app.App
+var envs = map[string]plaid.Environment{
+	"sandbox":     plaid.Sandbox,
+	"development": plaid.Development,
+	"production":  plaid.Production,
+}
+
+var client *plaid.APIClient
+var products string
+var countryCodes string
+
+func init() {
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("no .env file found")
+	}
+	clientID := os.Getenv("PLAID_CLIENT_ID")
+	secret := os.Getenv("PLAID_SECRET")
+	env := os.Getenv("PLAID_ENV")
+	if util.ContainsEmpty(clientID, secret, env) {
+		log.Println("plaid env variables are missing")
+	}
+
+	products = "auth,transactions"
+	countryCodes = "US,CA"
+	plaidCfg := plaid.NewConfiguration()
+	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", clientID)
+	plaidCfg.AddDefaultHeader("PLAID-SECRET", secret)
+	plaidCfg.UseEnvironment(envs[env])
+	plaidClient := plaid.NewAPIClient(plaidCfg)
+	client = plaidClient
 }
 
 /*
@@ -23,16 +52,16 @@ will return a public_token. Send the public_token back to this api (GetAccessTok
 to make a request to plaid api for a permanent access_token and associated item_id,
 which can be used to get the user's transactions.
 */
-func (h PlaidHandler) CreateLinkToken(c *gin.Context) {
+func CreateLinkToken(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	countryCodes := []plaid.CountryCode{}
-	for _, countryCodeStr := range strings.Split(h.App.PlaidCountryCodes, ",") {
-		countryCodes = append(countryCodes, plaid.CountryCode(countryCodeStr))
+	cc := []plaid.CountryCode{}
+	for _, countryCode := range strings.Split(countryCodes, ",") {
+		cc = append(cc, plaid.CountryCode(countryCode))
 	}
-	products := []plaid.Products{}
-	for _, productStr := range strings.Split(h.App.PlaidProducts, ",") {
-		products = append(products, plaid.Products(productStr))
+	p := []plaid.Products{}
+	for _, product := range strings.Split(products, ",") {
+		p = append(p, plaid.Products(product))
 	}
 	user := plaid.LinkTokenCreateRequestUser{
 		ClientUserId: time.Now().String(),
@@ -41,13 +70,13 @@ func (h PlaidHandler) CreateLinkToken(c *gin.Context) {
 	request := plaid.NewLinkTokenCreateRequest(
 		"Plaid Quickstart",
 		"en",
-		countryCodes,
+		cc,
 		user,
 	)
-	request.SetProducts(products)
+	request.SetProducts(p)
 
 	linkTokenCreateResp, _, err :=
-		h.App.PlaidClient.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
+		client.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -57,7 +86,7 @@ func (h PlaidHandler) CreateLinkToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"link_token": linkToken})
 }
 
-func (h PlaidHandler) SetAccessToken(c *gin.Context) {
+func SetAccessToken(c *gin.Context) {
 	ctx := c.Request.Context()
 	publicToken := c.Request.Header.Get("Plaid-Public-Token")
 	if publicToken == "" {
@@ -67,7 +96,7 @@ func (h PlaidHandler) SetAccessToken(c *gin.Context) {
 
 	// exchange the public_token for an access_token
 	exchangePublicTokenResp, _, err :=
-		h.App.PlaidClient.PlaidApi.ItemPublicTokenExchange(ctx).
+		client.PlaidApi.ItemPublicTokenExchange(ctx).
 			ItemPublicTokenExchangeRequest(
 				*plaid.NewItemPublicTokenExchangeRequest(publicToken),
 			).Execute()

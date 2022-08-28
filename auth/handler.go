@@ -23,6 +23,7 @@ type Credentials struct {
 	Password string `json:"password"`
 }
 
+
 func (h AuthHandler) Login(c *gin.Context) {
 	ctx := c.Request.Context()
 	defer c.Request.Body.Close()
@@ -110,7 +111,7 @@ func (h AuthHandler) Logout(c *gin.Context) {
 	}
 
 	// decrypt access token
-	decrypted, err := Decrypt(h.App.EncryptionKey, cookie.Value)
+	decrypted, err := Decrypt(encryptionKey, cookie.Value)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -118,7 +119,7 @@ func (h AuthHandler) Logout(c *gin.Context) {
 
 	tkn, err := jwt.ParseWithClaims(decrypted, &Claims{},
 		func(token *jwt.Token) (interface{}, error) {
-			return []byte(h.App.JwtKey), nil
+			return []byte(jwtKey), nil
 		})
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)

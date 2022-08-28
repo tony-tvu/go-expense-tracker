@@ -5,17 +5,19 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
-	"github.com/plaid/plaid-go/plaid"
+	"github.com/joho/godotenv"
 	"github.com/rs/cors"
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/plaidapi"
 	"github.com/tony-tvu/goexpense/user"
+	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -24,49 +26,37 @@ type Server struct {
 	App *app.App
 }
 
-func (s *Server) Initialize() {
-	if string(s.App.EncryptionKey) == "" {
-		log.Fatal("fatal: missing ENCRYPTION_KEY")
-	}
-	if string(s.App.JwtKey) == "" {
-		log.Fatal("fatal: missing JWT_KEY")
-	}
-	if s.App.MongoURI == "" {
-		log.Fatal("fatal: missing MONGODB_URI")
-	}
-	if s.App.Env == "" {
-		s.App.Env = "development"
-	}
-	if s.App.Port == "" {
-		s.App.Port = "80"
-	}
+var env string
+var port string
+var mongoURI string
+var dbName string
 
-	// Plaid client
-	if s.App.PlaidClientID != "" ||
-		s.App.PlaidSecret != "" ||
-		s.App.PlaidEnv != "" ||
-		s.App.PlaidProducts != "" ||
-		s.App.PlaidCountryCodes != "" {
-		plaidCfg := plaid.NewConfiguration()
-		plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", s.App.PlaidClientID)
-		plaidCfg.AddDefaultHeader("PLAID-SECRET", s.App.PlaidSecret)
-		plaidCfg.UseEnvironment(app.PlaidEnvs[s.App.PlaidEnv])
-		plaidClient := plaid.NewAPIClient(plaidCfg)
-		s.App.PlaidClient = plaidClient
-	} else {
-		log.Println("plaid configs are missing - service will not work")
+func init() {
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("no .env file found")
 	}
+	env = os.Getenv("ENV")
+	port = os.Getenv("PORT")
+	mongoURI = os.Getenv("MONGODB_URI")
+	dbName = os.Getenv("DB_NAME")
+	if util.ContainsEmpty(env, port, mongoURI, dbName) {
+		log.Fatal("env variables are missing")
+	}
+}
+
+func (s *Server) Initialize() {
 
 	// Init handlers
 	authHandler := &auth.AuthHandler{App: s.App}
-	plaidHandler := &plaidapi.PlaidHandler{App: s.App}
 	userHandler := &user.UserHandler{App: s.App}
 
-	if s.App.Env == "production" {
+	if env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	router := gin.Default()
+	router := gin.New()
+	// TODO: add logging middlware
+	
 	router.ForwardedByClientIP = true
 
 	// apply global middleware
@@ -82,8 +72,8 @@ func (s *Server) Initialize() {
 	{
 		authRequired.POST("/logout", authHandler.Logout)
 		authRequired.GET("/user_info", userHandler.GetInfo)
-		authRequired.GET("/create_link_token", plaidHandler.CreateLinkToken)
-		authRequired.POST("/set_access_token", plaidHandler.SetAccessToken)
+		authRequired.GET("/create_link_token", plaidapi.CreateLinkToken)
+		authRequired.POST("/set_access_token", plaidapi.SetAccessToken)
 
 		adminRequired := authRequired.Group("/", middleware.AdminRequired(s.App))
 		{
@@ -103,8 +93,8 @@ func (s *Server) Initialize() {
 }
 
 func (s *Server) Run(ctx context.Context) {
-	if s.App.Env != "test" {
-		mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(s.App.MongoURI))
+	if env == "development" || env == "production" {
+		mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -117,11 +107,9 @@ func (s *Server) Run(ctx context.Context) {
 				log.Println("mongo has been disconnected: ", err)
 			}
 		}()
-		if s.App.DbName == "" {
-			s.App.DbName = "goexpense_local"
-		}
-		s.App.Users = mongoclient.Database(s.App.DbName).Collection("users")
-		s.App.Sessions = mongoclient.Database(s.App.DbName).Collection("sessions")
+
+		s.App.Users = mongoclient.Database(dbName).Collection("users")
+		s.App.Sessions = mongoclient.Database(dbName).Collection("sessions")
 	}
 
 	h := cors.New(cors.Options{
@@ -132,12 +120,12 @@ func (s *Server) Run(ctx context.Context) {
 
 	srv := &http.Server{
 		Handler:      h,
-		Addr:         fmt.Sprintf(":%s", s.App.Port),
+		Addr:         fmt.Sprintf(":%s", port),
 		WriteTimeout: 5 * time.Second,
 		ReadTimeout:  5 * time.Second,
 	}
 
-	log.Printf("Listening on port %s", s.App.Port)
+	log.Printf("Listening on port %s", port)
 	err := srv.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)

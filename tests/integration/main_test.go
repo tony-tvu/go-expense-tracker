@@ -1,4 +1,4 @@
-package smoketest
+package tests
 
 import (
 	"bytes"
@@ -9,9 +9,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/require"
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/models"
@@ -31,32 +33,30 @@ var (
 
 func TestMain(m *testing.M) {
 	// BeforeAll
+	
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("no .env file found")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*5))
 	defer cancel()
 
-	refreshTokenExp = 2
-	accessTokenExp = 1
+	refreshExpStr := os.Getenv("REFRESH_TOKEN_EXP")
+	accessExpStr := os.Getenv("ACCESS_TOKEN_EXP")
 
-	s = &server.Server{
-		App: &app.App{
-			Env:               "test",
-			Port:              "5000",
-			EncryptionKey:     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-			JwtKey:            "jwt_key",
-			RefreshTokenExp:   refreshTokenExp,
-			AccessTokenExp:    accessTokenExp,
-			MongoURI:          "mongodb://localhost:27017/local_db",
-			DbName:            "goexpense_test",
-			PlaidClientID:     "plaidClientID",
-			PlaidSecret:       "plaidSecret",
-			PlaidEnv:          "sandbox",
-			PlaidCountryCodes: "US,CA",
-			PlaidProducts:     "auth,transactions",
-		},
+	refreshExp, err := strconv.Atoi(refreshExpStr)
+	if err != nil {
+		log.Fatal(err)
 	}
-	s.Initialize()
+	refreshTokenExp = refreshExp
 
-	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(s.App.MongoURI))
+	accessExp, err := strconv.Atoi(accessExpStr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	accessTokenExp = accessExp
+
+	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017/local_db"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -66,8 +66,12 @@ func TestMain(m *testing.M) {
 		}
 	}()
 
-	s.App.Users = mongoclient.Database(s.App.DbName).Collection("users")
-	s.App.Sessions = mongoclient.Database(s.App.DbName).Collection("sessions")
+	s = &server.Server{App: &app.App{
+		Users:    mongoclient.Database("goexpense_test").Collection("users"),
+		Sessions: mongoclient.Database("goexpense_test").Collection("sessions"),
+	}}
+	s.Initialize()
+
 	s.App.Users.Drop(ctx)
 	s.App.Sessions.Drop(ctx)
 

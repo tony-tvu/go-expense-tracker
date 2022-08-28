@@ -1,4 +1,4 @@
-package smoketest
+package tests
 
 import (
 	"encoding/json"
@@ -16,6 +16,7 @@ import (
 // LoggedIn middleware should issue access tokens correctly
 func TestLoggedInMiddleware(t *testing.T) {
 	t.Parallel()
+
 	name := "LoggedInName"
 	email := "LoggedIn@email.com"
 	password := "LoggedInPassword"
@@ -62,7 +63,7 @@ func TestLoggedInMiddleware(t *testing.T) {
 	assert.Equal(t, models.RegularUser, u.Type)
 
 	// wait for refresh token to expire
-	time.Sleep(time.Duration(refreshTokenExp) * time.Second)
+	time.Sleep(2 * time.Second)
 
 	// make request with expired refresh and access tokens
 	res, _ = client.Do(req)
@@ -73,11 +74,13 @@ func TestLoggedInMiddleware(t *testing.T) {
 	// response should not have new token cookie
 	cookies = getCookies(t, res.Cookies())
 	assert.Equal(t, "", cookies["goexpense_access"])
+
 }
 
 // RegularUser middleware should not allow access to guest users
 func TestRegularUserMiddleware(t *testing.T) {
 	t.Parallel()
+
 	name := "TestRegularUserMiddleware"
 	email := "TestRegularUserMiddleware@email.com"
 	password := "TestRegularUserMiddlewarePassword"
@@ -115,8 +118,6 @@ func TestRegularUserMiddleware(t *testing.T) {
 
 // AdminUser middleware should not allow access to guest or regular users
 func TestAdminUserMiddleware(t *testing.T) {
-	t.Parallel()
-
 	name := "TestAdminName"
 	email := "TestAdmin@email.com"
 	password := "TestAdminPassword"
@@ -125,7 +126,7 @@ func TestAdminUserMiddleware(t *testing.T) {
 	// make request to admin-only route as a guest user
 	res, _ := http.Get(fmt.Sprintf("%s/api/sessions", srv.URL))
 
-	// should return 401 
+	// should return 401
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 	// create user and login
@@ -139,7 +140,7 @@ func TestAdminUserMiddleware(t *testing.T) {
 		Value: access_token})
 	res, _ = client.Do(req)
 
-	// should return 401 
+	// should return 401
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 	// logout user

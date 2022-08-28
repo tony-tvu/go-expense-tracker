@@ -20,7 +20,7 @@ func AdminRequired(a *app.App) gin.HandlerFunc {
 		}
 
 		// decrypt token
-		decrypted, err := auth.Decrypt(a.EncryptionKey, cookie.Value)
+		decrypted, err := auth.Decrypt(encryptionKey, cookie.Value)
 		if err != nil {
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
@@ -28,7 +28,7 @@ func AdminRequired(a *app.App) gin.HandlerFunc {
 
 		tkn, err := jwt.ParseWithClaims(decrypted, &auth.Claims{},
 			func(token *jwt.Token) (interface{}, error) {
-				return []byte(a.JwtKey), nil
+				return []byte(jwtKey), nil
 			})
 		if err != nil {
 			c.AbortWithStatus(http.StatusUnauthorized)

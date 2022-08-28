@@ -1,4 +1,4 @@
-package smoketest
+package tests
 
 import (
 	"context"
@@ -11,9 +11,6 @@ import (
 
 // TODO:
 func TestInvite(t *testing.T) {
-	t.Parallel()
-
-	// given
 	name := "TestInvite"
 	email := "TestInvite@email.com"
 	password := "TestInvitePassword"

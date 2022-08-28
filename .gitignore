@@ -41,7 +41,7 @@ sketch
 **/dist
 
 # env
-.env
+/.env
 .env.development
 .env.production
 

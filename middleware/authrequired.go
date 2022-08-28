@@ -1,15 +1,33 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
 )
+
+var encryptionKey string
+var jwtKey string
+
+func init() {
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("no .env file found")
+	}
+	encryptionKey = os.Getenv("ENCRYPTION_KEY")
+	jwtKey = os.Getenv("JWT_KEY")
+	if util.ContainsEmpty(encryptionKey, jwtKey) {
+		log.Fatal("auth keys are missing")
+	}
+}
 
 // Middleware restricts access to logged in users only
 func AuthRequired(a *app.App) gin.HandlerFunc {
@@ -25,17 +43,17 @@ func AuthRequired(a *app.App) gin.HandlerFunc {
 		}
 
 		// decrypt access token
-		decrypted, err := auth.Decrypt(a.EncryptionKey, cookie.Value)
+		decrypted, err := auth.Decrypt(encryptionKey, cookie.Value)
 		if err != nil {
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
-		tkn, err := jwt.ParseWithClaims(decrypted, &auth.Claims{},
+		accessTkn, err := jwt.ParseWithClaims(decrypted, &auth.Claims{},
 			func(token *jwt.Token) (interface{}, error) {
-				return []byte(a.JwtKey), nil
+				return []byte(jwtKey), nil
 			})
-		claims := tkn.Claims.(*auth.Claims)
+		claims := accessTkn.Claims.(*auth.Claims)
 
 		// token is expired and missing correct claims - make user log in
 		if err != nil && claims.Email == "" && claims.UserType == "" {
@@ -44,7 +62,7 @@ func AuthRequired(a *app.App) gin.HandlerFunc {
 		}
 
 		// if token is invalid/expired - check for existing session and renew access token
-		if !tkn.Valid {
+		if !accessTkn.Valid {
 
 			// find existing session (refresh_token)
 			var s *models.Session
@@ -58,7 +76,7 @@ func AuthRequired(a *app.App) gin.HandlerFunc {
 			}
 
 			// decrypt refresh token
-			decrypted, err = auth.Decrypt(a.EncryptionKey, s.RefreshToken)
+			decrypted, err = auth.Decrypt(encryptionKey, s.RefreshToken)
 			if err != nil {
 				c.AbortWithStatus(http.StatusUnauthorized)
 				return
@@ -67,7 +85,7 @@ func AuthRequired(a *app.App) gin.HandlerFunc {
 			// verify session is still valid
 			_, err = jwt.ParseWithClaims(decrypted, &auth.Claims{},
 				func(token *jwt.Token) (interface{}, error) {
-					return []byte(a.JwtKey), nil
+					return []byte(jwtKey), nil
 				})
 
 			if err != nil {

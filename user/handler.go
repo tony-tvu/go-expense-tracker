@@ -14,11 +14,26 @@ import (
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 type UserHandler struct {
 	App *app.App
+}
+
+var encryptionKey string
+var jwtKey string
+
+func init() {
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("no .env file found")
+	}
+	encryptionKey = os.Getenv("ENCRYPTION_KEY")
+	jwtKey = os.Getenv("JWT_KEY")
+	if util.ContainsEmpty(encryptionKey, jwtKey) {
+		log.Fatal("auth keys are missing")
+	}
 }
 
 func (h UserHandler) GetInfo(c *gin.Context) {
@@ -36,7 +51,7 @@ func (h UserHandler) GetInfo(c *gin.Context) {
 		jwt.RegisteredClaims
 	}
 
-	decrypted, err := auth.Decrypt(h.App.EncryptionKey, cookie.Value)
+	decrypted, err := auth.Decrypt(encryptionKey, cookie.Value)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -50,7 +65,7 @@ func (h UserHandler) GetInfo(c *gin.Context) {
 	*/
 	tkn, _ := jwt.ParseWithClaims(decrypted, &Claims{},
 		func(token *jwt.Token) (interface{}, error) {
-			return []byte(h.App.JwtKey), nil
+			return []byte(jwtKey), nil
 		})
 	claims := tkn.Claims.(*Claims)
 
@@ -92,7 +107,6 @@ func (h UserHandler) Invite(c *gin.Context) {
 	}
 	to := []string{b.Email}
 
-	godotenv.Load(".env")
 	from := os.Getenv("EMAIL_SENDER")
 	password := os.Getenv("EMAIL_PASSWORD")
 	smtpHost := os.Getenv("SMTP_HOST")

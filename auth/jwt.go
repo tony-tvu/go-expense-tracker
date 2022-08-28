@@ -3,15 +3,20 @@ package auth
 import (
 	"context"
 	"errors"
+	"log"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/util"
 )
 
 type Claims struct {
-	Email   string
+	Email    string
 	UserType string
 	jwt.RegisteredClaims
 }
@@ -19,6 +24,39 @@ type Claims struct {
 type Token struct {
 	Value     string
 	ExpiresAt time.Time
+}
+
+var encryptionKey string
+var jwtKey string
+var refreshTokenExp int
+var accessTokenExp int
+
+func init() {
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("no .env file found")
+	}
+	encryptionKey = os.Getenv("ENCRYPTION_KEY")
+	jwtKey = os.Getenv("JWT_KEY")
+	refreshExpStr := os.Getenv("REFRESH_TOKEN_EXP")
+	accessExpStr := os.Getenv("ACCESS_TOKEN_EXP")
+
+	if util.ContainsEmpty(encryptionKey, jwtKey) {
+		log.Fatal("auth keys are missing")
+	}
+
+	refreshExp, err := strconv.Atoi(refreshExpStr)
+	if err != nil {
+		refreshTokenExp = 86400
+	} else {
+		refreshTokenExp = refreshExp
+	}
+
+	accessExp, err := strconv.Atoi(accessExpStr)
+	if err != nil {
+		accessTokenExp = 900
+	} else {
+		accessTokenExp = accessExp
+	}
 }
 
 /*
@@ -29,19 +67,19 @@ These can be revoked by deleting the refresh_token in the collection.
 Default expiration time: 24 hours
 */
 func CreateRefreshToken(ctx context.Context, a *app.App, u *models.User) (Token, error) {
-	exp := time.Now().Add(time.Duration(a.RefreshTokenExp) * time.Second)
+	exp := time.Now().Add(time.Duration(refreshTokenExp) * time.Second)
 	refreshTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
 		Email: u.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
-	}).SignedString([]byte(a.JwtKey))
+	}).SignedString([]byte(jwtKey))
 	if err != nil {
 		return Token{}, errors.New("error creating refresh token")
 	}
 
-	encrpyted, err := Encrypt(a.EncryptionKey, refreshTokenStr)
+	encrpyted, err := Encrypt(encryptionKey, refreshTokenStr)
 	if err != nil {
 		return Token{}, errors.New("error creating refresh token")
 	}
@@ -59,20 +97,20 @@ Default expiration time: 15m
 */
 func CreateAccessToken(ctx context.Context, a *app.App, email, userType string) (Token, error) {
 	exp := time.Now().Add(
-		time.Duration(a.AccessTokenExp) * time.Second)
+		time.Duration(accessTokenExp) * time.Second)
 	accessTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
-		Email:   email,
+		Email:    email,
 		UserType: userType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
-	}).SignedString([]byte(a.JwtKey))
+	}).SignedString([]byte(jwtKey))
 	if err != nil {
 		return Token{}, errors.New("error creating access token")
 	}
 
-	encrpyted, err := Encrypt(a.EncryptionKey, accessTokenStr)
+	encrpyted, err := Encrypt(encryptionKey, accessTokenStr)
 	if err != nil {
 		return Token{}, errors.New("error creating refresh token")
 	}
