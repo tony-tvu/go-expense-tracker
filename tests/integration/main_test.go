@@ -58,7 +58,7 @@ func TestMain(m *testing.M) {
 	}
 	accessTokenExp = accessExp
 
-	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017/local_db"))
+	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGODB_URI")))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -68,18 +68,16 @@ func TestMain(m *testing.M) {
 		}
 	}()
 
-	testApp = &app.App{
-		Db: &database.Db{
-			Users:    mongoclient.Database("goexpense_test").Collection("users"),
-			Sessions: mongoclient.Database("goexpense_test").Collection("sessions"),
-		},
-	}
-
-	// initialize routes
-	testApp.Run(ctx)
-
+	testApp = &app.App{}
+	testApp.Initialize(ctx)
+	testApp.Db.Users = mongoclient.Database("goexpense_test").Collection("users")
+	testApp.Db.Sessions = mongoclient.Database("goexpense_test").Collection("sessions")
+	
+	// drop all collections
 	testApp.Db.Users.Drop(ctx)
 	testApp.Db.Sessions.Drop(ctx)
+
+	// start test server
 	srv = httptest.NewServer(testApp.Router)
 
 	// Run tests

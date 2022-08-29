@@ -24,6 +24,13 @@ type Token struct {
 	ExpiresAt time.Time
 }
 
+type TokenType string
+
+const (
+	Access  TokenType = "Access"
+	Refresh TokenType = "Refresh"
+)
+
 var jwtKey string
 var refreshTokenExp int
 var accessTokenExp int
@@ -56,22 +63,23 @@ These can be revoked by deleting the refresh_token in the collection.
 
 Default expiration time: 24 hours
 */
-func CreateRefreshToken(ctx context.Context, u *models.User) (Token, error) {
+func GetEncryptedRefreshToken(ctx context.Context, u *models.User) (Token, error) {
 	exp := time.Now().Add(time.Duration(refreshTokenExp) * time.Second)
 	refreshTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
-		Email: u.Email,
+		Email:    u.Email,
+		UserType: string(u.Type),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}).SignedString([]byte(jwtKey))
 	if err != nil {
-		return Token{}, errors.New("error creating refresh token")
+		return Token{}, errors.New("error signing refresh token")
 	}
 
 	encrpyted, err := Encrypt(refreshTokenStr)
 	if err != nil {
-		return Token{}, errors.New("error creating refresh token")
+		return Token{}, errors.New("error encrypting refresh token")
 	}
 
 	return Token{Value: encrpyted, ExpiresAt: exp}, nil
@@ -79,13 +87,16 @@ func CreateRefreshToken(ctx context.Context, u *models.User) (Token, error) {
 
 /*
 Access tokens are used to protect role-based endpoints. When these expire,
-use the refresh_token from the request cookie and verify it is the same token
-in the 'sessions' collection and verify its validity. Use the refresh_token to generate a new access token. If the refresh_token has expired or is not valid,
-make the user login again to create a new session/refresh_token.
+get the claims (user email and type) from the request's cookie and query the sessions
+collection for an existing session using the email. After verifying the refresh token
+has not expired, generate a new access token and return it in the response writer's cookie.
+If the refresh_token has expired or is not valid, make the user login again to create a
+new session/refresh_token.
+
 
 Default expiration time: 15m
 */
-func CreateAccessToken(ctx context.Context, email, userType string) (Token, error) {
+func GetEncryptedAccessToken(ctx context.Context, email, userType string) (Token, error) {
 	exp := time.Now().Add(
 		time.Duration(accessTokenExp) * time.Second)
 	accessTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
@@ -97,13 +108,49 @@ func CreateAccessToken(ctx context.Context, email, userType string) (Token, erro
 		},
 	}).SignedString([]byte(jwtKey))
 	if err != nil {
-		return Token{}, errors.New("error creating access token")
+		return Token{}, errors.New("error signing access token")
 	}
 
 	encrpyted, err := Encrypt(accessTokenStr)
 	if err != nil {
-		return Token{}, errors.New("error creating refresh token")
+		return Token{}, errors.New("error encrypting access token")
 	}
 
 	return Token{Value: encrpyted, ExpiresAt: exp}, nil
+}
+
+/*
+Function decrypts an encrypted token string, gets the token's claims, and
+then returns isExpired and claims. For this app's use case, if a token has
+only expired, it will still be considered valid. If any other type of error
+occurs, it will not be valid (i.e. error signing token).
+*/
+func GetClaimsWithValidation(encryptedTkn string) (*bool, *Claims, error) {
+	isExpired := false
+
+	decrypted, err := Decrypt(encryptedTkn)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	token, err := jwt.ParseWithClaims(decrypted, &Claims{},
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(jwtKey), nil
+		})
+
+	// if token is only expired, it will still be considered valid
+	if err != nil {
+		if err.(*jwt.ValidationError).Errors&jwt.ValidationErrorExpired != 0 {
+			isExpired = true
+		} else {
+			return nil, nil, err
+		}
+	}
+
+	claims := token.Claims.(*Claims)
+	if claims.Email == "" || claims.UserType == "" {
+		return nil, nil, err
+	}
+
+	return &isExpired, claims, nil
 }

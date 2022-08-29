@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v4"
-	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
@@ -21,15 +19,6 @@ import (
 
 type UserHandler struct {
 	Db *database.Db
-}
-
-var jwtKey string
-
-func init() {
-	if err := godotenv.Load(".env"); err != nil {
-		log.Println("no .env file found")
-	}
-	jwtKey = os.Getenv("JWT_KEY")
 }
 
 type Credentials struct {
@@ -71,7 +60,7 @@ func (h UserHandler) Login(c *gin.Context) {
 	}
 
 	// create refresh token
-	refreshToken, err := auth.CreateRefreshToken(ctx, u)
+	refreshToken, err := auth.GetEncryptedRefreshToken(ctx, u)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -99,7 +88,7 @@ func (h UserHandler) Login(c *gin.Context) {
 	}
 
 	// create access token
-	accessToken, err := auth.CreateAccessToken(ctx, u.Email, string(u.Type))
+	accessToken, err := auth.GetEncryptedAccessToken(ctx, u.Email, string(u.Type))
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -123,23 +112,11 @@ func (h UserHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	// decrypt access token
-	decrypted, err := auth.Decrypt(cookie.Value)
+	_, claims, err := auth.GetClaimsWithValidation(cookie.Value)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-
-	tkn, err := jwt.ParseWithClaims(decrypted, &auth.Claims{},
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(jwtKey), nil
-		})
-	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-
-	claims := tkn.Claims.(*auth.Claims)
 
 	_, err = h.Db.Sessions.DeleteMany(ctx, bson.M{"email": claims.Email})
 	if err != nil {
@@ -148,7 +125,7 @@ func (h UserHandler) Logout(c *gin.Context) {
 	}
 }
 
-func (h UserHandler) GetInfo(c *gin.Context) {
+func (h UserHandler) GetUserInfo(c *gin.Context) {
 	ctx := c.Request.Context()
 	cookie, err := c.Request.Cookie("goexpense_access")
 
@@ -158,33 +135,11 @@ func (h UserHandler) GetInfo(c *gin.Context) {
 		return
 	}
 
-	type Claims struct {
-		Email string
-		jwt.RegisteredClaims
-	}
-
-	decrypted, err := auth.Decrypt(cookie.Value)
-	if err != nil {
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-
-	/*
-		No need to check if access token is valid/expired because LoggedIn middleware
-		has already validated it and might've refreshed the access token already, which
-		would be in w http.ResponseWriter. We only care about the email from the
-		original r *http.Request here.
-	*/
-	tkn, _ := jwt.ParseWithClaims(decrypted, &Claims{},
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(jwtKey), nil
-		})
-	claims := tkn.Claims.(*Claims)
-
-	if claims.Email == "" {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
+	_, claims, err := auth.GetClaimsWithValidation(cookie.Value)
+		if err != nil {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
 
 	var u *models.User
 	err = h.Db.Users.FindOne(ctx, bson.D{{Key: "email", Value: claims.Email}}).Decode(&u)
@@ -198,7 +153,7 @@ func (h UserHandler) GetInfo(c *gin.Context) {
 }
 
 // Send email invite to new user
-func (h UserHandler) Invite(c *gin.Context) {
+func (h UserHandler) InviteUser(c *gin.Context) {
 	type Body struct {
 		Email string `json:"email"`
 	}

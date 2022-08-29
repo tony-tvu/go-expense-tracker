@@ -44,23 +44,11 @@ func init() {
 	}
 }
 
-func (a *App) Run(ctx context.Context) {
-	if env != "test" {
-		mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func() {
-			if err := mongoclient.Disconnect(ctx); err != nil {
-				log.Println("mongo has been disconnected: ", err)
-			}
-		}()
-		a.Db.Users = mongoclient.Database(dbName).Collection("users")
-		a.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
-	}
+func (a *App) Initialize(ctx context.Context) {
+	a.Db = &database.Db{}
 
 	// Init handlers
-	userHandler := &user.UserHandler{Db: a.Db}
+	u := &user.UserHandler{Db: a.Db}
 
 	if env != "development" {
 		gin.SetMode(gin.ReleaseMode)
@@ -76,19 +64,19 @@ func (a *App) Run(ctx context.Context) {
 	router.GET("/api/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "Ok"})
 	})
-	router.POST("/api/login", userHandler.Login, middleware.LoginRateLimit())
+	router.POST("/api/login", u.Login, middleware.LoginRateLimit())
 
 	authRequired := router.Group("/api", middleware.AuthRequired(a.Db))
 	{
-		authRequired.POST("/logout", userHandler.Logout)
-		authRequired.GET("/user_info", userHandler.GetInfo)
+		authRequired.POST("/logout", u.Logout)
+		authRequired.GET("/user_info", u.GetUserInfo)
 		authRequired.GET("/create_link_token", plaidapi.CreateLinkToken)
 		authRequired.POST("/set_access_token", plaidapi.SetAccessToken)
 
 		adminRequired := authRequired.Group("/", middleware.AdminRequired(a.Db))
 		{
-			adminRequired.POST("/invite", userHandler.Invite)
-			adminRequired.GET("/sessions", userHandler.GetSessions)
+			adminRequired.POST("/invite", u.InviteUser)
+			adminRequired.GET("/sessions", u.GetSessions)
 		}
 	}
 
@@ -99,6 +87,20 @@ func (a *App) Run(ctx context.Context) {
 		ctx.File("./web/build")
 	})
 	a.Router = router
+}
+
+func (a *App) Run(ctx context.Context) {
+	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err := mongoclient.Disconnect(ctx); err != nil {
+			log.Println("mongo has been disconnected: ", err)
+		}
+	}()
+	a.Db.Users = mongoclient.Database(dbName).Collection("users")
+	a.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
 
 	h := cors.New(cors.Options{
 		AllowedMethods:   []string{"*"},
@@ -113,11 +115,9 @@ func (a *App) Run(ctx context.Context) {
 		ReadTimeout:  5 * time.Second,
 	}
 
-	if env != "test" {
-		log.Printf("Listening on port %s", port)
-		err := srv.ListenAndServe()
-		if err != nil {
-			log.Fatal(err)
-		}
+	log.Printf("Listening on port %s", port)
+	err = srv.ListenAndServe()
+	if err != nil {
+		log.Fatal(err)
 	}
 }
