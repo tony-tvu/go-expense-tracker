@@ -16,15 +16,15 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/require"
 	"github.com/tony-tvu/goexpense/app"
+	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
-	"github.com/tony-tvu/goexpense/server"
 	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var (
-	s               *server.Server
+	testApp         *app.App
 	srv             *httptest.Server
 	ctx             context.Context
 	refreshTokenExp int
@@ -68,15 +68,19 @@ func TestMain(m *testing.M) {
 		}
 	}()
 
-	s = &server.Server{App: &app.App{
-		Users:    mongoclient.Database("goexpense_test").Collection("users"),
-		Sessions: mongoclient.Database("goexpense_test").Collection("sessions"),
-	}}
-	s.Initialize()
+	testApp = &app.App{
+		Db: &database.Db{
+			Users:    mongoclient.Database("goexpense_test").Collection("users"),
+			Sessions: mongoclient.Database("goexpense_test").Collection("sessions"),
+		},
+	}
 
-	s.App.Users.Drop(ctx)
-	s.App.Sessions.Drop(ctx)
-	srv = httptest.NewServer(s.App.Router)
+	// initialize routes
+	testApp.Run(ctx)
+
+	testApp.Db.Users.Drop(ctx)
+	testApp.Db.Sessions.Drop(ctx)
+	srv = httptest.NewServer(testApp.Router)
 
 	// Run tests
 	exitVal := m.Run()
@@ -99,7 +103,8 @@ func logUserIn(t *testing.T, email, password string) (string, int) {
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/login", srv.URL), b)
 	require.NoError(t, err)
 
-	res, _ := client.Do(req)
+	res, err := client.Do(req)
+	require.NoError(t, err)
 	if res.StatusCode != 200 {
 		return "", res.StatusCode
 	}
@@ -113,8 +118,8 @@ func logUserIn(t *testing.T, email, password string) (string, int) {
 }
 
 // Save a new user to db
-func createUser(t *testing.T, a *app.App, name, email, password string) {
-	err := user.SaveUser(context.TODO(), a, &models.User{
+func createUser(t *testing.T, db *database.Db, name, email, password string) {
+	err := user.SaveUser(context.TODO(), db, &models.User{
 		Name:     name,
 		Email:    email,
 		Password: password,

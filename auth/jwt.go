@@ -10,9 +10,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/joho/godotenv"
-	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/models"
-	"github.com/tony-tvu/goexpense/util"
 )
 
 type Claims struct {
@@ -26,20 +24,15 @@ type Token struct {
 	ExpiresAt time.Time
 }
 
-var encryptionKey string
 var jwtKey string
 var refreshTokenExp int
 var accessTokenExp int
 
 func init() {
-	if err := godotenv.Load(".env"); err != nil {
-		log.Println("no .env file found")
-	}
-
-	encryptionKey = os.Getenv("ENCRYPTION_KEY")
+	godotenv.Load(".env")
 	jwtKey = os.Getenv("JWT_KEY")
-	if util.ContainsEmpty(encryptionKey, jwtKey) {
-		log.Fatal("auth keys are missing")
+	if jwtKey == "" {
+		log.Fatal("jwt key is missing")
 	}
 
 	refreshExp, err := strconv.Atoi(os.Getenv("REFRESH_TOKEN_EXP"))
@@ -63,7 +56,7 @@ These can be revoked by deleting the refresh_token in the collection.
 
 Default expiration time: 24 hours
 */
-func CreateRefreshToken(ctx context.Context, a *app.App, u *models.User) (Token, error) {
+func CreateRefreshToken(ctx context.Context, u *models.User) (Token, error) {
 	exp := time.Now().Add(time.Duration(refreshTokenExp) * time.Second)
 	refreshTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
 		Email: u.Email,
@@ -76,7 +69,7 @@ func CreateRefreshToken(ctx context.Context, a *app.App, u *models.User) (Token,
 		return Token{}, errors.New("error creating refresh token")
 	}
 
-	encrpyted, err := Encrypt(encryptionKey, refreshTokenStr)
+	encrpyted, err := Encrypt(refreshTokenStr)
 	if err != nil {
 		return Token{}, errors.New("error creating refresh token")
 	}
@@ -92,7 +85,7 @@ make the user login again to create a new session/refresh_token.
 
 Default expiration time: 15m
 */
-func CreateAccessToken(ctx context.Context, a *app.App, email, userType string) (Token, error) {
+func CreateAccessToken(ctx context.Context, email, userType string) (Token, error) {
 	exp := time.Now().Add(
 		time.Duration(accessTokenExp) * time.Second)
 	accessTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
@@ -107,7 +100,7 @@ func CreateAccessToken(ctx context.Context, a *app.App, email, userType string) 
 		return Token{}, errors.New("error creating access token")
 	}
 
-	encrpyted, err := Encrypt(encryptionKey, accessTokenStr)
+	encrpyted, err := Encrypt(accessTokenStr)
 	if err != nil {
 		return Token{}, errors.New("error creating refresh token")
 	}

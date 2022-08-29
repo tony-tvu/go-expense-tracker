@@ -14,14 +14,14 @@ func TestUserHandlers(t *testing.T) {
 
 	t.Run("", func(t *testing.T) {
 		// create user
-		user.SaveUser(context.TODO(), s.App, &models.User{
+		user.SaveUser(context.TODO(), testApp.Db, &models.User{
 			Name:     name,
 			Email:    email,
 			Password: password,
 		})
 
 		// make user an admin
-		s.App.Users.UpdateOne(
+		testApp.Db.Users.UpdateOne(
 			ctx,
 			bson.M{"email": email},
 			bson.D{

@@ -13,8 +13,7 @@ func TestAuthHandlers(t *testing.T) {
 
 	t.Run("EmailLogin handler should work correctly and save new user session upon successful login", func(t *testing.T) {
 		// create user
-		assert.NotNil(t, s.App)
-		createUser(t, s.App, name, email, password)
+		createUser(t, testApp.Db, name, email, password)
 
 		// login with invalid email
 		_, statusCode := logUserIn(t, "notAnEmail", password)
@@ -41,7 +40,7 @@ func TestAuthHandlers(t *testing.T) {
 
 		// should have user session saved in db
 		var ss *models.Session
-		s.App.Sessions.FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
+		testApp.Db.Sessions.FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
 		assert.NotNil(t, ss)
 	})
 }

@@ -8,19 +8,17 @@ import (
 )
 
 func TestEncryption(t *testing.T) {
-	t.Run("should encrpyt and decrypt passwords correctly", func(t *testing.T) {
-		t.Parallel()
 
-		key := "ThisKeyStringIs32BytesLongTest01"
+	t.Run("should encrpyt and decrypt passwords correctly", func(t *testing.T) {
 		pw := "thisIsAPassword"
 
-		ciphertext, _ := auth.Encrypt(key, pw)
+		ciphertext, _ := auth.Encrypt(pw)
 
 		// should have ciphertext not equal password string
 		assert.Equal(t, true, ciphertext != pw)
 
 		// should have decrypyted password equal original password
-		decrypted, _ := auth.Decrypt(key, ciphertext)
+		decrypted, _ := auth.Decrypt(ciphertext)
 		assert.Equal(t, pw, decrypted)
 	})
 }

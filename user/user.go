@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/tony-tvu/goexpense/app"
+	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // Saves new user to db once they've accepted email invitation
-func SaveUser(ctx context.Context, a *app.App, u *models.User) error {
+func SaveUser(ctx context.Context, db *database.Db, u *models.User) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -25,7 +25,7 @@ func SaveUser(ctx context.Context, a *app.App, u *models.User) error {
 		{Key: "verified", Value: false},
 		{Key: "created_at", Value: time.Now()},
 	}
-	_, err = a.Users.InsertOne(ctx, doc)
+	_, err = db.Users.InsertOne(ctx, doc)
 	if err != nil {
 		return err
 	}

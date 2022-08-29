@@ -5,10 +5,24 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/hex"
+	"log"
+	"os"
+
+	"github.com/joho/godotenv"
 )
 
-func Encrypt(key string, data string) (string, error) {
-	blockCipher, err := aes.NewCipher([]byte(key))
+var encryptionKey string
+
+func init() {
+	godotenv.Load(".env")
+	encryptionKey = os.Getenv("ENCRYPTION_KEY")
+	if encryptionKey == "" {
+		log.Fatal("encryption key is missing")
+	}
+}
+
+func Encrypt(data string) (string, error) {
+	blockCipher, err := aes.NewCipher([]byte(encryptionKey))
 	if err != nil {
 		return "", err
 	}
@@ -25,12 +39,12 @@ func Encrypt(key string, data string) (string, error) {
 	return hex.EncodeToString(ciphertext), nil
 }
 
-func Decrypt(key string, data string) (string, error) {
+func Decrypt(data string) (string, error) {
 	dataBytes, err := hex.DecodeString(data)
 	if err != nil {
 		return "", err
 	}
-	blockCipher, err := aes.NewCipher([]byte(key))
+	blockCipher, err := aes.NewCipher([]byte(encryptionKey))
 	if err != nil {
 		return "", err
 	}

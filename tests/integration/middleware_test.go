@@ -21,7 +21,7 @@ func TestMiddlware(t *testing.T) {
 		password := "LoggedInPassword"
 
 		// create user and login
-		createUser(t, s.App, name, email, password)
+		createUser(t, testApp.Db, name, email, password)
 		accessToken, _ := logUserIn(t, email, password)
 
 		// make request to endpoint where user must be logged in
@@ -95,7 +95,7 @@ func TestMiddlware(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 		// create user and login
-		createUser(t, s.App, name, email, password)
+		createUser(t, testApp.Db, name, email, password)
 		accessToken, _ := logUserIn(t, email, password)
 
 		// make request to same endpoint when logged in
@@ -118,7 +118,7 @@ func TestMiddlware(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 		// create user and login
-		createUser(t, s.App, name, email, password)
+		createUser(t, testApp.Db, name, email, password)
 		access_token, _ := logUserIn(t, email, password)
 
 		// make request to admin-only route as regulard user
@@ -141,11 +141,11 @@ func TestMiddlware(t *testing.T) {
 
 		// should no longer have user session saved after logging out
 		var ss *models.Session
-		err := s.App.Sessions.FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
+		err := testApp.Db.Sessions.FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
 		assert.Equal(t, mongo.ErrNoDocuments, err)
 
 		// make user an admin
-		s.App.Users.UpdateOne(
+		testApp.Db.Users.UpdateOne(
 			ctx,
 			bson.M{"email": email},
 			bson.D{
