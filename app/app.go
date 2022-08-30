@@ -53,7 +53,6 @@ func (a *App) Initialize(ctx context.Context) {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	router := gin.New()
-	// TODO: add logging middlware
 	router.ForwardedByClientIP = true
 
 	// apply global middleware

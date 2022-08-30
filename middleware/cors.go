@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/tony-tvu/goexpense/util"
 )
 
 var allowedOrigins []string
@@ -19,9 +20,9 @@ func CORS(env *string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if *env == "development" {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		} else if len(allowedOrigins) != 0 {
-			for _, origin := range allowedOrigins {
-				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		} else if len(allowedOrigins) >= 1 && allowedOrigins[0] != "" {
+			if util.Contains(&allowedOrigins, c.Request.Header.Get("Origin")) {
+				c.Writer.Header().Set("Access-Control-Allow-Origin", c.Request.Header.Get("Origin"))
 			}
 		}
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")

@@ -8,3 +8,12 @@ func ContainsEmpty(ss ...string) bool {
 	}
 	return false
 }
+
+func Contains(arr *[]string, find string) bool {
+	for _, word := range *arr {
+		if find == word {
+			return true
+		}
+	}
+	return false
+}
