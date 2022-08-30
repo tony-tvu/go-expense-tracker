@@ -58,6 +58,7 @@ func (a *App) Initialize(ctx context.Context) {
 	router.ForwardedByClientIP = true
 
 	// apply global middleware
+	router.Use(middleware.Logger(env))
 	router.Use(middleware.RateLimit())
 	router.Use(middleware.NoCache)
 
@@ -115,7 +116,6 @@ func (a *App) Run(ctx context.Context) {
 		ReadTimeout:  5 * time.Second,
 	}
 
-	log.Printf("Listening on port %s", port)
 	err = srv.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)

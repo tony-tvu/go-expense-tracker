@@ -8,8 +8,10 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	app := &app.App{
 		Db: &database.Db{},
 	}
-	app.Run(context.Background())
+	app.Initialize(ctx)
+	app.Run(ctx)
 }
