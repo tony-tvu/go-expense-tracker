@@ -57,7 +57,7 @@ func (a *App) Initialize(ctx context.Context) {
 	router.ForwardedByClientIP = true
 
 	// apply global middleware
-	// router.Use(middleware.CORS(&env))
+	router.Use(middleware.CORS(&env))
 	router.Use(middleware.Logger(env))
 	router.Use(middleware.RateLimit())
 	router.Use(middleware.NoCache)

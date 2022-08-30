@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import client from '../service/axiosClient'
 import { useNavigate } from 'react-router-dom'
 
 export default function AdminPage() {
@@ -17,28 +16,7 @@ export default function AdminPage() {
   }, [])
 
   function fetchTokenExpirations() {
-    client
-      .request({
-        method: 'GET',
-        url: `${process.env.REACT_APP_API_URL}/auth/token_expirations`,
-        headers: {
-          'user-access-token': localStorage.getItem('user-access-token'),
-          'user-refresh-token': localStorage.getItem('user-refresh-token'),
-        },
-      })
-      .then(res => {
-        if (res.status === 200) {
-          setRefreshTokenExp(
-            new Date(res.data['refreshExpiration'] * 1000).toString()
-          )
-          setAccessTokenExp(
-            new Date(res.data['accessExpiration'] * 1000).toString()
-          )
-        }
-      })
-      .catch(() => {
-        navigate('/')
-      })
+
   }
 
   return (
