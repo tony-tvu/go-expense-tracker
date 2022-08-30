@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/rs/cors"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/plaidapi"
@@ -58,16 +57,17 @@ func (a *App) Initialize(ctx context.Context) {
 	router.ForwardedByClientIP = true
 
 	// apply global middleware
+	// router.Use(middleware.CORS(&env))
 	router.Use(middleware.Logger(env))
 	router.Use(middleware.RateLimit())
 	router.Use(middleware.NoCache)
 
-	router.GET("/api/health", func(c *gin.Context) {
+	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "Ok"})
 	})
-	router.POST("/api/login", u.Login, middleware.LoginRateLimit())
+	router.POST("/login", u.Login, middleware.LoginRateLimit())
 
-	authRequired := router.Group("/api", middleware.AuthRequired(a.Db))
+	authRequired := router.Group("/", middleware.AuthRequired(a.Db))
 	{
 		authRequired.POST("/logout", u.Logout)
 		authRequired.GET("/user_info", u.GetUserInfo)
@@ -103,14 +103,8 @@ func (a *App) Run(ctx context.Context) {
 	a.Db.Users = mongoclient.Database(dbName).Collection("users")
 	a.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
 
-	h := cors.New(cors.Options{
-		AllowedMethods:   []string{"*"},
-		AllowedHeaders:   []string{"Content-Type", "Plaid-Public-Token"},
-		AllowCredentials: true,
-	}).Handler(a.Router)
-
 	srv := &http.Server{
-		Handler:      h,
+		Handler:      a.Router,
 		Addr:         fmt.Sprintf(":%s", port),
 		WriteTimeout: 5 * time.Second,
 		ReadTimeout:  5 * time.Second,

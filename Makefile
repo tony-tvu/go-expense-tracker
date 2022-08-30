@@ -13,13 +13,13 @@ build:
 	go build -o ./bin/main main.go
 
 api:
-	go run main.go
+	air
 
 client:
 	cd web && npm start
 
 start:
-	air
+	make -j 2 api client
 
 test:
 	go clean -testcache
