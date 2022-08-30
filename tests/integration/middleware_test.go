@@ -26,7 +26,7 @@ func TestMiddlware(t *testing.T) {
 
 		// make request to endpoint where user must be logged in
 		client := &http.Client{}
-		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/user_info", srv.URL), nil)
+		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/user_info", srv.URL), nil)
 		req.AddCookie(&http.Cookie{
 			Name:  "goexpense_access",
 			Value: accessToken})
@@ -79,7 +79,7 @@ func TestMiddlware(t *testing.T) {
 	t.Run("AuthRequired middleware should not allow access to guest users", func(t *testing.T) {
 		// make request to endpoint where user must be logged in without access token
 		client := &http.Client{}
-		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/user_info", srv.URL), nil)
+		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/user_info", srv.URL), nil)
 		res, _ := client.Do(req)
 
 		// should return 401
@@ -112,7 +112,7 @@ func TestMiddlware(t *testing.T) {
 		client := &http.Client{}
 
 		// make request to admin-only route as a guest user
-		res, _ := http.Get(fmt.Sprintf("%s/api/sessions", srv.URL))
+		res, _ := http.Get(fmt.Sprintf("%s/sessions", srv.URL))
 
 		// should return 401
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
@@ -122,7 +122,7 @@ func TestMiddlware(t *testing.T) {
 		access_token, _ := logUserIn(t, email, password)
 
 		// make request to admin-only route as regulard user
-		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/sessions", srv.URL), nil)
+		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/sessions", srv.URL), nil)
 		req.AddCookie(&http.Cookie{
 			Name:  "goexpense_access",
 			Value: access_token})
@@ -132,7 +132,7 @@ func TestMiddlware(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 		// logout user
-		req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/logout", srv.URL), nil)
+		req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("%s/logout", srv.URL), nil)
 		req.AddCookie(&http.Cookie{
 			Name:  "goexpense_access",
 			Value: access_token})
@@ -157,7 +157,7 @@ func TestMiddlware(t *testing.T) {
 		access_token, _ = logUserIn(t, email, password)
 
 		// make request to admin-only endpoint as admin
-		req, _ = http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/sessions", srv.URL), nil)
+		req, _ = http.NewRequest(http.MethodGet, fmt.Sprintf("%s/sessions", srv.URL), nil)
 		req.AddCookie(&http.Cookie{
 			Name:  "goexpense_access",
 			Value: access_token})
