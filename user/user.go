@@ -22,7 +22,6 @@ func SaveUser(ctx context.Context, db *database.Db, u *models.User) error {
 		{Key: "name", Value: u.Name},
 		{Key: "password", Value: string(hash)},
 		{Key: "type", Value: models.RegularUser},
-		{Key: "verified", Value: false},
 		{Key: "created_at", Value: time.Now()},
 	}
 	_, err = db.Users.InsertOne(ctx, doc)

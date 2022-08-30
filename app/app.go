@@ -13,11 +13,14 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/middleware"
+	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/plaidapi"
 	"github.com/tony-tvu/goexpense/user"
 	"github.com/tony-tvu/goexpense/util"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type App struct {
@@ -101,6 +104,7 @@ func (a *App) Run(ctx context.Context) {
 	}()
 	a.Db.Users = mongoclient.Database(dbName).Collection("users")
 	a.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
+	createInitialAdminUser(ctx, a.Db)
 
 	srv := &http.Server{
 		Handler:      a.Router,
@@ -111,6 +115,41 @@ func (a *App) Run(ctx context.Context) {
 
 	err = srv.ListenAndServe()
 	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func createInitialAdminUser(ctx context.Context, db *database.Db) {
+	name := os.Getenv("ADMIN_NAME")
+	email := os.Getenv("ADMIN_EMAIL")
+	pw := os.Getenv("ADMIN_PASSWORD")
+
+	// do not create admin if values are empty
+	if util.ContainsEmpty(name, email, pw) {
+		return
+	}
+
+	// check if admin already exists
+	count, err := db.Users.CountDocuments(ctx, bson.D{{Key: "email", Value: email}})
+	if err != nil {
+		log.Fatal(err)
+	}
+	if count == 1 {
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatal(err)
+	}
+	doc := &bson.D{
+		{Key: "email", Value: email},
+		{Key: "name", Value: name},
+		{Key: "password", Value: string(hash)},
+		{Key: "type", Value: models.AdminUser},
+		{Key: "created_at", Value: time.Now()},
+	}
+	if _, err = db.Users.InsertOne(ctx, doc); err != nil {
 		log.Fatal(err)
 	}
 }

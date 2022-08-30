@@ -58,7 +58,6 @@ func TestMiddlware(t *testing.T) {
 		assert.Equal(t, name, u.Name)
 		assert.Equal(t, email, u.Email)
 		assert.Equal(t, "", u.Password)
-		assert.Equal(t, false, u.Verified)
 		assert.Equal(t, models.RegularUser, u.Type)
 
 		// wait for refresh token to expire
