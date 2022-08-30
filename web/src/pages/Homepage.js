@@ -42,36 +42,36 @@ function Homepage() {
     setLinkToken(data?.link_token)
   }
 
-  // const onSuccess = async (public_token) => {
-  //   await fetch(
-  //     `${process.env.REACT_APP_API_URL}/set_access_token`,
-  //     {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Plaid-Public-Token': public_token
-  //       },
-  //     }
-  //   ).catch(e => {
-  //     logger('error setting access token', e)
-  //   })
-  // }
+  const onSuccess = async (public_token) => {
+    await fetch(
+      `${process.env.REACT_APP_API_URL}/set_access_token`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Plaid-Public-Token': public_token
+        },
+      }
+    ).catch(e => {
+      logger('error setting access token', e)
+    })
+  }
 
-  // const config = {
-  //   token: linkToken,
-  //   onSuccess,
-  // }
-  // const { open, ready } = usePlaidLink(config)
+  const config = {
+    token: linkToken,
+    onSuccess,
+  }
+  const { open, ready } = usePlaidLink(config)
 
   return (
     <div>
       <Flex color="white" minH="85vh">
-        {/* <Button type="button" onClick={() => open()} disabled={!ready} colorScheme='teal' size='md'>
+        <Button type="button" onClick={() => open()} disabled={!ready} colorScheme='teal' size='md'>
           Connect Account
-        </Button> */}
-        {/* <Center w="500px" bg="green.500">
+        </Button>
+        <Center w="500px" bg="green.500">
           <Text>Box 1</Text>
-        </Center> */}
+        </Center>
       </Flex>
     </div>
   )

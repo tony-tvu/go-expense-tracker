@@ -6,9 +6,9 @@ build_prod:
 	cd web && npm install
 	cd web && npm run build
 	rm -r web/node_modules
-	go build -o ./bin/main main.go
+	go build -o ./bin/main main.go	
 
-build:
+build: 
 	cd web && npm run build
 	go build -o ./bin/main main.go
 
@@ -16,10 +16,16 @@ api:
 	go run main.go
 
 client:
-	cd web && npm start
+	cd web && npm run web	
 
-start:
+watch: 
+	cd web && npm run watch
+
+air:
 	air
+
+start: 
+	make -j 2 air watch
 
 test:
 	go clean -testcache
