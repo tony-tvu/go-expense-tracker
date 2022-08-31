@@ -16,10 +16,10 @@ api:
 	go run main.go
 
 client:
-	cd web && npm run web	
+	cd web && npm run start	
 
 watch: 
-	cd web && npm run watch
+	cd web && npm run dev
 
 air:
 	air

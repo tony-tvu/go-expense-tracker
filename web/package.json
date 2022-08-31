@@ -20,11 +20,11 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "dev": "nodemon --exec 'npm run build' --watch src/ --ignore node_modules/ --ignore build/ & npm run start",
+    "start": "BROWSER=none react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "watch": "nodemon --exec 'npm run build' --watch src/ --ignore node_modules/ --ignore build/"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
