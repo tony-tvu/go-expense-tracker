@@ -66,7 +66,7 @@ func (a *App) Initialize(ctx context.Context) {
 	router.Use(middleware.RateLimit())
 	router.Use(middleware.CORS(&env))
 	router.Use(middleware.Logger(env))
-	router.Use(middleware.NoCache)
+	router.Use(middleware.CacheControl)
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "Ok"})
