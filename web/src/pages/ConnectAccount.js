@@ -32,7 +32,6 @@ export default function ConnectAccount() {
   }, [navigate])
 
   const fetchLinkToken = async () => {
-    console.log("fetchLinkToken ran")
     const response = await fetch(
       `${process.env.REACT_APP_API_URL}/create_link_token`,
       {
@@ -40,6 +39,7 @@ export default function ConnectAccount() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
       }
     ).catch((err) => {
       logger("error fetching link_token", err)
