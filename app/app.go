@@ -63,15 +63,19 @@ func (a *App) Initialize(ctx context.Context) {
 	router.ForwardedByClientIP = true
 
 	// apply global middleware
+	router.Use(middleware.RateLimit())
 	router.Use(middleware.CORS(&env))
 	router.Use(middleware.Logger(env))
-	router.Use(middleware.RateLimit())
 	router.Use(middleware.NoCache)
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "Ok"})
 	})
-	router.POST("/login", u.Login, middleware.LoginRateLimit())
+
+	loginGroup := router.Group("/login", middleware.LoginRateLimit())
+	{
+		loginGroup.POST("", u.Login)
+	}
 
 	authRequired := router.Group("/", middleware.AuthRequired(a.Db))
 	{
