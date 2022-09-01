@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import logger from "../logger"
 
 export default function AdminPage() {
   const [refreshToken, setRefreshToken] = useState("")
@@ -11,9 +12,16 @@ export default function AdminPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    setRefreshToken(localStorage.getItem("user-refresh-token"))
-    setAccessToken(localStorage.getItem("user-access-token"))
-  }, [])
+    fetch(`${process.env.REACT_APP_API_URL}/ping`, {
+      method: "GET",
+    })
+      .then((res) => {
+        if (res.status !== 200) navigate("/login")
+      })
+      .catch((err) => {
+        logger("error pinging server", err)
+      })
+  }, [navigate])
 
   function fetchTokenExpirations() {}
 

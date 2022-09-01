@@ -15,15 +15,23 @@ import logger from "../logger"
 
 export default function ConnectAccount() {
   const [linkToken, setLinkToken] = useState(null)
-
-  useEffect(() => {
-    // fetch link_token on page load
-    fetchLinkToken()
-  }, [])
-
   const navigate = useNavigate()
 
-  async function fetchLinkToken() {
+  useEffect(() => {
+    fetch(`${process.env.REACT_APP_API_URL}/ping`, {
+      method: "GET",
+    })
+      .then((res) => {
+        if (res.status !== 200) navigate("/login")
+        else fetchLinkToken()
+      })
+      .catch((err) => {
+        logger("error pinging server", err)
+      })
+  }, [navigate])
+
+  const fetchLinkToken = async () => {
+    console.log("fetchLinkToken ran")
     const response = await fetch(
       `${process.env.REACT_APP_API_URL}/create_link_token`,
       {

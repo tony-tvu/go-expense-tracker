@@ -20,7 +20,7 @@ func RateLimit() gin.HandlerFunc {
 
 // Middleware applies to login route
 func LoginRateLimit() gin.HandlerFunc {
-	rate, err := limiter.NewRateFromFormatted("10-M")
+	rate, err := limiter.NewRateFromFormatted("5-M")
 	if err != nil {
 		panic(err)
 	}

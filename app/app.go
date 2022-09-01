@@ -71,6 +71,7 @@ func (a *App) Initialize(ctx context.Context) {
 
 	authRequired := router.Group("/", middleware.AuthRequired(a.Db))
 	{
+		authRequired.GET("/ping", u.Ping)
 		authRequired.POST("/logout", u.Logout)
 		authRequired.GET("/user_info", u.GetUserInfo)
 		authRequired.GET("/create_link_token", plaidapi.CreateLinkToken)

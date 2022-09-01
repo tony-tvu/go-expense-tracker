@@ -5,20 +5,23 @@ import ConnectAccount from "./pages/ConnectAccount"
 import PageNotFound from "./pages/PageNotFound"
 import AdminPage from "./pages/AdminPage"
 import Login from "./pages/Login"
+import { useEffect } from "react"
 
-const App = () => (
-  <ChakraProvider theme={theme}>
-    <Router>
-      {/* <Navbar /> */}
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/connect" element={<ConnectAccount />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/not-found" element={<PageNotFound />} />
-        <Route path="*" element={<PageNotFound />} />
-      </Routes>
-    </Router>
-  </ChakraProvider>
-)
+export default function App() {
 
-export default App
+  return (
+    <ChakraProvider theme={theme}>
+      <Router>
+        {/* <Navbar /> */}
+        <Routes>
+          <Route path="/" element={<ConnectAccount />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/connect" element={<ConnectAccount />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/not-found" element={<PageNotFound />} />
+          <Route path="*" element={<PageNotFound />} />
+        </Routes>
+      </Router>
+    </ChakraProvider>
+  )
+}

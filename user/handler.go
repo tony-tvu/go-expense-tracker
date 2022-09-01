@@ -136,10 +136,10 @@ func (h UserHandler) GetUserInfo(c *gin.Context) {
 	}
 
 	_, claims, err := auth.GetClaimsWithValidation(cookie.Value)
-		if err != nil {
-			c.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
 
 	var u *models.User
 	err = h.Db.Users.FindOne(ctx, bson.D{{Key: "email", Value: claims.Email}}).Decode(&u)
@@ -200,4 +200,9 @@ func (h UserHandler) InviteUser(c *gin.Context) {
 
 func (h UserHandler) GetSessions(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "User sessions called"})
+}
+
+// Handler is used to check if user is logged in
+func (h UserHandler) Ping(c *gin.Context) {
+	c.Writer.WriteHeader(200)
 }
