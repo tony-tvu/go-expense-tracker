@@ -11,7 +11,6 @@ import (
 	"os"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/require"
@@ -29,22 +28,14 @@ var (
 	ctx             context.Context
 	refreshTokenExp int
 	accessTokenExp  int
-	name            string
-	email           string
-	password        string
 )
 
 func TestMain(m *testing.M) {
-	// BeforeAll
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*5))
-	defer cancel()
+	ctx = context.Background()
 
 	if err := godotenv.Load(".env"); err != nil {
 		log.Println("no .env file found")
 	}
-	name = "TestName"
-	email = "test@email.com"
-	password = "password"
 
 	refreshExp, err := strconv.Atoi(os.Getenv("REFRESH_TOKEN_EXP"))
 	if err != nil {
@@ -72,7 +63,7 @@ func TestMain(m *testing.M) {
 	testApp.Initialize(ctx)
 	testApp.Db.Users = mongoclient.Database("goexpense_test").Collection("users")
 	testApp.Db.Sessions = mongoclient.Database("goexpense_test").Collection("sessions")
-	
+
 	// drop all collections
 	testApp.Db.Users.Drop(ctx)
 	testApp.Db.Sessions.Drop(ctx)
@@ -80,10 +71,10 @@ func TestMain(m *testing.M) {
 	// start test server
 	srv = httptest.NewServer(testApp.Router)
 
-	// Run tests
+	// run tests
 	exitVal := m.Run()
 
-	// Teardown
+	// teardown
 	os.Exit(exitVal)
 }
 
@@ -117,7 +108,8 @@ func logUserIn(t *testing.T, email, password string) (string, int) {
 
 // Save a new user to db
 func createUser(t *testing.T, db *database.Db, name, email, password string) {
-	err := user.SaveUser(context.TODO(), db, &models.User{
+	t.Helper()
+	err := user.SaveUser(ctx, db, &models.User{
 		Name:     name,
 		Email:    email,
 		Password: password,

@@ -9,10 +9,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func TestAuthHandlers(t *testing.T) {
+func TestUserHandlers(t *testing.T) {
+	t.Run("handler verify inputs and save new user session upon successful login", func(t *testing.T) {
+		t.Parallel()
 
-	t.Run("EmailLogin handler should work correctly and save new user session upon successful login", func(t *testing.T) {
 		// create user
+		name := "User"
+		email := "user@email.com"
+		password :=  "^%#(GY%H=G$%asdf"
 		createUser(t, testApp.Db, name, email, password)
 
 		// login with invalid email
@@ -43,4 +47,5 @@ func TestAuthHandlers(t *testing.T) {
 		testApp.Db.Sessions.FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
 		assert.NotNil(t, ss)
 	})
+
 }

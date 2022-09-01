@@ -8,10 +8,10 @@ import (
 )
 
 func TestEncryption(t *testing.T) {
-
 	t.Run("should encrpyt and decrypt passwords correctly", func(t *testing.T) {
-		pw := "thisIsAPassword"
-
+		t.Parallel()
+		
+		pw := "PASSword!@3%42&"
 		ciphertext, _ := auth.Encrypt(pw)
 
 		// should have ciphertext not equal password string

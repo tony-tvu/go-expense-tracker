@@ -14,13 +14,13 @@ import (
 )
 
 func TestMiddlware(t *testing.T) {
-
 	t.Run("AuthRequired middleware should issue access tokens correctly", func(t *testing.T) {
-		name := "LoggedInName"
-		email := "LoggedIn@email.com"
-		password := "LoggedInPassword"
+		t.Parallel()
 
 		// create user and login
+		name := "middleware"
+		email := "middleware@email.com"
+		password :=  "^%#(GY%H=G$%asdf"
 		createUser(t, testApp.Db, name, email, password)
 		accessToken, _ := logUserIn(t, email, password)
 
@@ -76,6 +76,8 @@ func TestMiddlware(t *testing.T) {
 	})
 
 	t.Run("AuthRequired middleware should not allow access to guest users", func(t *testing.T) {
+		t.Parallel()
+
 		// make request to endpoint where user must be logged in without access token
 		client := &http.Client{}
 		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/user_info", srv.URL), nil)
@@ -94,6 +96,9 @@ func TestMiddlware(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 		// create user and login
+		name := "middleware2"
+		email := "middleware2@email.com"
+		password :=  "^%#(GY%H=G$%asdf"
 		createUser(t, testApp.Db, name, email, password)
 		accessToken, _ := logUserIn(t, email, password)
 
@@ -108,6 +113,7 @@ func TestMiddlware(t *testing.T) {
 	})
 
 	t.Run("AdminRequired middleware should not allow access to guest or regular users", func(t *testing.T) {
+		t.Parallel()
 		client := &http.Client{}
 
 		// make request to admin-only route as a guest user
@@ -117,6 +123,9 @@ func TestMiddlware(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 		// create user and login
+		name := "middleware3"
+		email := "middleware3@email.com"
+		password :=  "^%#(GY%H=G$%asdf"
 		createUser(t, testApp.Db, name, email, password)
 		access_token, _ := logUserIn(t, email, password)
 

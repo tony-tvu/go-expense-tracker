@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
@@ -21,24 +22,30 @@ type UserHandler struct {
 	Db *database.Db
 }
 
-type Credentials struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+type CredentialsInput struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,ascii"`
+}
+
+var v *validator.Validate
+
+func init() {
+	v = validator.New()
 }
 
 func (h UserHandler) Login(c *gin.Context) {
 	ctx := c.Request.Context()
 	defer c.Request.Body.Close()
 
-	var cred Credentials
-	err := json.NewDecoder(c.Request.Body).Decode(&cred)
+	var input CredentialsInput
+	err := json.NewDecoder(c.Request.Body).Decode(&input)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	// validate email address
-	_, err = mail.ParseAddress(cred.Email)
+	// validate
+	err = v.Struct(input)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
@@ -46,14 +53,14 @@ func (h UserHandler) Login(c *gin.Context) {
 
 	// find existing user account
 	var u *models.User
-	err = h.Db.Users.FindOne(ctx, bson.D{{Key: "email", Value: cred.Email}}).Decode(&u)
+	err = h.Db.Users.FindOne(ctx, bson.D{{Key: "email", Value: input.Email}}).Decode(&u)
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 
 	// verify password
-	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(cred.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(input.Password))
 	if err != nil {
 		c.AbortWithStatus(http.StatusForbidden)
 		return

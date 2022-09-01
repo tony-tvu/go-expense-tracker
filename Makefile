@@ -29,5 +29,4 @@ start:
 
 test:
 	go clean -testcache
-	go test ./tests/unit -v
-	go test ./tests/integration -v
+	go test ./smoketest -v
