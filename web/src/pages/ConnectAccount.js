@@ -20,6 +20,7 @@ export default function ConnectAccount() {
   useEffect(() => {
     fetch(`${process.env.REACT_APP_API_URL}/ping`, {
       method: "GET",
+      credentials: "include",
     })
       .then((res) => {
         if (res.status !== 200) navigate("/login")

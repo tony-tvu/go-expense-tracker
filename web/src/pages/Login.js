@@ -1,7 +1,6 @@
 import React, { useState } from "react"
 import {
   Flex,
-  Heading,
   Input,
   Button,
   InputGroup,
@@ -10,12 +9,10 @@ import {
   chakra,
   Box,
   Link,
-  Avatar,
   FormControl,
   FormHelperText,
   InputRightElement,
   Text,
-  useBreakpointValue,
   useColorModeValue,
 } from "@chakra-ui/react"
 import { FaUserAlt, FaLock, FaCat } from "react-icons/fa"
@@ -23,15 +20,37 @@ import { ColorModeSwitcher } from "../ColorModeSwitcher"
 import { colors } from "../theme"
 import { Link as RouterLink } from "react-router-dom"
 import { APP_NAME } from "../configs"
+import logger from "../logger"
+import { useNavigate } from "react-router-dom"
 
 const CFaUserAlt = chakra(FaUserAlt)
 const CFaLock = chakra(FaLock)
 const CFcat = chakra(FaCat)
 
 export default function Login() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-
   const handleShowClick = () => setShowPassword(!showPassword)
+
+  const navigate = useNavigate()
+  async function handleSubmit(e) {
+    e.preventDefault()
+    await fetch(`${process.env.REACT_APP_API_URL}/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ email: email, password: password }),
+    })
+      .then((res) => {
+        if (res.status === 200) navigate("/")
+      })
+      .catch((e) => {
+        logger("error setting access token", e)
+      })
+  }
 
   return (
     <Flex
@@ -85,7 +104,7 @@ export default function Login() {
           minW={{ base: "90%", md: "468px" }}
           backgroundColor={colors.white.light}
         >
-          <form>
+          <form onSubmit={handleSubmit}>
             <Stack
               spacing={4}
               p="1rem"
@@ -107,6 +126,8 @@ export default function Login() {
                       borderColor: colors.gray.light,
                     }}
                     color={colors.black}
+                    onChange={(event) => setEmail(event.target.value)}
+                    bg={colors.white.extra}
                   />
                 </InputGroup>
               </FormControl>
@@ -118,6 +139,7 @@ export default function Login() {
                     children={<CFaLock color={colors.gray.light} />}
                   />
                   <Input
+                    onChange={(event) => setPassword(event.target.value)}
                     type={showPassword ? "text" : "password"}
                     placeholder="password"
                     _placeholder={{ color: colors.gray.light }}
@@ -126,6 +148,7 @@ export default function Login() {
                       borderColor: colors.gray.light,
                     }}
                     color={colors.black}
+                    bg={colors.white.extra}
                   />
                   <InputRightElement width="4.5rem">
                     <Button

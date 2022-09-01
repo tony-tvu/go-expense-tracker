@@ -99,6 +99,8 @@ func (h UserHandler) Login(c *gin.Context) {
 		Value:    accessToken.Value,
 		Expires:  accessToken.ExpiresAt,
 		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
 	})
 }
 

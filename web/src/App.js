@@ -1,18 +1,16 @@
-import { ChakraProvider, theme } from "@chakra-ui/react"
+import { ChakraProvider } from "@chakra-ui/react"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
-import Navbar from "./components/Navbar"
 import ConnectAccount from "./pages/ConnectAccount"
 import PageNotFound from "./pages/PageNotFound"
 import AdminPage from "./pages/AdminPage"
 import Login from "./pages/Login"
-import { useEffect } from "react"
+import { extendedTheme } from "./theme"
 
 export default function App() {
 
   return (
-    <ChakraProvider theme={theme}>
+    <ChakraProvider theme={extendedTheme}>
       <Router>
-        {/* <Navbar /> */}
         <Routes>
           <Route path="/" element={<ConnectAccount />} />
           <Route path="/login" element={<Login />} />

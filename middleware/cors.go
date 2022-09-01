@@ -18,12 +18,8 @@ func init() {
 
 func CORS(env *string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if *env == "development" {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		} else if len(allowedOrigins) >= 1 && allowedOrigins[0] != "" {
-			if util.Contains(&allowedOrigins, c.Request.Header.Get("Origin")) {
-				c.Writer.Header().Set("Access-Control-Allow-Origin", c.Request.Header.Get("Origin"))
-			}
+		if util.Contains(&allowedOrigins, c.Request.Header.Get("Origin")) {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", c.Request.Header.Get("Origin"))
 		}
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Plaid-Public-Token")

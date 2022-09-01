@@ -10,7 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-
 // Middleware restricts access to logged in users only
 func AuthRequired(db *database.Db) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -62,6 +61,8 @@ func AuthRequired(db *database.Db) gin.HandlerFunc {
 				Value:    renewed.Value,
 				Expires:  renewed.ExpiresAt,
 				HttpOnly: true,
+				Secure:   true,
+				SameSite: http.SameSiteStrictMode,
 			})
 		}
 		c.Next()

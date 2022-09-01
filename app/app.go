@@ -6,8 +6,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -32,6 +34,7 @@ var env string
 var port string
 var mongoURI string
 var dbName string
+var allowedOrigins []string
 
 func init() {
 	if err := godotenv.Load(".env"); err != nil {
@@ -44,6 +47,7 @@ func init() {
 	if util.ContainsEmpty(env, port, mongoURI, dbName) {
 		log.Fatal("env variables are missing")
 	}
+	allowedOrigins = strings.Split(os.Getenv("ALLOWED_ORIGIN_DOMAINS"), ",")
 }
 
 func (a *App) Initialize(ctx context.Context) {
@@ -106,6 +110,16 @@ func (a *App) Run(ctx context.Context) {
 	a.Db.Users = mongoclient.Database(dbName).Collection("users")
 	a.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
 	createInitialAdminUser(ctx, a.Db)
+
+	if len(allowedOrigins) == 1 && allowedOrigins[0] == "" {
+		log.Fatal("allowed origin domains are not set in .env")
+	}
+	a.Router.Use(cors.New(cors.Config{
+		AllowOrigins:     allowedOrigins,
+		AllowMethods:     []string{"GET", "PUT", "PATCH", "POST", "DELETE"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	srv := &http.Server{
 		Handler:      a.Router,
