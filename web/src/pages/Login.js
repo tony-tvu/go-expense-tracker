@@ -60,17 +60,16 @@ export default function Login() {
       backgroundColor={useColorModeValue(colors.bgLight, colors.bgDark)}
       alignItems="center"
     >
-      <Box bg={colors.gray.dark} w="100%" color="white">
+      <Box bg="gray.800" w="100%" color="white">
         <Flex
           minH={"50px"}
-          bg={colors.gray.dark}
-          color={colors.white}
+          bg={"gray.800"}
           align={"center"}
           pl={"2vw"}
           pr={"2vw"}
           borderBottom={1}
           borderStyle={"solid"}
-          borderColor={colors.gray.medium}
+          borderColor={"gray.600"}
         >
           <Flex flex={{ base: 1 }}>
             <RouterLink to="/">
@@ -78,7 +77,7 @@ export default function Login() {
                 fontSize="xl"
                 as="b"
                 fontFamily={"heading"}
-                color={colors.white.extra}
+                color={"whiteAlpha.800"}
               >
                 {APP_NAME}
               </Text>
@@ -97,37 +96,37 @@ export default function Login() {
         <CFcat
           width={"10vh"}
           size={"100px"}
-          color={useColorModeValue(colors.black, colors.primary)}
+          color={useColorModeValue("black", colors.primary)}
         />
 
         <Box
           minW={{ base: "90%", md: "468px" }}
-          backgroundColor={colors.white.light}
+          backgroundColor={"whiteAlpha.800"}
         >
           <form onSubmit={handleSubmit}>
             <Stack
               spacing={4}
               p="1rem"
-              backgroundColor={colors.white.light}
+              backgroundColor={"whiteAlpha.800"}
               boxShadow="md"
             >
               <FormControl>
                 <InputGroup>
                   <InputLeftElement
                     pointerEvents="none"
-                    children={<CFaUserAlt color={colors.gray.light} />}
+                    children={<CFaUserAlt color={"gray.500"} />}
                   />
                   <Input
                     type="email"
                     placeholder="email address"
-                    _placeholder={{ color: colors.gray.light }}
-                    borderColor={colors.gray.extraLight}
+                    _placeholder={{ color: "gray.500" }}
+                    borderColor={"gray.200"}
                     _hover={{
-                      borderColor: colors.gray.light,
+                      borderColor: "gray.500",
                     }}
-                    color={colors.black}
+                    color={"black"}
                     onChange={(event) => setEmail(event.target.value)}
-                    bg={colors.white.extra}
+                    bg={"whiteAlpha.800"}
                   />
                 </InputGroup>
               </FormControl>
@@ -135,38 +134,38 @@ export default function Login() {
                 <InputGroup>
                   <InputLeftElement
                     pointerEvents="none"
-                    color={colors.gray.light}
-                    children={<CFaLock color={colors.gray.light} />}
+                    color={"gray.500"}
+                    children={<CFaLock color={"gray.500"} />}
                   />
                   <Input
                     onChange={(event) => setPassword(event.target.value)}
                     type={showPassword ? "text" : "password"}
                     placeholder="password"
-                    _placeholder={{ color: colors.gray.light }}
-                    borderColor={colors.gray.extraLight}
+                    _placeholder={{ color: "gray.500" }}
+                    borderColor={"gray.200"}
                     _hover={{
-                      borderColor: colors.gray.light,
+                      borderColor: "gray.500",
                     }}
-                    color={colors.black}
-                    bg={colors.white.extra}
+                    color={"black"}
+                    bg={"white"}
                   />
                   <InputRightElement width="4.5rem">
                     <Button
                       h="1.75rem"
                       size="sm"
                       onClick={handleShowClick}
-                      backgroundColor={colors.gray.extraLight}
+                      backgroundColor={"gray.200"}
                       _hover={{
                         backgroundColor: "gray.300",
                       }}
-                      color={colors.black}
+                      color={"black"}
                     >
                       {showPassword ? "Hide" : "Show"}
                     </Button>
                   </InputRightElement>
                 </InputGroup>
                 <FormHelperText textAlign="right">
-                  <Link color={colors.gray.medium}>forgot password?</Link>
+                  <Link color={"gray.600"}>forgot password?</Link>
                 </FormHelperText>
               </FormControl>
               <Button
@@ -175,9 +174,9 @@ export default function Login() {
                 variant="solid"
                 backgroundColor={colors.primary}
                 width="full"
-                color={colors.black}
+                color={"black"}
                 _hover={{
-                  bg: colors.pink.medium,
+                  bg: "pink.300",
                 }}
               >
                 Login

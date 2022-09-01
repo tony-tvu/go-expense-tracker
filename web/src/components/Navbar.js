@@ -31,14 +31,14 @@ export default function Navbar() {
   return (
     <Box>
       <Flex
-        bg={colors.gray.dark}
-        color={colors.white}
+        bg="gray.800"
+        color="white"
         minH={"60px"}
         py={{ base: 2 }}
         px={{ base: 4 }}
         borderBottom={5}
         borderStyle={"solid"}
-        borderColor={useColorModeValue(colors.gray.dark, colors.gray.light)}
+        borderColor={useColorModeValue("gray.800", "gray.500")}
         align={"center"}
       >
         <Flex
@@ -60,7 +60,7 @@ export default function Navbar() {
             <Text
               textAlign={useBreakpointValue({ base: "center", md: "left" })}
               fontFamily={"heading"}
-              color={colors.white}
+              color={"white"}
             >
               GoExpense
             </Text>
@@ -122,10 +122,10 @@ const DesktopNav = () => {
                 href={navItem.href ?? "#"}
                 fontSize={"sm"}
                 fontWeight={500}
-                color={colors.white}
+                color={"white"}
                 _hover={{
                   textDecoration: "none",
-                  color: colors.pink,
+                  color: "pink.300",
                 }}
               >
                 {navItem.label}
@@ -136,7 +136,7 @@ const DesktopNav = () => {
               <PopoverContent
                 border={0}
                 boxShadow={"xl"}
-                bg={colors.gray.dark}
+                bg={"gray.800"}
                 p={4}
                 rounded={"xl"}
                 minW={"sm"}
@@ -163,7 +163,7 @@ const DesktopSubNav = ({ label, href, subLabel }) => {
       display={"block"}
       p={2}
       rounded={"md"}
-      _hover={{ bg: colors.pink.light }}
+      _hover={{ bg: "pink.50" }}
     >
       <Stack direction={"row"} align={"center"}>
         <Box>
@@ -193,7 +193,7 @@ const DesktopSubNav = ({ label, href, subLabel }) => {
 
 const MobileNav = () => {
   return (
-    <Stack bg={colors.gray.dark} p={4} display={{ md: "none" }}>
+    <Stack bg={"gray.800"} p={4} display={{ md: "none" }}>
       {NAV_ITEMS.map((navItem) => (
         <MobileNavItem key={navItem.label} {...navItem} />
       ))}
@@ -216,7 +216,7 @@ const MobileNavItem = ({ label, children, href }) => {
           textDecoration: "none",
         }}
       >
-        <Text fontWeight={600} color={colors.pink}>
+        <Text fontWeight={600} color={"pink.300"}>
           {label}
         </Text>
         {children && (
@@ -236,7 +236,7 @@ const MobileNavItem = ({ label, children, href }) => {
           pl={4}
           borderLeft={1}
           borderStyle={"solid"}
-          borderColor={colors.gray.dark}
+          borderColor={"gray.800"}
           align={"start"}
         >
           {children &&
