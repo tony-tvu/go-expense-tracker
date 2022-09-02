@@ -1,11 +1,10 @@
-package tests
+package smoketest
 
 import (
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -14,9 +13,9 @@ func TestUserHandlers(t *testing.T) {
 		t.Parallel()
 
 		// create user
-		name := "User"
-		email := "user@email.com"
-		password :=  "^%#(GY%H=G$%asdf"
+		name := "UserSesh"
+		email := "userSesh@email.com"
+		password := "^%#(GY%H=G$%asdf"
 		createUser(t, testApp.Db, name, email, password)
 
 		// login with invalid email
@@ -38,14 +37,26 @@ func TestUserHandlers(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, statusCode)
 
 		// login with correct password
-		_, statusCode = logUserIn(t, email, password)
-
-		assert.Equal(t, http.StatusOK, statusCode)
+		body := map[string]string{
+			"email":    email,
+			"password": password,
+		}
+		res := MakeApiRequest(t, "POST", "/login", &body, nil)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
 
 		// should have user session saved in db
-		var ss *models.Session
-		testApp.Db.Sessions.FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
-		assert.NotNil(t, ss)
+		count, _ := testApp.Db.Sessions.CountDocuments(ctx, bson.D{{Key: "email", Value: email}})
+		assert.Equal(t, 1, int(count))
+
+		// logout
+		cookies := getCookies(t, res.Cookies())
+		accessToken := cookies["goexpense_access"]
+		res = MakeApiRequest(t, "POST", "/logout", nil, &accessToken)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+
+		// should delete user's session from db
+		count, _ = testApp.Db.Sessions.CountDocuments(ctx, bson.D{{Key: "email", Value: email}})
+		assert.Equal(t, 0, int(count))
 	})
 
 }

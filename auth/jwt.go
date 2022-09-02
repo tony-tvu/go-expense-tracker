@@ -123,7 +123,7 @@ func GetEncryptedAccessToken(ctx context.Context, email, userType string) (Token
 Function decrypts an encrypted token string, gets the token's claims, and
 then returns isExpired and claims. For this app's use case, if a token has
 only expired, it will still be considered valid. If any other type of error
-occurs, it will not be valid (i.e. error signing token).
+occurs, it will be invalid (i.e. error signing token).
 */
 func GetClaimsWithValidation(encryptedTkn string) (*bool, *Claims, error) {
 	isExpired := false
@@ -147,6 +147,7 @@ func GetClaimsWithValidation(encryptedTkn string) (*bool, *Claims, error) {
 		}
 	}
 
+	// return error if claims are missing
 	claims := token.Claims.(*Claims)
 	if claims.Email == "" || claims.UserType == "" {
 		return nil, nil, err

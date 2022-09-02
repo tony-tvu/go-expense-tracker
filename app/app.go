@@ -71,7 +71,8 @@ func (a *App) Initialize(ctx context.Context) {
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "Ok"})
 	})
-
+	
+	router.POST("/logout", u.Logout)
 	loginGroup := router.Group("/login", middleware.LoginRateLimit())
 	{
 		loginGroup.POST("", u.Login)
@@ -80,7 +81,6 @@ func (a *App) Initialize(ctx context.Context) {
 	authRequired := router.Group("/", middleware.AuthRequired(a.Db))
 	{
 		authRequired.GET("/ping", u.Ping)
-		authRequired.POST("/logout", u.Logout)
 		authRequired.GET("/user_info", u.GetUserInfo)
 		authRequired.GET("/create_link_token", plaidapi.CreateLinkToken)
 		authRequired.POST("/set_access_token", plaidapi.SetAccessToken)

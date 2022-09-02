@@ -1,4 +1,4 @@
-package tests
+package smoketest
 
 import (
 	"testing"

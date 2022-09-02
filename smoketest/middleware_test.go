@@ -1,8 +1,7 @@
-package tests
+package smoketest
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -10,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func TestMiddlware(t *testing.T) {
@@ -20,17 +18,12 @@ func TestMiddlware(t *testing.T) {
 		// create user and login
 		name := "middleware"
 		email := "middleware@email.com"
-		password :=  "^%#(GY%H=G$%asdf"
+		password := "^%#(GY%H=G$%asdf"
 		createUser(t, testApp.Db, name, email, password)
 		accessToken, _ := logUserIn(t, email, password)
 
 		// make request to endpoint where user must be logged in
-		client := &http.Client{}
-		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/user_info", srv.URL), nil)
-		req.AddCookie(&http.Cookie{
-			Name:  "goexpense_access",
-			Value: accessToken})
-		res, _ := client.Do(req)
+		res := MakeApiRequest(t, "GET", "/user_info", nil, &accessToken)
 
 		// should return 200
 		assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -43,7 +36,7 @@ func TestMiddlware(t *testing.T) {
 		time.Sleep(time.Duration(accessTokenExp) * time.Second)
 
 		// make request with expired access token
-		res, _ = client.Do(req)
+		res = MakeApiRequest(t, "GET", "/user_info", nil, &accessToken)
 
 		// should return 200
 		assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -64,7 +57,7 @@ func TestMiddlware(t *testing.T) {
 		time.Sleep(2 * time.Second)
 
 		// make request with expired refresh and access tokens
-		res, _ = client.Do(req)
+		res = MakeApiRequest(t, "GET", "/user_info", nil, &accessToken)
 
 		// should return 401 unauthorized
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
@@ -79,18 +72,14 @@ func TestMiddlware(t *testing.T) {
 		t.Parallel()
 
 		// make request to endpoint where user must be logged in without access token
-		client := &http.Client{}
-		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/user_info", srv.URL), nil)
-		res, _ := client.Do(req)
+		res := MakeApiRequest(t, "GET", "/user_info", nil, nil)
 
 		// should return 401
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 		// make request to same endpoint with invalid access token
-		req.AddCookie(&http.Cookie{
-			Name:  "goexpense_access",
-			Value: "invalid"})
-		res, _ = client.Do(req)
+		invalidToken := "invalidToken"
+		res = MakeApiRequest(t, "GET", "/user_info", nil, &invalidToken)
 
 		// should return 401
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
@@ -98,26 +87,22 @@ func TestMiddlware(t *testing.T) {
 		// create user and login
 		name := "middleware2"
 		email := "middleware2@email.com"
-		password :=  "^%#(GY%H=G$%asdf"
+		password := "^%#(GY%H=G$%asdf"
 		createUser(t, testApp.Db, name, email, password)
 		accessToken, _ := logUserIn(t, email, password)
 
 		// make request to same endpoint when logged in
-		req.AddCookie(&http.Cookie{
-			Name:  "goexpense_access",
-			Value: accessToken})
-		res, _ = client.Do(req)
+		res = MakeApiRequest(t, "GET", "/user_info", nil, &accessToken)
 
 		// should return 200
-		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
 	})
 
 	t.Run("AdminRequired middleware should not allow access to guest or regular users", func(t *testing.T) {
 		t.Parallel()
-		client := &http.Client{}
 
 		// make request to admin-only route as a guest user
-		res, _ := http.Get(fmt.Sprintf("%s/sessions", srv.URL))
+		res := MakeApiRequest(t, "GET", "/sessions", nil, nil)
 
 		// should return 401
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
@@ -125,34 +110,25 @@ func TestMiddlware(t *testing.T) {
 		// create user and login
 		name := "middleware3"
 		email := "middleware3@email.com"
-		password :=  "^%#(GY%H=G$%asdf"
+		password := "^%#(GY%H=G$%asdf"
 		createUser(t, testApp.Db, name, email, password)
-		access_token, _ := logUserIn(t, email, password)
+		accessToken, _ := logUserIn(t, email, password)
 
-		// make request to admin-only route as regulard user
-		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/sessions", srv.URL), nil)
-		req.AddCookie(&http.Cookie{
-			Name:  "goexpense_access",
-			Value: access_token})
-		res, _ = client.Do(req)
+		// make request to admin-only route as regular user
+		res = MakeApiRequest(t, "GET", "/sessions", nil, &accessToken)
 
 		// should return 401
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 		// logout user
-		req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("%s/logout", srv.URL), nil)
-		req.AddCookie(&http.Cookie{
-			Name:  "goexpense_access",
-			Value: access_token})
-		res, _ = client.Do(req)
+		res = MakeApiRequest(t, "POST", "/logout", nil, &accessToken)
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 
 		// should no longer have user session saved after logging out
-		var ss *models.Session
-		err := testApp.Db.Sessions.FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&ss)
-		assert.Equal(t, mongo.ErrNoDocuments, err)
+		count, _ := testApp.Db.Sessions.CountDocuments(ctx, bson.D{{Key: "email", Value: email}})
+		assert.Equal(t, 0, int(count))
 
-		// make user an admin
+		// make user an admin and login
 		testApp.Db.Users.UpdateOne(
 			ctx,
 			bson.M{"email": email},
@@ -160,16 +136,10 @@ func TestMiddlware(t *testing.T) {
 				{Key: "$set", Value: bson.D{{Key: "type", Value: models.AdminUser}}},
 			},
 		)
-
-		// login
-		access_token, _ = logUserIn(t, email, password)
+		accessToken, _ = logUserIn(t, email, password)
 
 		// make request to admin-only endpoint as admin
-		req, _ = http.NewRequest(http.MethodGet, fmt.Sprintf("%s/sessions", srv.URL), nil)
-		req.AddCookie(&http.Cookie{
-			Name:  "goexpense_access",
-			Value: access_token})
-		res, _ = client.Do(req)
+		res = MakeApiRequest(t, "GET", "/sessions", nil, &accessToken)
 
 		// should return 200
 		assert.Equal(t, http.StatusOK, res.StatusCode)
