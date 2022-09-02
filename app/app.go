@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -34,7 +33,6 @@ var env string
 var port string
 var mongoURI string
 var dbName string
-var allowedOrigins []string
 
 func init() {
 	if err := godotenv.Load(".env"); err != nil {
@@ -47,13 +45,10 @@ func init() {
 	if util.ContainsEmpty(env, port, mongoURI, dbName) {
 		log.Fatal("env variables are missing")
 	}
-	allowedOrigins = strings.Split(os.Getenv("ALLOWED_ORIGIN_DOMAINS"), ",")
 }
 
 func (a *App) Initialize(ctx context.Context) {
 	a.Db = &database.Db{}
-
-	// Init handlers
 	u := &user.UserHandler{Db: a.Db}
 
 	if env != "development" {
@@ -61,10 +56,12 @@ func (a *App) Initialize(ctx context.Context) {
 	}
 	router := gin.New()
 	router.ForwardedByClientIP = true
+	if env == "development" {
+		allowCrossOrigin(router)
+	}
 
-	// apply global middleware
+	// global middleware
 	router.Use(middleware.RateLimit())
-	router.Use(middleware.CORS(&env))
 	router.Use(middleware.Logger(env))
 
 	apiGroup := router.Group("/api", middleware.NoCache)
@@ -113,16 +110,6 @@ func (a *App) Run(ctx context.Context) {
 	a.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
 	createInitialAdminUser(ctx, a.Db)
 
-	if len(allowedOrigins) == 1 && allowedOrigins[0] == "" {
-		log.Fatal("allowed origin domains are not set in .env")
-	}
-	a.Router.Use(cors.New(cors.Config{
-		AllowOrigins:     allowedOrigins,
-		AllowMethods:     []string{"GET", "PUT", "PATCH", "POST", "DELETE"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
-
 	srv := &http.Server{
 		Handler:      a.Router,
 		Addr:         fmt.Sprintf(":%s", port),
@@ -169,4 +156,21 @@ func createInitialAdminUser(ctx context.Context, db *database.Db) {
 	if _, err = db.Users.InsertOne(ctx, doc); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// Function adds CORS middleware that allows cross origin requests when in development mode
+func allowCrossOrigin(r *gin.Engine) {
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Plaid-Public-Token")
+		c.Next()
+	})
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"GET", "PUT", "PATCH", "POST", "DELETE"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 }
