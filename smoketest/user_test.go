@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -37,9 +38,9 @@ func TestUserHandlers(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, statusCode)
 
 		// login with correct password
-		body := map[string]string{
-			"email":    email,
-			"password": password,
+		body := user.CredentialsInput{
+			Email: email,
+			Password: password,
 		}
 		res := MakeApiRequest(t, "POST", "/login", &body, nil)
 		assert.Equal(t, http.StatusOK, res.StatusCode)

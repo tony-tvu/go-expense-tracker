@@ -61,18 +61,17 @@ func getCookies(t *testing.T, cookies_res []*http.Cookie) map[string]string {
 	return cookies
 }
 
-func MakeApiRequest(t *testing.T, method string, url string, body *map[string]string, accessToken *string) (res *http.Response) {
+func MakeApiRequest(t *testing.T, method string, url string, body interface{}, accessToken *string) (res *http.Response) {
 	t.Helper()
 	client := &http.Client{}
 	var req *http.Request
 
-	var jsonBytes *bytes.Buffer
 	if body != nil {
-		jsonBytes = new(bytes.Buffer)
-		err := json.NewEncoder(jsonBytes).Encode(body)
+		jsonBytes, err := json.Marshal(&body)
 		require.NoError(t, err)
+		buf := bytes.NewBuffer(jsonBytes)
 
-		req, _ = http.NewRequest(method, fmt.Sprintf("%s%s", srv.URL, url), jsonBytes)
+		req, _ = http.NewRequest(method, fmt.Sprintf("%s%s", srv.URL, url), buf)
 	} else {
 		req, _ = http.NewRequest(method, fmt.Sprintf("%s%s", srv.URL, url), nil)
 	}
