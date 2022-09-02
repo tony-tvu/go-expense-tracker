@@ -117,6 +117,7 @@ func (a *App) Run(ctx context.Context) {
 		ReadTimeout:  5 * time.Second,
 	}
 
+	log.Printf("Listening on port %s", port)
 	err = srv.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)

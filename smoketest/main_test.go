@@ -56,10 +56,6 @@ func TestMain(m *testing.M) {
 	testApp.Db.Users = mongoclient.Database("goexpense_test").Collection("users")
 	testApp.Db.Sessions = mongoclient.Database("goexpense_test").Collection("sessions")
 
-	// drop all collections
-	testApp.Db.Users.Drop(ctx)
-	testApp.Db.Sessions.Drop(ctx)
-
 	// start test server
 	srv = httptest.NewServer(testApp.Router)
 

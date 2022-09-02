@@ -93,7 +93,6 @@ has not expired, generate a new access token and return it in the response write
 If the refresh_token has expired or is not valid, make the user login again to create a
 new session/refresh_token.
 
-
 Default expiration time: 15m
 */
 func GetEncryptedAccessToken(ctx context.Context, email, userType string) (Token, error) {
@@ -119,39 +118,26 @@ func GetEncryptedAccessToken(ctx context.Context, email, userType string) (Token
 	return Token{Value: encrpyted, ExpiresAt: exp}, nil
 }
 
-/*
-Function decrypts an encrypted token string, gets the token's claims, and
-then returns isExpired and claims. For this app's use case, if a token has
-only expired, it will still be considered valid. If any other type of error
-occurs, it will be invalid (i.e. error signing token).
-*/
-func GetClaimsWithValidation(encryptedTkn string) (*bool, *Claims, error) {
-	isExpired := false
-
+// Function decrypts an encrypted token string, validates the token, then returns the claims.
+func ValidateTokenAndGetClaims(encryptedTkn string) (*Claims, error) {
 	decrypted, err := Decrypt(encryptedTkn)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	token, err := jwt.ParseWithClaims(decrypted, &Claims{},
 		func(token *jwt.Token) (interface{}, error) {
 			return []byte(jwtKey), nil
 		})
-
-	// if token is only expired, it will still be considered valid
 	if err != nil {
-		if err.(*jwt.ValidationError).Errors&jwt.ValidationErrorExpired != 0 {
-			isExpired = true
-		} else {
-			return nil, nil, err
-		}
+		return nil, err
 	}
 
 	// return error if claims are missing
 	claims := token.Claims.(*Claims)
 	if claims.Email == "" || claims.UserType == "" {
-		return nil, nil, err
+		return nil, errors.New("token is missing claims")
 	}
 
-	return &isExpired, claims, nil
+	return claims, nil
 }

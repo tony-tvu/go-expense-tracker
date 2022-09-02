@@ -11,10 +11,11 @@ import (
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/user"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Log user in and return access token
-func logUserIn(t *testing.T, email, password string) (string, int) {
+func logUserIn(t *testing.T, email, password string) (string, string, int) {
 	t.Helper()
 	m := map[string]string{"email": email, "password": password}
 	b := new(bytes.Buffer)
@@ -29,7 +30,7 @@ func logUserIn(t *testing.T, email, password string) (string, int) {
 	res, err := client.Do(req)
 	require.NoError(t, err)
 	if res.StatusCode != 200 {
-		return "", res.StatusCode
+		return "", "", res.StatusCode
 	}
 
 	cookies := getCookies(t, res.Cookies())
@@ -37,17 +38,30 @@ func logUserIn(t *testing.T, email, password string) (string, int) {
 	if accessToken == "" {
 		t.FailNow()
 	}
-	return accessToken, res.StatusCode
+	refreshToken := cookies["goexpense_refresh"]
+	if refreshToken == "" {
+		t.FailNow()
+	}
+	return accessToken, refreshToken, res.StatusCode
 }
 
 // Save a new user to db
-func createUser(t *testing.T, db *database.Db, name, email, password string) {
+func createUser(t *testing.T, db *database.Db, name, email, password string) func() {
 	t.Helper()
-	err := user.SaveUser(ctx, db, &models.User{
+	user, err := user.SaveUser(ctx, db, &models.User{
 		Name:     name,
 		Email:    email,
 		Password: password,
 	})
+	require.NoError(t, err)
+
+	return func() {
+		deleteUser(t, user)
+	}
+}
+
+func deleteUser(t *testing.T, u *models.User) {
+	_, err := testApp.Db.Users.DeleteOne(ctx, bson.M{"email": u.Email})
 	require.NoError(t, err)
 }
 
@@ -61,17 +75,16 @@ func getCookies(t *testing.T, cookies_res []*http.Cookie) map[string]string {
 	return cookies
 }
 
-func MakeApiRequest(t *testing.T, method string, url string, body interface{}, accessToken *string) (res *http.Response) {
+func MakeApiRequest(t *testing.T, method string, url string, accessToken *string, refreshToken *string, body ...map[string]string) (res *http.Response) {
 	t.Helper()
 	client := &http.Client{}
 	var req *http.Request
 
-	if body != nil {
-		jsonBytes, err := json.Marshal(&body)
+	if len(body) > 0 {
+		wtf := body[0]
+		bodyJSON, err := json.Marshal(wtf)
 		require.NoError(t, err)
-		buf := bytes.NewBuffer(jsonBytes)
-
-		req, _ = http.NewRequest(method, fmt.Sprintf("%s%s", srv.URL, url), buf)
+		req, _ = http.NewRequest(method, fmt.Sprintf("%s%s", srv.URL, url), bytes.NewBuffer(bodyJSON))
 	} else {
 		req, _ = http.NewRequest(method, fmt.Sprintf("%s%s", srv.URL, url), nil)
 	}
@@ -80,6 +93,12 @@ func MakeApiRequest(t *testing.T, method string, url string, body interface{}, a
 		req.AddCookie(&http.Cookie{
 			Name:  "goexpense_access",
 			Value: *accessToken})
+	}
+
+	if refreshToken != nil {
+		req.AddCookie(&http.Cookie{
+			Name:  "goexpense_refresh",
+			Value: *refreshToken})
 	}
 
 	res, err := client.Do(req)

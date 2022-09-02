@@ -2,6 +2,7 @@ package user
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"net/mail"
@@ -24,7 +25,7 @@ type UserHandler struct {
 
 type CredentialsInput struct {
 	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,ascii"`
+	Password string `json:"password" validate:"required"`
 }
 
 var v *validator.Validate
@@ -38,7 +39,14 @@ func (h UserHandler) Login(c *gin.Context) {
 	defer c.Request.Body.Close()
 
 	var input CredentialsInput
-	err := json.NewDecoder(c.Request.Body).Decode(&input)
+
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	err = json.Unmarshal(bodyBytes, &input)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
@@ -74,7 +82,7 @@ func (h UserHandler) Login(c *gin.Context) {
 	}
 
 	// delete existing sessions
-	_, err = h.Db.Sessions.DeleteOne(ctx, bson.M{"email": u.Email})
+	_, err = h.Db.Sessions.DeleteMany(ctx, bson.M{"email": u.Email})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -109,19 +117,28 @@ func (h UserHandler) Login(c *gin.Context) {
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
 	})
+
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "goexpense_refresh",
+		Value:    refreshToken.Value,
+		Expires:  refreshToken.ExpiresAt,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
 }
 
 func (h UserHandler) Logout(c *gin.Context) {
 	ctx := c.Request.Context()
-	cookie, err := c.Request.Cookie("goexpense_access")
+	cookie, err := c.Request.Cookie("goexpense_refresh")
 
-	// missing access_token
-	if err != nil || cookie.Value == "" {
+	// missing refresh_token
+	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	_, claims, err := auth.GetClaimsWithValidation(cookie.Value)
+	claims, err := auth.ValidateTokenAndGetClaims(cookie.Value)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -136,15 +153,14 @@ func (h UserHandler) Logout(c *gin.Context) {
 
 func (h UserHandler) GetUserInfo(c *gin.Context) {
 	ctx := c.Request.Context()
-	cookie, err := c.Request.Cookie("goexpense_access")
 
-	// no access token - make user log in
-	if err != nil || cookie.Value == "" {
+	cookie, err := c.Request.Cookie("goexpense_refresh")
+	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
-	_, claims, err := auth.GetClaimsWithValidation(cookie.Value)
+	claims, err := auth.ValidateTokenAndGetClaims(cookie.Value)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return

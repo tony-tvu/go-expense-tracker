@@ -11,10 +11,10 @@ import (
 )
 
 // Saves new user to db once they've accepted email invitation
-func SaveUser(ctx context.Context, db *database.Db, u *models.User) error {
+func SaveUser(ctx context.Context, db *database.Db, u *models.User) (*models.User, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	doc := &bson.D{
@@ -26,8 +26,8 @@ func SaveUser(ctx context.Context, db *database.Db, u *models.User) error {
 	}
 	_, err = db.Users.InsertOne(ctx, doc)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return u, nil
 }
