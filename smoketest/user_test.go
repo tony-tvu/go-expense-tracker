@@ -42,7 +42,7 @@ func TestUserHandlers(t *testing.T) {
 			Email: email,
 			Password: password,
 		}
-		res := MakeApiRequest(t, "POST", "/login", &body, nil)
+		res := MakeApiRequest(t, "POST", "/api/login", &body, nil)
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 
 		// should have user session saved in db
@@ -52,7 +52,7 @@ func TestUserHandlers(t *testing.T) {
 		// logout
 		cookies := getCookies(t, res.Cookies())
 		accessToken := cookies["goexpense_access"]
-		res = MakeApiRequest(t, "POST", "/logout", nil, &accessToken)
+		res = MakeApiRequest(t, "POST", "/api/logout", nil, &accessToken)
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 
 		// should delete user's session from db

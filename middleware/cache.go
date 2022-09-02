@@ -26,7 +26,7 @@ func init() {
 	}
 }
 
-func CacheControl(c *gin.Context) {
+func FrontendCache(c *gin.Context) {
 	epoch := time.Now().Add(time.Duration(maxAge) * time.Second).Format(time.RFC1123)
 	cacheHeaders := map[string]string{
 		"Expires":       epoch,
@@ -35,6 +35,38 @@ func CacheControl(c *gin.Context) {
 
 	// Set Cache headers
 	for k, v := range cacheHeaders {
+		c.Writer.Header().Set(k, v)
+	}
+
+	c.Next()
+}
+
+func NoCache(c *gin.Context) {
+	var epoch = time.Unix(0, 0).Format(time.RFC1123)
+	var noCacheHeaders = map[string]string{
+		"Expires":         epoch,
+		"Cache-Control":   "no-cache, no-store, no-transform, must-revalidate, private, max-age=0",
+		"Pragma":          "no-cache",
+		"X-Accel-Expires": "0",
+	}
+
+	var etagHeaders = []string{
+		"ETag",
+		"If-Modified-Since",
+		"If-Match",
+		"If-None-Match",
+		"If-Range",
+		"If-Unmodified-Since",
+	}
+
+	// Delete any ETag headers that may have been set
+	for _, v := range etagHeaders {
+		if c.Request.Header.Get(v) != "" {
+			c.Request.Header.Del(v)
+		}
+	}
+	// Set NoCache headers
+	for k, v := range noCacheHeaders {
 		c.Writer.Header().Set(k, v)
 	}
 

@@ -23,7 +23,7 @@ func TestMiddlware(t *testing.T) {
 		accessToken, _ := logUserIn(t, email, password)
 
 		// make request to endpoint where user must be logged in
-		res := MakeApiRequest(t, "GET", "/user_info", nil, &accessToken)
+		res := MakeApiRequest(t, "GET", "/api/user_info", nil, &accessToken)
 
 		// should return 200
 		assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -36,7 +36,7 @@ func TestMiddlware(t *testing.T) {
 		time.Sleep(time.Duration(accessTokenExp) * time.Second)
 
 		// make request with expired access token
-		res = MakeApiRequest(t, "GET", "/user_info", nil, &accessToken)
+		res = MakeApiRequest(t, "GET", "/api/user_info", nil, &accessToken)
 
 		// should return 200
 		assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -57,7 +57,7 @@ func TestMiddlware(t *testing.T) {
 		time.Sleep(2 * time.Second)
 
 		// make request with expired refresh and access tokens
-		res = MakeApiRequest(t, "GET", "/user_info", nil, &accessToken)
+		res = MakeApiRequest(t, "GET", "/api/user_info", nil, &accessToken)
 
 		// should return 401 unauthorized
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
@@ -72,14 +72,14 @@ func TestMiddlware(t *testing.T) {
 		t.Parallel()
 
 		// make request to endpoint where user must be logged in without access token
-		res := MakeApiRequest(t, "GET", "/user_info", nil, nil)
+		res := MakeApiRequest(t, "GET", "/api/user_info", nil, nil)
 
 		// should return 401
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 		// make request to same endpoint with invalid access token
 		invalidToken := "invalidToken"
-		res = MakeApiRequest(t, "GET", "/user_info", nil, &invalidToken)
+		res = MakeApiRequest(t, "GET", "/api/user_info", nil, &invalidToken)
 
 		// should return 401
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
@@ -92,7 +92,7 @@ func TestMiddlware(t *testing.T) {
 		accessToken, _ := logUserIn(t, email, password)
 
 		// make request to same endpoint when logged in
-		res = MakeApiRequest(t, "GET", "/user_info", nil, &accessToken)
+		res = MakeApiRequest(t, "GET", "/api/user_info", nil, &accessToken)
 
 		// should return 200
 		assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -102,7 +102,7 @@ func TestMiddlware(t *testing.T) {
 		t.Parallel()
 
 		// make request to admin-only route as a guest user
-		res := MakeApiRequest(t, "GET", "/sessions", nil, nil)
+		res := MakeApiRequest(t, "GET", "/api/sessions", nil, nil)
 
 		// should return 401
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
@@ -115,13 +115,13 @@ func TestMiddlware(t *testing.T) {
 		accessToken, _ := logUserIn(t, email, password)
 
 		// make request to admin-only route as regular user
-		res = MakeApiRequest(t, "GET", "/sessions", nil, &accessToken)
+		res = MakeApiRequest(t, "GET", "/api/sessions", nil, &accessToken)
 
 		// should return 401
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 		// logout user
-		res = MakeApiRequest(t, "POST", "/logout", nil, &accessToken)
+		res = MakeApiRequest(t, "POST", "/api/logout", nil, &accessToken)
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 
 		// should no longer have user session saved after logging out
@@ -139,7 +139,7 @@ func TestMiddlware(t *testing.T) {
 		accessToken, _ = logUserIn(t, email, password)
 
 		// make request to admin-only endpoint as admin
-		res = MakeApiRequest(t, "GET", "/sessions", nil, &accessToken)
+		res = MakeApiRequest(t, "GET", "/api/sessions", nil, &accessToken)
 
 		// should return 200
 		assert.Equal(t, http.StatusOK, res.StatusCode)

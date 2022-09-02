@@ -23,7 +23,7 @@ func logUserIn(t *testing.T, email, password string) (string, int) {
 	require.NoError(t, err)
 
 	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/login", srv.URL), b)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/login", srv.URL), b)
 	require.NoError(t, err)
 
 	res, err := client.Do(req)

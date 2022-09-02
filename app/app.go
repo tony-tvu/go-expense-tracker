@@ -66,38 +66,36 @@ func (a *App) Initialize(ctx context.Context) {
 	router.Use(middleware.RateLimit())
 	router.Use(middleware.CORS(&env))
 	router.Use(middleware.Logger(env))
-	router.Use(middleware.CacheControl)
 
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "Ok"})
-	})
-	
-	router.POST("/logout", u.Logout)
-	loginGroup := router.Group("/login", middleware.LoginRateLimit())
+	apiGroup := router.Group("/api", middleware.NoCache)
 	{
-		loginGroup.POST("", u.Login)
-	}
+		apiGroup.GET("/health", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "Ok"})
+		})
+		apiGroup.POST("/logout", u.Logout)
+		apiGroup.POST("/login", middleware.LoginRateLimit(), u.Login)
 
-	authRequired := router.Group("/", middleware.AuthRequired(a.Db))
-	{
-		authRequired.GET("/ping", u.Ping)
-		authRequired.GET("/user_info", u.GetUserInfo)
-		authRequired.GET("/create_link_token", plaidapi.CreateLinkToken)
-		authRequired.POST("/set_access_token", plaidapi.SetAccessToken)
-
-		adminRequired := authRequired.Group("/", middleware.AdminRequired(a.Db))
+		authGroup := apiGroup.Group("/", middleware.AuthRequired(a.Db))
 		{
-			adminRequired.POST("/invite", u.InviteUser)
-			adminRequired.GET("/sessions", u.GetSessions)
+			authGroup.GET("/ping", u.Ping)
+			authGroup.GET("/user_info", u.GetUserInfo)
+			authGroup.GET("/create_link_token", plaidapi.CreateLinkToken)
+			authGroup.POST("/set_access_token", plaidapi.SetAccessToken)
+
+			adminGroup := authGroup.Group("/", middleware.AdminRequired(a.Db))
+			{
+				adminGroup.POST("/invite", u.InviteUser)
+				adminGroup.GET("/sessions", u.GetSessions)
+			}
 		}
+
 	}
 
-	// serve frontend
-	router.Use(static.Serve("/", static.LocalFile("./web/build", true)))
-	// prevent returning 404 when reloading page on frontend route
-	router.NoRoute(func(ctx *gin.Context) {
+	router.Use(middleware.FrontendCache, static.Serve("/", static.LocalFile("./web/build", true)))
+	router.NoRoute(middleware.FrontendCache, func(ctx *gin.Context) {
 		ctx.File("./web/build")
 	})
+
 	a.Router = router
 }
 
