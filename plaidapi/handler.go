@@ -37,11 +37,13 @@ func init() {
 	clientID := os.Getenv("PLAID_CLIENT_ID")
 	secret := os.Getenv("PLAID_SECRET")
 	env := os.Getenv("PLAID_ENV")
+	products = os.Getenv("PLAID_PRODUCTS")
+
 	if util.ContainsEmpty(clientID, secret, env) {
 		log.Println("plaid env variables are missing")
 	}
 
-	products = "auth,transactions"
+	
 	countryCodes = "US,CA"
 	plaidCfg := plaid.NewConfiguration()
 	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", clientID)
