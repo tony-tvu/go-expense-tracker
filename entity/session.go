@@ -2,12 +2,13 @@ package entity
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Session struct {
-	ID           uint `gorm:"primarykey"`
+	gorm.Model
 	Username     string
 	RefreshToken string
 	ExpiresAt    time.Time
-	CreatedAt    time.Time `gorm:"autoCreateTime"`
 }

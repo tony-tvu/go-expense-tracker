@@ -51,9 +51,11 @@ func (a *App) Initialize(ctx context.Context) {
 	}
 	db.AutoMigrate(&entity.Session{})
 	db.AutoMigrate(&entity.User{})
+	db.AutoMigrate(&entity.Item{})
 	a.Db = db
 
 	u := &user.UserHandler{Db: db}
+	p := &plaidapi.PlaidHandler{Db: db}
 
 	if env != "development" {
 		gin.SetMode(gin.ReleaseMode)
@@ -80,8 +82,8 @@ func (a *App) Initialize(ctx context.Context) {
 		{
 			authGroup.GET("/ping", u.Ping)
 			authGroup.GET("/user_info", u.GetUserInfo)
-			authGroup.GET("/create_link_token", plaidapi.CreateLinkToken)
-			authGroup.POST("/set_access_token", plaidapi.SetAccessToken)
+			authGroup.GET("/create_link_token", p.CreateLinkToken)
+			authGroup.POST("/set_access_token", p.SetAccessToken)
 
 			adminGroup := authGroup.Group("/", middleware.AdminRequired(a.Db))
 			{

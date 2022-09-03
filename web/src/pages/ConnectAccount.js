@@ -31,6 +31,7 @@ export default function ConnectAccount() {
       })
   }, [navigate])
 
+  // link_token is required to start linking a bank account
   const fetchLinkToken = async () => {
     const response = await fetch(
       `${process.env.REACT_APP_API_URL}/create_link_token`,
@@ -50,31 +51,37 @@ export default function ConnectAccount() {
     setLinkToken(data?.link_token)
   }
 
-  const onSuccess = async (public_token) => {
+  /*
+   * Upon linking success, plaid api will return a public_token which will be used
+   * to get a permanent access_token for the user's specific linked bank account.
+   */
+  const onLinkAccountSuccess = async (public_token) => {
     await fetch(`${process.env.REACT_APP_API_URL}/set_access_token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Plaid-Public-Token": public_token,
       },
+      credentials: "include",
     }).catch((e) => {
       logger("error setting access token", e)
     })
   }
 
-  const config = {
+  const plaidConfig = {
     token: linkToken,
-    onSuccess,
+    onSuccess: onLinkAccountSuccess,
   }
-  const { open, ready } = usePlaidLink(config)
+  const { open: openLinkingPopup, ready: isReadyToLinkAccount } =
+    usePlaidLink(plaidConfig)
 
   return (
     <div>
       <Flex color="white" minH="85vh">
         <Button
           type="button"
-          onClick={() => open()}
-          disabled={!ready}
+          onClick={() => openLinkingPopup()}
+          disabled={!isReadyToLinkAccount}
           colorScheme="teal"
           size="md"
         >
