@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -117,40 +118,34 @@ func (a *App) Run(ctx context.Context) {
 }
 
 func createInitialAdminUser(ctx context.Context, db *gorm.DB) {
-	name := os.Getenv("ADMIN_NAME")
+	username := os.Getenv("ADMIN_USERNAME")
 	email := os.Getenv("ADMIN_EMAIL")
 	pw := os.Getenv("ADMIN_PASSWORD")
 
 	// do not create admin if values are empty
-	if util.ContainsEmpty(name, email, pw) {
+	if util.ContainsEmpty(username, email, pw) {
 		return
 	}
 
 	// check if admin already exists
-	var u *entity.User
-	if result := db.Where("email = ?", email).First(&u); result.Error != nil {
-		hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if result := db.Create(&entity.User{
-			Name:     name,
-			Email:    email,
-			Password: string(hash),
-			Type:     entity.AdminUser,
-		}); result.Error != nil {
-			log.Fatal(err)
-		}
+	result := db.Where("email = ?", email).First(&entity.User{})
+	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return
 	}
 
-	// var res struct {
-	// 	Found bool
-	// }
-	// db.Raw("SELECT EXISTS(SELECT 1 FROM user WHERE email = ?) AS found", email).Scan(&res)
-	// if res.Found {
-	// 	return
-	// }
+	hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if result := db.Create(&entity.User{
+		Username: username,
+		Email:    email,
+		Password: string(hash),
+		Type:     entity.AdminUser,
+	}); result.Error != nil {
+		log.Fatal(err)
+	}
 }
 
 // Function adds CORS middleware that allows cross origin requests when in development mode

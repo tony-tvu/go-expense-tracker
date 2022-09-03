@@ -13,9 +13,9 @@ import (
 )
 
 // Log user in and return access token
-func logUserIn(t *testing.T, email, password string) (string, string, int) {
+func logUserIn(t *testing.T, username, password string) (string, string, int) {
 	t.Helper()
-	m := map[string]string{"email": email, "password": password}
+	m := map[string]string{"username": username, "password": password}
 	b := new(bytes.Buffer)
 
 	err := json.NewEncoder(b).Encode(m)
@@ -44,14 +44,14 @@ func logUserIn(t *testing.T, email, password string) (string, string, int) {
 }
 
 // Save a new user to db
-func createUser(t *testing.T, name, email, password string) func() {
+func createUser(t *testing.T, username, email, password string) func() {
 	t.Helper()
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	require.NoError(t, err)
 
 	if result := testApp.Db.Create(&entity.User{
-		Name:     name,
+		Username: username,
 		Email:    email,
 		Password: string(hash),
 		Type:     entity.RegularUser,
@@ -60,12 +60,12 @@ func createUser(t *testing.T, name, email, password string) func() {
 	}
 
 	return func() {
-		deleteUser(t, email)
+		deleteUser(t, username)
 	}
 }
 
-func deleteUser(t *testing.T, e string) {
-	if result := testApp.Db.Unscoped().Where("email = ?", e).Delete(&entity.User{}); result.Error != nil {
+func deleteUser(t *testing.T, username string) {
+	if result := testApp.Db.Unscoped().Where("username = ?", username).Delete(&entity.User{}); result.Error != nil {
 		t.FailNow()
 	}
 }

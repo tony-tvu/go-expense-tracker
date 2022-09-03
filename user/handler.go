@@ -22,7 +22,7 @@ type UserHandler struct {
 }
 
 type CredentialsInput struct {
-	Email    string `json:"email" validate:"required,email"`
+	Username string `json:"username" validate:"required"`
 	Password string `json:"password" validate:"required"`
 }
 
@@ -59,7 +59,7 @@ func (h UserHandler) Login(c *gin.Context) {
 
 	// find existing user account
 	var u *entity.User
-	result := h.Db.Where("email = ?", input.Email).First(&u)
+	result := h.Db.Where("username = ?", input.Username).First(&u)
 	if result.Error != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
@@ -80,14 +80,14 @@ func (h UserHandler) Login(c *gin.Context) {
 	}
 
 	// delete existing sessions
-	if result := h.Db.Unscoped().Where("email = ?", u.Email).Delete(&entity.Session{}); result.Error != nil {
+	if result := h.Db.Unscoped().Where("username = ?", u.Username).Delete(&entity.Session{}); result.Error != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	// save new session
 	if result := h.Db.Create(&entity.Session{
-		Email:        u.Email,
+		Username:     u.Username,
 		RefreshToken: refreshToken.Value,
 		ExpiresAt:    refreshToken.ExpiresAt,
 	}); result.Error != nil {
@@ -95,7 +95,7 @@ func (h UserHandler) Login(c *gin.Context) {
 	}
 
 	// create access token
-	accessToken, err := auth.GetEncryptedAccessToken(ctx, u.Email, string(u.Type))
+	accessToken, err := auth.GetEncryptedAccessToken(ctx, u.Username, string(u.Type))
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -135,7 +135,7 @@ func (h UserHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	if result := h.Db.Unscoped().Where("email = ?", claims.Email).Delete(&entity.Session{}); result.Error != nil {
+	if result := h.Db.Unscoped().Where("username = ?", claims.Username).Delete(&entity.Session{}); result.Error != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -155,7 +155,7 @@ func (h UserHandler) GetUserInfo(c *gin.Context) {
 	}
 
 	var u *entity.User
-	if result := h.Db.Where("email = ?", claims.Email).First(&u); result.Error != nil {
+	if result := h.Db.Where("username = ?", claims.Username).First(&u); result.Error != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}

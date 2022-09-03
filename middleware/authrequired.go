@@ -37,7 +37,7 @@ func AuthRequired(db *gorm.DB) gin.HandlerFunc {
 
 			// find existing session
 			var s *entity.Session
-			if result := db.Where("email = ?", refreshClaims.Email).First(&s); result.Error != nil {
+			if result := db.Where("username = ?", refreshClaims.Username).First(&s); result.Error != nil {
 				c.AbortWithStatus(http.StatusUnauthorized)
 				return
 			}
@@ -49,7 +49,7 @@ func AuthRequired(db *gorm.DB) gin.HandlerFunc {
 			}
 
 			// renew access_token
-			renewed, err := auth.GetEncryptedAccessToken(ctx, refreshClaims.Email, refreshClaims.UserType)
+			renewed, err := auth.GetEncryptedAccessToken(ctx, refreshClaims.Username, refreshClaims.UserType)
 			if err != nil {
 				c.AbortWithStatus(http.StatusInternalServerError)
 				return

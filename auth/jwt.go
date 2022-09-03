@@ -14,7 +14,7 @@ import (
 )
 
 type Claims struct {
-	Email    string
+	Username string
 	UserType string
 	jwt.RegisteredClaims
 }
@@ -66,7 +66,7 @@ Default expiration time: 24 hours
 func GetEncryptedRefreshToken(ctx context.Context, u *entity.User) (Token, error) {
 	exp := time.Now().Add(time.Duration(refreshTokenExp) * time.Second)
 	refreshTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
-		Email:    u.Email,
+		Username: u.Username,
 		UserType: string(u.Type),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
@@ -87,19 +87,19 @@ func GetEncryptedRefreshToken(ctx context.Context, u *entity.User) (Token, error
 
 /*
 Access tokens are used to protect role-based endpoints. When these expire,
-get the claims (user email and type) from the request's cookie and query the sessions
-collection for an existing session using the email. After verifying the refresh token
+get the claims (username and type) from the request's cookie and query the sessions
+collection for an existing session using the username. After verifying the refresh token
 has not expired, generate a new access token and return it in the response writer's cookie.
 If the refresh_token has expired or is not valid, make the user login again to create a
 new session/refresh_token.
 
 Default expiration time: 15m
 */
-func GetEncryptedAccessToken(ctx context.Context, email, userType string) (Token, error) {
+func GetEncryptedAccessToken(ctx context.Context, username, userType string) (Token, error) {
 	exp := time.Now().Add(
 		time.Duration(accessTokenExp) * time.Second)
 	accessTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
-		Email:    email,
+		Username: username,
 		UserType: userType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
@@ -135,7 +135,7 @@ func ValidateTokenAndGetClaims(encryptedTkn string) (*Claims, error) {
 
 	// return error if claims are missing
 	claims := token.Claims.(*Claims)
-	if claims.Email == "" || claims.UserType == "" {
+	if claims.Username == "" || claims.UserType == "" {
 		return nil, errors.New("token is missing claims")
 	}
 
