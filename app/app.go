@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,27 +13,24 @@ import (
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/middleware"
-	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/plaidapi"
 	"github.com/tony-tvu/goexpense/user"
 	"github.com/tony-tvu/goexpense/util"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 type App struct {
-	Db     *database.Db
+	Db     *gorm.DB
 	Router *gin.Engine
 }
 
 var env string
 var port string
-var mongoURI string
-var dbName string
+var dbURL string
 
 func init() {
 	if err := godotenv.Load(".env"); err != nil {
@@ -40,16 +38,24 @@ func init() {
 	}
 	env = os.Getenv("ENV")
 	port = os.Getenv("PORT")
-	mongoURI = os.Getenv("MONGODB_URI")
-	dbName = os.Getenv("DB_NAME")
-	if util.ContainsEmpty(env, port, mongoURI, dbName) {
+	dbURL = os.Getenv("DB_URL")
+	if util.ContainsEmpty(env, port, dbURL) {
 		log.Fatal("env variables are missing")
 	}
 }
 
 func (a *App) Initialize(ctx context.Context) {
-	a.Db = &database.Db{}
-	u := &user.UserHandler{Db: a.Db}
+	db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
+	if err != nil {
+		log.Fatalln(err)
+	}
+	db.AutoMigrate(&entity.Session{})
+	db.AutoMigrate(&entity.User{})
+	db.AutoMigrate(&entity.Item{})
+	a.Db = db
+
+	u := &user.UserHandler{Db: db}
+	p := &plaidapi.PlaidHandler{Db: db}
 
 	if env != "development" {
 		gin.SetMode(gin.ReleaseMode)
@@ -76,8 +82,8 @@ func (a *App) Initialize(ctx context.Context) {
 		{
 			authGroup.GET("/ping", u.Ping)
 			authGroup.GET("/user_info", u.GetUserInfo)
-			authGroup.GET("/create_link_token", plaidapi.CreateLinkToken)
-			authGroup.POST("/set_access_token", plaidapi.SetAccessToken)
+			authGroup.GET("/create_link_token", p.CreateLinkToken)
+			authGroup.POST("/set_access_token", p.SetAccessToken)
 
 			adminGroup := authGroup.Group("/", middleware.AdminRequired(a.Db))
 			{
@@ -97,17 +103,6 @@ func (a *App) Initialize(ctx context.Context) {
 }
 
 func (a *App) Run(ctx context.Context) {
-	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err := mongoclient.Disconnect(ctx); err != nil {
-			log.Println("mongo has been disconnected: ", err)
-		}
-	}()
-	a.Db.Users = mongoclient.Database(dbName).Collection("users")
-	a.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
 	createInitialAdminUser(ctx, a.Db)
 
 	srv := &http.Server{
@@ -118,28 +113,25 @@ func (a *App) Run(ctx context.Context) {
 	}
 
 	log.Printf("Listening on port %s", port)
-	err = srv.ListenAndServe()
+	err := srv.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func createInitialAdminUser(ctx context.Context, db *database.Db) {
-	name := os.Getenv("ADMIN_NAME")
+func createInitialAdminUser(ctx context.Context, db *gorm.DB) {
+	username := os.Getenv("ADMIN_USERNAME")
 	email := os.Getenv("ADMIN_EMAIL")
 	pw := os.Getenv("ADMIN_PASSWORD")
 
 	// do not create admin if values are empty
-	if util.ContainsEmpty(name, email, pw) {
+	if util.ContainsEmpty(username, email, pw) {
 		return
 	}
 
 	// check if admin already exists
-	count, err := db.Users.CountDocuments(ctx, bson.D{{Key: "email", Value: email}})
-	if err != nil {
-		log.Fatal(err)
-	}
-	if count == 1 {
+	result := db.Where("email = ?", email).First(&entity.User{})
+	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return
 	}
 
@@ -147,14 +139,13 @@ func createInitialAdminUser(ctx context.Context, db *database.Db) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	doc := &bson.D{
-		{Key: "email", Value: email},
-		{Key: "name", Value: name},
-		{Key: "password", Value: string(hash)},
-		{Key: "type", Value: models.AdminUser},
-		{Key: "created_at", Value: time.Now()},
-	}
-	if _, err = db.Users.InsertOne(ctx, doc); err != nil {
+
+	if result := db.Create(&entity.User{
+		Username: username,
+		Email:    email,
+		Password: string(hash),
+		Type:     entity.AdminUser,
+	}); result.Error != nil {
 		log.Fatal(err)
 	}
 }

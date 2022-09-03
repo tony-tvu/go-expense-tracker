@@ -5,9 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/tony-tvu/goexpense/models"
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/tony-tvu/goexpense/entity"
 )
 
 func TestMiddlware(t *testing.T) {
@@ -15,12 +13,12 @@ func TestMiddlware(t *testing.T) {
 		t.Parallel()
 
 		// create user and login
-		name := "middleware"
+		username := "middleware"
 		email := "middleware@email.com"
-		password := "^%#(GY%H=G$%asdf"
-		cleanup := createUser(t, testApp.Db, name, email, password)
+		password := "password"
+		cleanup := createUser(t, username, email, password)
 		defer cleanup()
-		accessToken, refreshToken, _ := logUserIn(t, email, password)
+		accessToken, refreshToken, _ := logUserIn(t, username, password)
 
 		// make request to authRequired endpoint
 		res := MakeApiRequest(t, "GET", "/api/user_info", &accessToken, &refreshToken)
@@ -43,12 +41,12 @@ func TestMiddlware(t *testing.T) {
 		t.Parallel()
 
 		// create user and login
-		name := "revokeMe"
+		username := "revokeMe"
 		email := "revokeMe@email.com"
 		password := "^%#(GY%H=G$%asdf"
-		cleanup := createUser(t, testApp.Db, name, email, password)
+		cleanup := createUser(t, username, email, password)
 		defer cleanup()
-		accessToken, refreshToken, _ := logUserIn(t, email, password)
+		accessToken, refreshToken, _ := logUserIn(t, username, password)
 
 		// make request to authRequired endpoint
 		res := MakeApiRequest(t, "GET", "/api/user_info", &accessToken, &refreshToken)
@@ -59,8 +57,9 @@ func TestMiddlware(t *testing.T) {
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 
 		// revoke token
-		_, err := testApp.Db.Sessions.DeleteMany(ctx, bson.M{"email": email})
-		require.NoError(t, err)
+		if result := testApp.Db.Unscoped().Where("username = ?", username).Delete(&entity.Session{}); result.Error != nil {
+			t.FailNow()
+		}
 
 		// make request to authRequired endpoint with expired accessToken
 		res = MakeApiRequest(t, "GET", "/api/user_info", nil, &refreshToken)
@@ -101,12 +100,12 @@ func TestMiddlware(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 		// create regular user and login
-		name := "middleware3"
+		username := "middleware3"
 		email := "middleware3@email.com"
 		password := "^%#(GY%H=G$%asdf"
-		cleanup := createUser(t, testApp.Db, name, email, password)
+		cleanup := createUser(t, username, email, password)
 		defer cleanup()
-		accessToken, refreshToken, _ := logUserIn(t, email, password)
+		accessToken, refreshToken, _ := logUserIn(t, username, password)
 
 		// make request to admin-only route as regular user
 		res = MakeApiRequest(t, "GET", "/api/sessions", &refreshToken, &accessToken)
@@ -119,14 +118,11 @@ func TestMiddlware(t *testing.T) {
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 
 		// make user an admin and login
-		testApp.Db.Users.UpdateOne(
-			ctx,
-			bson.M{"email": email},
-			bson.D{
-				{Key: "$set", Value: bson.D{{Key: "type", Value: models.AdminUser}}},
-			},
-		)
-		accessToken, refreshToken, _ = logUserIn(t, email, password)
+		if result := testApp.Db.Model(&entity.User{}).Where("username = ?", username).Update("type", entity.AdminUser); result.Error != nil {
+			t.FailNow()
+		}
+
+		accessToken, refreshToken, _ = logUserIn(t, username, password)
 
 		// make request to admin-only endpoint as admin
 		res = MakeApiRequest(t, "GET", "/api/sessions", &accessToken, &refreshToken)

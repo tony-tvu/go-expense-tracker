@@ -28,7 +28,7 @@ const CFaLock = chakra(FaLock)
 const CFcat = chakra(FaCat)
 
 export default function Login() {
-  const [email, setEmail] = useState("")
+  const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const handleShowClick = () => setShowPassword(!showPassword)
@@ -42,7 +42,7 @@ export default function Login() {
         "Content-Type": "application/json",
       },
       credentials: "include",
-      body: JSON.stringify({ email: email, password: password }),
+      body: JSON.stringify({ username: username, password: password }),
     })
       .then((res) => {
         if (res.status === 200) navigate("/")
@@ -117,15 +117,15 @@ export default function Login() {
                     children={<CFaUserAlt color={"gray.500"} />}
                   />
                   <Input
-                    type="email"
-                    placeholder="email address"
+                    type="username"
+                    placeholder="username"
                     _placeholder={{ color: "gray.500" }}
                     borderColor={"gray.200"}
                     _hover={{
                       borderColor: "gray.500",
                     }}
                     color={"black"}
-                    onChange={(event) => setEmail(event.target.value)}
+                    onChange={(event) => setUsername(event.target.value)}
                     bg={"whiteAlpha.800"}
                   />
                 </InputGroup>

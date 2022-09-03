@@ -8,16 +8,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tony-tvu/goexpense/database"
-	"github.com/tony-tvu/goexpense/models"
-	"github.com/tony-tvu/goexpense/user"
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/tony-tvu/goexpense/entity"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Log user in and return access token
-func logUserIn(t *testing.T, email, password string) (string, string, int) {
+func logUserIn(t *testing.T, username, password string) (string, string, int) {
 	t.Helper()
-	m := map[string]string{"email": email, "password": password}
+	m := map[string]string{"username": username, "password": password}
 	b := new(bytes.Buffer)
 
 	err := json.NewEncoder(b).Encode(m)
@@ -46,23 +44,30 @@ func logUserIn(t *testing.T, email, password string) (string, string, int) {
 }
 
 // Save a new user to db
-func createUser(t *testing.T, db *database.Db, name, email, password string) func() {
+func createUser(t *testing.T, username, email, password string) func() {
 	t.Helper()
-	user, err := user.SaveUser(ctx, db, &models.User{
-		Name:     name,
-		Email:    email,
-		Password: password,
-	})
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	require.NoError(t, err)
 
+	if result := testApp.Db.Create(&entity.User{
+		Username: username,
+		Email:    email,
+		Password: string(hash),
+		Type:     entity.RegularUser,
+	}); result.Error != nil {
+		t.FailNow()
+	}
+
 	return func() {
-		deleteUser(t, user)
+		deleteUser(t, username)
 	}
 }
 
-func deleteUser(t *testing.T, u *models.User) {
-	_, err := testApp.Db.Users.DeleteOne(ctx, bson.M{"email": u.Email})
-	require.NoError(t, err)
+func deleteUser(t *testing.T, username string) {
+	if result := testApp.Db.Unscoped().Where("username = ?", username).Delete(&entity.User{}); result.Error != nil {
+		t.FailNow()
+	}
 }
 
 // Return cookies map from http response cookies

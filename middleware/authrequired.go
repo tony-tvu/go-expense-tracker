@@ -5,13 +5,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/database"
-	"github.com/tony-tvu/goexpense/models"
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/tony-tvu/goexpense/entity"
+	"gorm.io/gorm"
 )
 
 // Middleware restricts access to logged in users only
-func AuthRequired(db *database.Db) gin.HandlerFunc {
+func AuthRequired(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 		refreshCookie, err := c.Request.Cookie("goexpense_refresh")
@@ -37,12 +36,8 @@ func AuthRequired(db *database.Db) gin.HandlerFunc {
 		if err != nil {
 
 			// find existing session
-			var s *models.Session
-			err = db.Sessions.FindOne(
-				ctx, bson.D{{Key: "email", Value: refreshClaims.Email}}).Decode(&s)
-
-			// session not found - make user log in
-			if err != nil {
+			var s *entity.Session
+			if result := db.Where("username = ?", refreshClaims.Username).First(&s); result.Error != nil {
 				c.AbortWithStatus(http.StatusUnauthorized)
 				return
 			}
@@ -54,7 +49,7 @@ func AuthRequired(db *database.Db) gin.HandlerFunc {
 			}
 
 			// renew access_token
-			renewed, err := auth.GetEncryptedAccessToken(ctx, refreshClaims.Email, refreshClaims.UserType)
+			renewed, err := auth.GetEncryptedAccessToken(ctx, refreshClaims.Username, refreshClaims.UserType)
 			if err != nil {
 				c.AbortWithStatus(http.StatusInternalServerError)
 				return
