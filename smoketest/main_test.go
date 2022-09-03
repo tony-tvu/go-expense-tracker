@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/app"
@@ -18,12 +19,14 @@ var (
 	testApp         *app.App
 	srv             *httptest.Server
 	ctx             context.Context
+	cancel          context.CancelFunc
 	refreshTokenExp int
 	accessTokenExp  int
 )
 
 func TestMain(m *testing.M) {
-	ctx = context.Background()
+	ctx, cancel = context.WithTimeout(context.Background(), time.Duration(time.Second*5))
+	defer cancel()
 
 	if err := godotenv.Load(".env"); err != nil {
 		log.Println("no .env file found")
