@@ -7,26 +7,24 @@ import (
 	"os"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/app"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/tony-tvu/goexpense/entity"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 var (
 	testApp         *app.App
 	srv             *httptest.Server
 	ctx             context.Context
-	cancel          context.CancelFunc
 	refreshTokenExp int
 	accessTokenExp  int
 )
 
 func TestMain(m *testing.M) {
-	ctx, cancel = context.WithTimeout(context.Background(), time.Duration(time.Second*5))
-	defer cancel()
+	ctx = context.Background()
 
 	if err := godotenv.Load(".env"); err != nil {
 		log.Println("no .env file found")
@@ -44,20 +42,20 @@ func TestMain(m *testing.M) {
 	}
 	accessTokenExp = accessExp
 
-	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGODB_URI")))
+	db, err := gorm.Open(postgres.Open(os.Getenv("DB_URL")), &gorm.Config{})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
-	defer func() {
-		if err := mongoclient.Disconnect(ctx); err != nil {
-			log.Println("mongo has been disconnected: ", err)
-		}
-	}()
+	db.AutoMigrate(&entity.Session{})
+	db.AutoMigrate(&entity.User{})
 
 	testApp = &app.App{}
 	testApp.Initialize(ctx)
-	testApp.Db.Users = mongoclient.Database("goexpense_test").Collection("users")
-	testApp.Db.Sessions = mongoclient.Database("goexpense_test").Collection("sessions")
+	testApp.Db = db
+
+	// clear tables
+	db.Exec("delete from users;")
+	db.Exec("delete from sessions;")
 
 	// start test server
 	srv = httptest.NewServer(testApp.Router)

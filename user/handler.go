@@ -8,19 +8,17 @@ import (
 	"net/mail"
 	"net/smtp"
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/database"
-	"github.com/tony-tvu/goexpense/models"
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/tony-tvu/goexpense/entity"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type UserHandler struct {
-	Db *database.Db
+	Db *gorm.DB
 }
 
 type CredentialsInput struct {
@@ -60,9 +58,9 @@ func (h UserHandler) Login(c *gin.Context) {
 	}
 
 	// find existing user account
-	var u *models.User
-	err = h.Db.Users.FindOne(ctx, bson.D{{Key: "email", Value: input.Email}}).Decode(&u)
-	if err != nil {
+	var u *entity.User
+	result := h.Db.Where("email = ?", input.Email).First(&u)
+	if result.Error != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
@@ -82,24 +80,18 @@ func (h UserHandler) Login(c *gin.Context) {
 	}
 
 	// delete existing sessions
-	_, err = h.Db.Sessions.DeleteMany(ctx, bson.M{"email": u.Email})
-	if err != nil {
+	if result := h.Db.Unscoped().Where("email = ?", u.Email).Delete(&entity.Session{}); result.Error != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	// save new session
-	doc := bson.D{
-		{Key: "email", Value: u.Email},
-		{Key: "refresh_token", Value: refreshToken.Value},
-		{Key: "created_at", Value: time.Now()},
-		{Key: "expires_at", Value: refreshToken.ExpiresAt},
-	}
-
-	_, err = h.Db.Sessions.InsertOne(ctx, doc)
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+	if result := h.Db.Create(&entity.Session{
+		Email:        u.Email,
+		RefreshToken: refreshToken.Value,
+		ExpiresAt:    refreshToken.ExpiresAt,
+	}); result.Error != nil {
+		log.Fatal(err)
 	}
 
 	// create access token
@@ -129,7 +121,6 @@ func (h UserHandler) Login(c *gin.Context) {
 }
 
 func (h UserHandler) Logout(c *gin.Context) {
-	ctx := c.Request.Context()
 	cookie, err := c.Request.Cookie("goexpense_refresh")
 
 	// missing refresh_token
@@ -144,16 +135,13 @@ func (h UserHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	_, err = h.Db.Sessions.DeleteMany(ctx, bson.M{"email": claims.Email})
-	if err != nil {
+	if result := h.Db.Unscoped().Where("email = ?", claims.Email).Delete(&entity.Session{}); result.Error != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 }
 
 func (h UserHandler) GetUserInfo(c *gin.Context) {
-	ctx := c.Request.Context()
-
 	cookie, err := c.Request.Cookie("goexpense_refresh")
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
@@ -166,12 +154,12 @@ func (h UserHandler) GetUserInfo(c *gin.Context) {
 		return
 	}
 
-	var u *models.User
-	err = h.Db.Users.FindOne(ctx, bson.D{{Key: "email", Value: claims.Email}}).Decode(&u)
-	if err != nil {
+	var u *entity.User
+	if result := h.Db.Where("email = ?", claims.Email).First(&u); result.Error != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
+
 	// do not send back hashed password
 	u.Password = ""
 	c.JSON(200, u)

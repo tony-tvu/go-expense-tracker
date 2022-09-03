@@ -10,7 +10,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/joho/godotenv"
-	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/entity"
 )
 
 type Claims struct {
@@ -63,7 +63,7 @@ These can be revoked by deleting the refresh_token in the collection.
 
 Default expiration time: 24 hours
 */
-func GetEncryptedRefreshToken(ctx context.Context, u *models.User) (Token, error) {
+func GetEncryptedRefreshToken(ctx context.Context, u *entity.User) (Token, error) {
 	exp := time.Now().Add(time.Duration(refreshTokenExp) * time.Second)
 	refreshTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
 		Email:    u.Email,

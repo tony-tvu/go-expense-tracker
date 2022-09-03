@@ -12,27 +12,24 @@ import (
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/middleware"
-	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/plaidapi"
 	"github.com/tony-tvu/goexpense/user"
 	"github.com/tony-tvu/goexpense/util"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 type App struct {
-	Db     *database.Db
+	Db     *gorm.DB
 	Router *gin.Engine
 }
 
 var env string
 var port string
-var mongoURI string
-var dbName string
+var dbURL string
 
 func init() {
 	if err := godotenv.Load(".env"); err != nil {
@@ -40,16 +37,22 @@ func init() {
 	}
 	env = os.Getenv("ENV")
 	port = os.Getenv("PORT")
-	mongoURI = os.Getenv("MONGODB_URI")
-	dbName = os.Getenv("DB_NAME")
-	if util.ContainsEmpty(env, port, mongoURI, dbName) {
+	dbURL = os.Getenv("DB_URL")
+	if util.ContainsEmpty(env, port, dbURL) {
 		log.Fatal("env variables are missing")
 	}
 }
 
 func (a *App) Initialize(ctx context.Context) {
-	a.Db = &database.Db{}
-	u := &user.UserHandler{Db: a.Db}
+	db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
+	if err != nil {
+		log.Fatalln(err)
+	}
+	db.AutoMigrate(&entity.Session{})
+	db.AutoMigrate(&entity.User{})
+	a.Db = db
+
+	u := &user.UserHandler{Db: db}
 
 	if env != "development" {
 		gin.SetMode(gin.ReleaseMode)
@@ -97,17 +100,6 @@ func (a *App) Initialize(ctx context.Context) {
 }
 
 func (a *App) Run(ctx context.Context) {
-	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err := mongoclient.Disconnect(ctx); err != nil {
-			log.Println("mongo has been disconnected: ", err)
-		}
-	}()
-	a.Db.Users = mongoclient.Database(dbName).Collection("users")
-	a.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
 	createInitialAdminUser(ctx, a.Db)
 
 	srv := &http.Server{
@@ -118,13 +110,13 @@ func (a *App) Run(ctx context.Context) {
 	}
 
 	log.Printf("Listening on port %s", port)
-	err = srv.ListenAndServe()
+	err := srv.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func createInitialAdminUser(ctx context.Context, db *database.Db) {
+func createInitialAdminUser(ctx context.Context, db *gorm.DB) {
 	name := os.Getenv("ADMIN_NAME")
 	email := os.Getenv("ADMIN_EMAIL")
 	pw := os.Getenv("ADMIN_PASSWORD")
@@ -135,28 +127,30 @@ func createInitialAdminUser(ctx context.Context, db *database.Db) {
 	}
 
 	// check if admin already exists
-	count, err := db.Users.CountDocuments(ctx, bson.D{{Key: "email", Value: email}})
-	if err != nil {
-		log.Fatal(err)
-	}
-	if count == 1 {
-		return
+	var u *entity.User
+	if result := db.Where("email = ?", email).First(&u); result.Error != nil {
+		hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if result := db.Create(&entity.User{
+			Name:     name,
+			Email:    email,
+			Password: string(hash),
+			Type:     entity.AdminUser,
+		}); result.Error != nil {
+			log.Fatal(err)
+		}
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
-	if err != nil {
-		log.Fatal(err)
-	}
-	doc := &bson.D{
-		{Key: "email", Value: email},
-		{Key: "name", Value: name},
-		{Key: "password", Value: string(hash)},
-		{Key: "type", Value: models.AdminUser},
-		{Key: "created_at", Value: time.Now()},
-	}
-	if _, err = db.Users.InsertOne(ctx, doc); err != nil {
-		log.Fatal(err)
-	}
+	// var res struct {
+	// 	Found bool
+	// }
+	// db.Raw("SELECT EXISTS(SELECT 1 FROM user WHERE email = ?) AS found", email).Scan(&res)
+	// if res.Found {
+	// 	return
+	// }
 }
 
 // Function adds CORS middleware that allows cross origin requests when in development mode

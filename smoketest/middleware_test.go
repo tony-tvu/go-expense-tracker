@@ -5,9 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/tony-tvu/goexpense/models"
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/tony-tvu/goexpense/entity"
 )
 
 func TestMiddlware(t *testing.T) {
@@ -17,8 +15,8 @@ func TestMiddlware(t *testing.T) {
 		// create user and login
 		name := "middleware"
 		email := "middleware@email.com"
-		password := "^%#(GY%H=G$%asdf"
-		cleanup := createUser(t, testApp.Db, name, email, password)
+		password := "password"
+		cleanup := createUser(t, name, email, password)
 		defer cleanup()
 		accessToken, refreshToken, _ := logUserIn(t, email, password)
 
@@ -46,7 +44,7 @@ func TestMiddlware(t *testing.T) {
 		name := "revokeMe"
 		email := "revokeMe@email.com"
 		password := "^%#(GY%H=G$%asdf"
-		cleanup := createUser(t, testApp.Db, name, email, password)
+		cleanup := createUser(t, name, email, password)
 		defer cleanup()
 		accessToken, refreshToken, _ := logUserIn(t, email, password)
 
@@ -59,8 +57,9 @@ func TestMiddlware(t *testing.T) {
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 
 		// revoke token
-		_, err := testApp.Db.Sessions.DeleteMany(ctx, bson.M{"email": email})
-		require.NoError(t, err)
+		if result := testApp.Db.Unscoped().Where("email = ?", email).Delete(&entity.Session{}); result.Error != nil {
+			t.FailNow()
+		}
 
 		// make request to authRequired endpoint with expired accessToken
 		res = MakeApiRequest(t, "GET", "/api/user_info", nil, &refreshToken)
@@ -104,7 +103,7 @@ func TestMiddlware(t *testing.T) {
 		name := "middleware3"
 		email := "middleware3@email.com"
 		password := "^%#(GY%H=G$%asdf"
-		cleanup := createUser(t, testApp.Db, name, email, password)
+		cleanup := createUser(t, name, email, password)
 		defer cleanup()
 		accessToken, refreshToken, _ := logUserIn(t, email, password)
 
@@ -119,13 +118,10 @@ func TestMiddlware(t *testing.T) {
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 
 		// make user an admin and login
-		testApp.Db.Users.UpdateOne(
-			ctx,
-			bson.M{"email": email},
-			bson.D{
-				{Key: "$set", Value: bson.D{{Key: "type", Value: models.AdminUser}}},
-			},
-		)
+		if result := testApp.Db.Model(&entity.User{}).Where("email = ?", email).Update("type", entity.AdminUser); result.Error != nil {
+			t.FailNow()
+		}
+
 		accessToken, refreshToken, _ = logUserIn(t, email, password)
 
 		// make request to admin-only endpoint as admin
