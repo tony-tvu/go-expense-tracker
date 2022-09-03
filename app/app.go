@@ -16,6 +16,7 @@ import (
 	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/plaidapi"
+	"github.com/tony-tvu/goexpense/scheduledtasks"
 	"github.com/tony-tvu/goexpense/user"
 	"github.com/tony-tvu/goexpense/util"
 	"golang.org/x/crypto/bcrypt"
@@ -52,6 +53,7 @@ func (a *App) Initialize(ctx context.Context) {
 	db.AutoMigrate(&entity.Session{})
 	db.AutoMigrate(&entity.User{})
 	db.AutoMigrate(&entity.Item{})
+	createInitialAdminUser(ctx, db)
 	a.Db = db
 
 	u := &user.UserHandler{Db: db}
@@ -91,7 +93,6 @@ func (a *App) Initialize(ctx context.Context) {
 				adminGroup.GET("/sessions", u.GetSessions)
 			}
 		}
-
 	}
 
 	router.Use(middleware.FrontendCache, static.Serve("/", static.LocalFile("./web/build", true)))
@@ -103,7 +104,7 @@ func (a *App) Initialize(ctx context.Context) {
 }
 
 func (a *App) Run(ctx context.Context) {
-	createInitialAdminUser(ctx, a.Db)
+	scheduledtasks.Start(a.Db)
 
 	srv := &http.Server{
 		Handler:      a.Router,
