@@ -29,4 +29,4 @@ start:
 
 test:
 	go clean -testcache
-	go test ./smoketest -v
+	go test ./tests -v
