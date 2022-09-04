@@ -80,7 +80,7 @@ func (h UserHandler) Login(c *gin.Context) {
 	}
 
 	// delete existing sessions
-	if result := h.Db.Unscoped().Where("username = ?", u.Username).Delete(&entity.Session{}); result.Error != nil {
+	if result := h.Db.Exec("DELETE FROM sessions WHERE username = ?", u.Username); result.Error != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -135,7 +135,7 @@ func (h UserHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	if result := h.Db.Unscoped().Where("username = ?", claims.Username).Delete(&entity.Session{}); result.Error != nil {
+	if result := h.Db.Exec("DELETE FROM sessions WHERE username = ?", claims.Username); result.Error != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}

@@ -65,7 +65,7 @@ func createUser(t *testing.T, username, email, password string) func() {
 }
 
 func deleteUser(t *testing.T, username string) {
-	if result := testApp.Db.Unscoped().Where("username = ?", username).Delete(&entity.User{}); result.Error != nil {
+	if result := testApp.Db.Exec("DELETE FROM users WHERE username = ?", username); result.Error != nil {
 		t.FailNow()
 	}
 }

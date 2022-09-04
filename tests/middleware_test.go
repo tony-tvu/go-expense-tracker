@@ -57,7 +57,7 @@ func TestMiddlware(t *testing.T) {
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 
 		// revoke token
-		if result := testApp.Db.Unscoped().Where("username = ?", username).Delete(&entity.Session{}); result.Error != nil {
+		if result := testApp.Db.Exec("DELETE FROM sessions WHERE username = ?", username); result.Error != nil {
 			t.FailNow()
 		}
 

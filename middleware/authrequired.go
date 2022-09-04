@@ -48,6 +48,13 @@ func AuthRequired(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 
+			// validate refresh_token
+			_, err := auth.ValidateTokenAndGetClaims(s.RefreshToken)
+			if err != nil {
+				c.AbortWithStatus(http.StatusUnauthorized)
+				return
+			}
+
 			// renew access_token
 			renewed, err := auth.GetEncryptedAccessToken(ctx, refreshClaims.Username, refreshClaims.UserType)
 			if err != nil {
