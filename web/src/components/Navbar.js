@@ -1,300 +1,128 @@
 import {
   Box,
   Flex,
-  Text,
+  Avatar,
+  HStack,
+  Link,
   IconButton,
   Button,
-  Stack,
-  Collapse,
-  Icon,
-  Link,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  useBreakpointValue,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  MenuDivider,
   useDisclosure,
   useColorModeValue,
+  useColorMode,
+  Stack,
 } from "@chakra-ui/react"
-import {
-  HamburgerIcon,
-  CloseIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-} from "@chakra-ui/icons"
-import { ColorModeSwitcher } from "../ColorModeSwitcher"
 import { Link as RouterLink } from "react-router-dom"
-import { colors } from "../theme"
+import { HamburgerIcon, CloseIcon } from "@chakra-ui/icons"
+import { MoonIcon, SunIcon } from "@chakra-ui/icons"
+import { APP_NAME } from "../configs"
+import { useNavigate } from "react-router-dom"
+import logger from "../logger"
 
 export default function Navbar() {
-  const { isOpen, onToggle } = useDisclosure()
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const { colorMode, toggleColorMode } = useColorMode()
+  const navigate = useNavigate()
+  const linkBgColor = useColorModeValue("gray.200", "gray.700")
+
+  function logout() {
+    fetch(`${process.env.REACT_APP_API_URL}/logout`, {
+      method: "POST",
+      credentials: "include",
+    }).then(res => {
+      if (res.status === 200) {
+        navigate("/login")
+      }
+    }).catch((err) => {
+      logger("error logging out", err)
+    })
+  }
 
   return (
-    <Box>
-      <Flex
-        bg="gray.800"
-        color="white"
-        minH={"60px"}
-        py={{ base: 2 }}
-        px={{ base: 4 }}
-        borderBottom={5}
-        borderStyle={"solid"}
-        borderColor={useColorModeValue("gray.800", "gray.500")}
-        align={"center"}
-      >
-        <Flex
-          flex={{ base: 1, md: "auto" }}
-          ml={{ base: -2 }}
-          display={{ base: "flex", md: "none" }}
-        >
+    <>
+      <Box bg={useColorModeValue("gray.100", "gray.900")} px={4}>
+        <Flex h={16} alignItems={"center"} justifyContent={"space-between"}>
           <IconButton
-            onClick={onToggle}
-            icon={
-              isOpen ? <CloseIcon w={3} h={3} /> : <HamburgerIcon w={5} h={5} />
-            }
-            variant={"ghost"}
-            aria-label={"Toggle Navigation"}
+            size={"md"}
+            icon={isOpen ? <CloseIcon /> : <HamburgerIcon />}
+            aria-label={"Open Menu"}
+            display={{ md: "none" }}
+            onClick={isOpen ? onClose : onOpen}
           />
-        </Flex>
-        <Flex flex={{ base: 1 }} justify={{ base: "center", md: "start" }}>
-          <RouterLink to="/">
-            <Text
-              textAlign={useBreakpointValue({ base: "center", md: "left" })}
-              fontFamily={"heading"}
-              color={"white"}
+          <HStack spacing={8} alignItems={"center"}>
+            <RouterLink to="/">
+              <Box>{APP_NAME}</Box>
+            </RouterLink>
+            <HStack
+              as={"nav"}
+              spacing={4}
+              display={{ base: "none", md: "flex" }}
             >
-              GoExpense
-            </Text>
-          </RouterLink>
-          <Flex display={{ base: "none", md: "flex" }} ml={10}>
-            <DesktopNav />
+              <Link
+                px={2}
+                py={1}
+                rounded={"md"}
+                _hover={{
+                  textDecoration: "none",
+                  bg: linkBgColor,
+                }}
+                href={"/"}
+              >
+                Navlink 1
+              </Link>
+            </HStack>
+          </HStack>
+
+          <Flex alignItems={"center"}>
+            <Button onClick={toggleColorMode}>
+              {colorMode === "light" ? <MoonIcon /> : <SunIcon />}
+            </Button>
+            <Menu>
+              <MenuButton
+                ml={"20px"}
+                as={Button}
+                rounded={"full"}
+                variant={"link"}
+                cursor={"pointer"}
+                minW={0}
+              >
+                <Avatar size={"sm"} bg="teal.500" />
+              </MenuButton>
+              <MenuList>
+                <MenuItem onClick={() => navigate("/accounts")}>
+                  Accounts
+                </MenuItem>
+                <MenuItem>Settings</MenuItem>
+                <MenuDivider />
+                <MenuItem onClick={() =>  logout()}>Logout</MenuItem>
+              </MenuList>
+            </Menu>
           </Flex>
         </Flex>
 
-        <Stack
-          flex={{ base: 1, md: 0 }}
-          justify={"flex-end"}
-          direction={"row"}
-          spacing={6}
-        >
-          <ColorModeSwitcher justifySelf="flex-end" />
-          <Button
-            as={"a"}
-            fontSize={"sm"}
-            fontWeight={400}
-            variant={"link"}
-            href={"#"}
-          >
-            Sign In
-          </Button>
-          <Button
-            display={{ base: "none", md: "inline-flex" }}
-            fontSize={"sm"}
-            fontWeight={600}
-            color={"white"}
-            bg={"pink.400"}
-            href={"#"}
-            _hover={{
-              bg: "pink.300",
-            }}
-          >
-            Sign Up
-          </Button>
-        </Stack>
-      </Flex>
-
-      <Collapse in={isOpen} animateOpacity>
-        <MobileNav />
-      </Collapse>
-    </Box>
-  )
-}
-
-const DesktopNav = () => {
-  return (
-    <Stack direction={"row"} spacing={4}>
-      {NAV_ITEMS.map((navItem) => (
-        <Box key={navItem.label}>
-          <Popover trigger={"hover"} placement={"bottom-start"}>
-            <PopoverTrigger>
-              <RouterLink
-                to="/admin"
-                p={2}
-                href={navItem.href ?? "#"}
-                fontSize={"sm"}
-                fontWeight={500}
-                color={"white"}
+        {isOpen ? (
+          <Box pb={4} display={{ md: "none" }}>
+            <Stack as={"nav"} spacing={4}>
+              <Link
+                px={2}
+                py={1}
+                rounded={"md"}
                 _hover={{
                   textDecoration: "none",
-                  color: "pink.300",
+                  bg: linkBgColor,
                 }}
+                href={"/"}
               >
-                {navItem.label}
-              </RouterLink>
-            </PopoverTrigger>
-
-            {navItem.children && (
-              <PopoverContent
-                border={0}
-                boxShadow={"xl"}
-                bg={"gray.800"}
-                p={4}
-                rounded={"xl"}
-                minW={"sm"}
-              >
-                <Stack>
-                  {navItem.children.map((child) => (
-                    <DesktopSubNav key={child.label} {...child} />
-                  ))}
-                </Stack>
-              </PopoverContent>
-            )}
-          </Popover>
-        </Box>
-      ))}
-    </Stack>
-  )
-}
-
-const DesktopSubNav = ({ label, href, subLabel }) => {
-  return (
-    <Link
-      href={href}
-      role={"group"}
-      display={"block"}
-      p={2}
-      rounded={"md"}
-      _hover={{ bg: "pink.50" }}
-    >
-      <Stack direction={"row"} align={"center"}>
-        <Box>
-          <Text
-            transition={"all .3s ease"}
-            _groupHover={{ color: "pink.400" }}
-            fontWeight={500}
-          >
-            {label}
-          </Text>
-        </Box>
-        <Flex
-          transition={"all .3s ease"}
-          transform={"translateX(-10px)"}
-          opacity={0}
-          _groupHover={{ opacity: "100%", transform: "translateX(0)" }}
-          justify={"flex-end"}
-          align={"center"}
-          flex={1}
-        >
-          <Icon color={"pink.400"} w={5} h={5} as={ChevronRightIcon} />
-        </Flex>
-      </Stack>
-    </Link>
-  )
-}
-
-const MobileNav = () => {
-  return (
-    <Stack bg={"gray.800"} p={4} display={{ md: "none" }}>
-      {NAV_ITEMS.map((navItem) => (
-        <MobileNavItem key={navItem.label} {...navItem} />
-      ))}
-    </Stack>
-  )
-}
-
-const MobileNavItem = ({ label, children, href }) => {
-  const { isOpen, onToggle } = useDisclosure()
-
-  return (
-    <Stack spacing={4} onClick={children && onToggle}>
-      <Flex
-        py={2}
-        as={Link}
-        href={href ?? "#"}
-        justify={"space-between"}
-        align={"center"}
-        _hover={{
-          textDecoration: "none",
-        }}
-      >
-        <Text fontWeight={600} color={"pink.300"}>
-          {label}
-        </Text>
-        {children && (
-          <Icon
-            as={ChevronDownIcon}
-            transition={"all .25s ease-in-out"}
-            transform={isOpen ? "rotate(180deg)" : ""}
-            w={6}
-            h={6}
-          />
-        )}
-      </Flex>
-
-      <Collapse in={isOpen} animateOpacity style={{ marginTop: "0!important" }}>
-        <Stack
-          mt={2}
-          pl={4}
-          borderLeft={1}
-          borderStyle={"solid"}
-          borderColor={"gray.800"}
-          align={"start"}
-        >
-          {children &&
-            children.map((child) => (
-              <Link key={child.label} py={2} href={child.href}>
-                {child.label}
+                Navlink 1
               </Link>
-            ))}
-        </Stack>
-      </Collapse>
-    </Stack>
+            </Stack>
+          </Box>
+        ) : null}
+      </Box>
+    </>
   )
 }
-
-const NAV_ITEMS = [
-  {
-    label: "Admin",
-    children: [
-      {
-        label: "Label 1",
-        subLabel: "Sublabel 1",
-        href: "#",
-        path: "not-found",
-      },
-      {
-        label: "Label 2",
-        subLabel: "Sublabel 2",
-        href: "#",
-        path: "not-found",
-      },
-      {
-        label: "Label 3",
-        subLabel: "Sublabel 3",
-        href: "#",
-        path: "not-found",
-      },
-    ],
-  },
-  {
-    label: "Nav 2",
-    children: [
-      {
-        label: "Job Board",
-        subLabel: "Find your dream design job",
-        href: "#",
-        path: "not-found",
-      },
-      {
-        label: "Freelance Projects",
-        subLabel: "An exclusive list for contract work",
-        href: "#",
-        path: "not-found",
-      },
-    ],
-  },
-  {
-    label: "Nav 3",
-    href: "#",
-    path: "not-found",
-  },
-]

@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import logger from "../logger"
 
-export function useLoginStatus() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+export function useVerifyLogin() {
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
@@ -10,16 +11,12 @@ export function useLoginStatus() {
       credentials: "include",
     })
       .then((res) => {
-        if (res.status === 200) {
-          setIsLoggedIn(true)
-        } else {
-          setIsLoggedIn(false)
-        }
+        if (res.status !== 200) {
+          navigate("/login")
+        } 
       })
       .catch((err) => {
         logger("error verifying login state", err)
       })
-  }, [])
-
-  return isLoggedIn
+  }, [navigate])
 }

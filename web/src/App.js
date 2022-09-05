@@ -1,20 +1,20 @@
 import { ChakraProvider } from "@chakra-ui/react"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
-import ConnectAccount from "./pages/ConnectAccount"
+import HomePage from "./pages/HomePage"
+import AccountsPage from "./pages/AccountsPage"
 import PageNotFound from "./pages/PageNotFound"
 import AdminPage from "./pages/AdminPage"
-import Login from "./pages/Login"
+import LoginPage from "./pages/LoginPage"
 import { extendedTheme } from "./theme"
 
 export default function App() {
-
   return (
     <ChakraProvider theme={extendedTheme}>
       <Router>
         <Routes>
-          <Route path="/" element={<ConnectAccount />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/connect" element={<ConnectAccount />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/not-found" element={<PageNotFound />} />
           <Route path="*" element={<PageNotFound />} />

@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar"
 import { useVerifyLogin } from "../hooks/useVerifyLogin"
 import { colors } from "../theme"
 
-export default function AdminPage() {
+export default function HomePage() {
   useVerifyLogin()
 
   return (
@@ -17,7 +17,7 @@ export default function AdminPage() {
         backgroundColor={useColorModeValue(colors.bgLight, colors.bgDark)}
         alignItems="center"
       >
-        ADMIN PAGE
+        HOMEPAGE
       </Flex>
     </>
   )

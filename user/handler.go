@@ -8,6 +8,7 @@ import (
 	"net/mail"
 	"net/smtp"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -139,6 +140,25 @@ func (h UserHandler) Logout(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "goexpense_access",
+		Value:    "",
+		Expires:  time.Now(),
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "goexpense_refresh",
+		Value:    "",
+		Expires:  time.Now(),
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
+
 }
 
 func (h UserHandler) GetUserInfo(c *gin.Context) {

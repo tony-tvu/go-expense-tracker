@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import {
   Flex,
   Input,
@@ -22,21 +22,32 @@ import { Link as RouterLink } from "react-router-dom"
 import { APP_NAME } from "../configs"
 import logger from "../logger"
 import { useNavigate } from "react-router-dom"
-import { useLoginStatus } from "../hooks/useLoginStatus"
 
 const CFaUserAlt = chakra(FaUserAlt)
 const CFaLock = chakra(FaLock)
 const CFcat = chakra(FaCat)
 
-export default function Login() {
-  const navigate = useNavigate()
-  const isLoggedIn = useLoginStatus()
-  if (isLoggedIn) navigate("/")
-
+export default function LoginPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const handleShowClick = () => setShowPassword(!showPassword)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
+      method: "GET",
+      credentials: "include",
+    })
+      .then((res) => {
+        if (res.status === 200) {
+          navigate("/")
+        } 
+      })
+      .catch((err) => {
+        logger("error verifying login state", err)
+      })
+  }, [navigate])
 
   async function handleSubmit(e) {
     e.preventDefault()

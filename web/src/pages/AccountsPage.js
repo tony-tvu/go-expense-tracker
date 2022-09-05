@@ -10,14 +10,12 @@ import {
   Square,
   Flex,
 } from "@chakra-ui/react"
-import { useNavigate } from "react-router-dom"
 import logger from "../logger"
-import { useLoginStatus } from "../hooks/useLoginStatus"
+import { useVerifyLogin } from "../hooks/useVerifyLogin"
+import Navbar from "../components/Navbar"
 
-export default function ConnectAccount() {
-  const navigate = useNavigate()
-  const isLoggedIn = useLoginStatus()
-  if (!isLoggedIn) navigate("/login")
+export default function Accounts() {
+  useVerifyLogin()
 
   const [linkToken, setLinkToken] = useState(null)
 
@@ -71,6 +69,7 @@ export default function ConnectAccount() {
 
   return (
     <div>
+      <Navbar />
       <Flex color="white" minH="85vh">
         <Button
           type="button"
