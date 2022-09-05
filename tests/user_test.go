@@ -15,8 +15,8 @@ func TestUserHandlers(t *testing.T) {
 		t.Parallel()
 
 		// create user
-		username := "UserSesh1"
-		email := "userSesh@email.com"
+		username := "loginTestUser"
+		email := "loginTestUser@email.com"
 		password := "password"
 		cleanup := createUser(t, username, email, password)
 		defer cleanup()
@@ -28,7 +28,7 @@ func TestUserHandlers(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, statusCode)
 
 		// login with unknown username
-		_, _, statusCode = logUserIn(t, "unknown", password)
+		_, _, statusCode = logUserIn(t, "userNameDoesntExist", password)
 
 		// should return 404
 		assert.Equal(t, http.StatusNotFound, statusCode)
