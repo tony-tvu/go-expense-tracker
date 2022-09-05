@@ -5,12 +5,17 @@ import (
 	"strconv"
 
 	"github.com/joho/godotenv"
+	"github.com/plaid/plaid-go/plaid"
 	"gorm.io/gorm"
 )
 
+type ScheduledTasks struct {
+	Db     *gorm.DB
+	Client *plaid.APIClient
+}
+
 // run go routine every x seconds
 var taskInterval int
-var db *gorm.DB
 
 func init() {
 	godotenv.Load(".env")
@@ -21,9 +26,4 @@ func init() {
 	} else {
 		taskInterval = taskIntervalInt
 	}
-}
-
-func Start(gDb *gorm.DB) {
-	db = gDb
-	go refreshTransactions()
 }

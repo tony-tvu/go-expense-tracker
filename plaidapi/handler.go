@@ -3,53 +3,24 @@ package plaidapi
 import (
 	"log"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/entity"
-	"github.com/tony-tvu/goexpense/util"
+
 	"gorm.io/gorm"
 )
 
 type PlaidHandler struct {
-	Db *gorm.DB
+	Db     *gorm.DB
+	Client *plaid.APIClient
 }
 
-var envs = map[string]plaid.Environment{
-	"sandbox":     plaid.Sandbox,
-	"development": plaid.Development,
-	"production":  plaid.Production,
-}
-
-var client *plaid.APIClient
-var products string
-var countryCodes string
-
-func init() {
-	if err := godotenv.Load(".env"); err != nil {
-		log.Println("no .env file found")
-	}
-	clientID := os.Getenv("PLAID_CLIENT_ID")
-	secret := os.Getenv("PLAID_SECRET")
-	env := os.Getenv("PLAID_ENV")
-	if util.ContainsEmpty(clientID, secret, env) {
-		log.Println("plaid env variables are missing")
-	}
-
-	products = "transactions"
-	countryCodes = "US,CA"
-	plaidCfg := plaid.NewConfiguration()
-	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", clientID)
-	plaidCfg.AddDefaultHeader("PLAID-SECRET", secret)
-	plaidCfg.UseEnvironment(envs[env])
-	plaidClient := plaid.NewAPIClient(plaidCfg)
-	client = plaidClient
-}
+var products string = "transactions"
+var countryCodes string = "US,CA"
 
 /*
 This endpoint returns a link_token to the client. From the client, use the
@@ -83,7 +54,7 @@ func (h PlaidHandler) CreateLinkToken(c *gin.Context) {
 	request.SetProducts(p)
 
 	linkTokenCreateResp, _, err :=
-		client.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
+		h.Client.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -103,7 +74,7 @@ func (h PlaidHandler) SetAccessToken(c *gin.Context) {
 
 	// exchange the public_token for a permanent access_token and itemID
 	exchangePublicTokenResp, _, err :=
-		client.PlaidApi.ItemPublicTokenExchange(ctx).
+		h.Client.PlaidApi.ItemPublicTokenExchange(ctx).
 			ItemPublicTokenExchangeRequest(
 				*plaid.NewItemPublicTokenExchangeRequest(publicToken),
 			).Execute()

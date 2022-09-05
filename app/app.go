@@ -2,17 +2,17 @@ package app
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/plaid/plaid-go/plaid"
+	"github.com/tony-tvu/goexpense/devtools"
 	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/plaidapi"
@@ -29,23 +29,23 @@ type App struct {
 	Router *gin.Engine
 }
 
-var env string
-var port string
-var dbURL string
-
 func init() {
 	if err := godotenv.Load(".env"); err != nil {
 		log.Println("no .env file found")
 	}
-	env = os.Getenv("ENV")
-	port = os.Getenv("PORT")
-	dbURL = os.Getenv("DB_URL")
-	if util.ContainsEmpty(env, port, dbURL) {
-		log.Fatal("env variables are missing")
-	}
 }
 
-func (a *App) Initialize(ctx context.Context) {
+func (a *App) Start(ctx context.Context) {
+	env := os.Getenv("ENV")
+	if env == "" {
+		log.Fatal("ENV is not set")
+	}
+
+	// Init database
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		log.Fatal("postgres url is missing")
+	}
 	db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
 	if err != nil {
 		log.Fatalln(err)
@@ -53,25 +53,47 @@ func (a *App) Initialize(ctx context.Context) {
 	db.AutoMigrate(&entity.Session{})
 	db.AutoMigrate(&entity.User{})
 	db.AutoMigrate(&entity.Item{})
+
 	createInitialAdminUser(ctx, db)
 	a.Db = db
 
-	u := &user.UserHandler{Db: db}
-	p := &plaidapi.PlaidHandler{Db: db}
-
-	if env != "development" {
-		gin.SetMode(gin.ReleaseMode)
+	// Init Plaid
+	var plaidEnvs = map[string]plaid.Environment{
+		"sandbox":     plaid.Sandbox,
+		"development": plaid.Development,
+		"production":  plaid.Production,
 	}
+	clientID := os.Getenv("PLAID_CLIENT_ID")
+	secret := os.Getenv("PLAID_SECRET")
+	plaidEnv := os.Getenv("PLAID_ENV")
+	if util.ContainsEmpty(clientID, secret, env) {
+		log.Println("plaid env configs are missing - service will not work")
+	}
+
+	plaidCfg := plaid.NewConfiguration()
+	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", clientID)
+	plaidCfg.AddDefaultHeader("PLAID-SECRET", secret)
+	plaidCfg.UseEnvironment(plaidEnvs[plaidEnv])
+	pc := plaid.NewAPIClient(plaidCfg)
+
+	// Init handlers
+	u := &user.UserHandler{Db: db}
+	p := &plaidapi.PlaidHandler{Db: db, Client: pc}
+
+	// Init router
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.ForwardedByClientIP = true
 	if env == "development" {
-		allowCrossOrigin(router)
+		devtools.AllowCrossOrigin(router)
+		devtools.CreateDummyUsers(ctx, db)
 	}
 
-	// global middleware
+	// Apply middlewares
 	router.Use(middleware.RateLimit())
 	router.Use(middleware.Logger(env))
 
+	// Declare routes
 	apiGroup := router.Group("/api", middleware.NoCache)
 	{
 		apiGroup.GET("/health", func(c *gin.Context) {
@@ -94,28 +116,33 @@ func (a *App) Initialize(ctx context.Context) {
 			}
 		}
 	}
-
 	router.Use(middleware.FrontendCache, static.Serve("/", static.LocalFile("./web/build", true)))
 	router.NoRoute(middleware.FrontendCache, func(ctx *gin.Context) {
 		ctx.File("./web/build")
 	})
-
 	a.Router = router
-}
 
-func (a *App) Run(ctx context.Context) {
-	scheduledtasks.Start(a.Db)
+	// Start scheduled tasks
+	tasks := &scheduledtasks.ScheduledTasks{Db: db, Client: pc}
+	tasks.StartRefreshTransactionsTask()
 
+	// Start server
+	if env == "test" {
+		return
+	}
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 	srv := &http.Server{
 		Handler:      a.Router,
 		Addr:         fmt.Sprintf(":%s", port),
-		WriteTimeout: 5 * time.Second,
-		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
 	}
 
-	log.Printf("Listening on port %s", port)
-	err := srv.ListenAndServe()
-	if err != nil {
+	log.Printf("Listening on port %s\n", port)
+	if err = srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -130,40 +157,19 @@ func createInitialAdminUser(ctx context.Context, db *gorm.DB) {
 		return
 	}
 
-	// check if admin already exists
-	result := db.Where("email = ?", email).First(&entity.User{})
-	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return
-	}
-
 	hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if result := db.Create(&entity.User{
-		Username: username,
-		Email:    email,
-		Password: string(hash),
-		Type:     entity.AdminUser,
-	}); result.Error != nil {
-		log.Fatal(err)
+	var exists bool
+	db.Raw("SELECT EXISTS(SELECT 1 FROM users WHERE username = ?) AS found", username).Scan(&exists)
+	if !exists {
+		db.Create(&entity.User{
+			Username: username,
+			Email:    email,
+			Password: string(hash),
+			Type:     entity.AdminUser,
+		})
 	}
-}
-
-// Function adds CORS middleware that allows cross origin requests when in development mode
-func allowCrossOrigin(r *gin.Engine) {
-	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Plaid-Public-Token")
-		c.Next()
-	})
-
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
-		AllowMethods:     []string{"GET", "PUT", "PATCH", "POST", "DELETE"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
 }

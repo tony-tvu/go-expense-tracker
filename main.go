@@ -9,6 +9,5 @@ import (
 func main() {
 	ctx := context.Background()
 	app := &app.App{}
-	app.Initialize(ctx)
-	app.Run(ctx)
+	app.Start(ctx)
 }
