@@ -165,7 +165,7 @@ func (h UserHandler) GetUserInfo(c *gin.Context) {
 	c.JSON(200, u)
 }
 
-// Send email invite to new user
+// TODO: Send email invite to new user
 func (h UserHandler) InviteUser(c *gin.Context) {
 	type Body struct {
 		Email string `json:"email"`
