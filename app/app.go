@@ -15,7 +15,7 @@ import (
 	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/plaidapi"
-	"github.com/tony-tvu/goexpense/scheduledtasks"
+	"github.com/tony-tvu/goexpense/tasks"
 	"github.com/tony-tvu/goexpense/user"
 	"github.com/tony-tvu/goexpense/util"
 	"golang.org/x/crypto/bcrypt"
@@ -105,7 +105,7 @@ func (a *App) Initialize(ctx context.Context) {
 }
 
 func (a *App) Serve() {
-	scheduledtasks.Start(a.Db)
+	tasks.Start(a.Db)
 
 	port := os.Getenv("PORT")
 	if port == "" {

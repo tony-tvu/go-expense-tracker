@@ -1,4 +1,4 @@
-package scheduledtasks
+package tasks
 
 import (
 	"log"
@@ -34,14 +34,14 @@ func Start(gDb *gorm.DB) {
 
 func RefreshTransactions() {
 	for {
-		log.Println("Running RefreshTransactionsTask")
+		log.Println("Running scheduled task: RefreshTransactions")
 
 		var items []entity.Item
 		if result := db.Raw("SELECT * FROM items").Scan(&items); result.Error != nil {
 			log.Printf("error occurred during refreshTransactions task: %+v\n", result.Error)
 		}
 
-		log.Printf("Refreshing transactions for %d items\n", len(items))
+		log.Printf("refreshing transactions for %d items\n", len(items))
 
 		for _, item := range items {
 			transactions, _, _, cursor, err := plaidapi.GetTransactions(item)
