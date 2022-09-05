@@ -216,6 +216,6 @@ func (h UserHandler) GetSessions(c *gin.Context) {
 }
 
 // Handler is used to check if user is logged in
-func (h UserHandler) Ping(c *gin.Context) {
+func (h UserHandler) IsLoggedIn(c *gin.Context) {
 	c.Writer.WriteHeader(200)
 }

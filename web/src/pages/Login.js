@@ -22,18 +22,22 @@ import { Link as RouterLink } from "react-router-dom"
 import { APP_NAME } from "../configs"
 import logger from "../logger"
 import { useNavigate } from "react-router-dom"
+import { useLoginStatus } from "../hooks/useLoginStatus"
 
 const CFaUserAlt = chakra(FaUserAlt)
 const CFaLock = chakra(FaLock)
 const CFcat = chakra(FaCat)
 
 export default function Login() {
+  const navigate = useNavigate()
+  const isLoggedIn = useLoginStatus()
+  if (isLoggedIn) navigate("/")
+
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const handleShowClick = () => setShowPassword(!showPassword)
 
-  const navigate = useNavigate()
   async function handleSubmit(e) {
     e.preventDefault()
     await fetch(`${process.env.REACT_APP_API_URL}/login`, {

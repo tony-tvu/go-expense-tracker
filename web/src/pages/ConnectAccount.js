@@ -12,24 +12,18 @@ import {
 } from "@chakra-ui/react"
 import { useNavigate } from "react-router-dom"
 import logger from "../logger"
+import { useLoginStatus } from "../hooks/useLoginStatus"
 
 export default function ConnectAccount() {
-  const [linkToken, setLinkToken] = useState(null)
   const navigate = useNavigate()
+  const isLoggedIn = useLoginStatus()
+  if (!isLoggedIn) navigate("/login")
+
+  const [linkToken, setLinkToken] = useState(null)
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_API_URL}/ping`, {
-      method: "GET",
-      credentials: "include",
-    })
-      .then((res) => {
-        if (res.status !== 200) navigate("/login")
-        else fetchLinkToken()
-      })
-      .catch((err) => {
-        logger("error pinging server", err)
-      })
-  }, [navigate])
+    fetchLinkToken()
+  }, [])
 
   // link_token is required to start linking a bank account
   const fetchLinkToken = async () => {

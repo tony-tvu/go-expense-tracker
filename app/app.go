@@ -85,7 +85,7 @@ func (a *App) Initialize(ctx context.Context) {
 
 		authGroup := apiGroup.Group("/", middleware.AuthRequired(a.Db))
 		{
-			authGroup.GET("/ping", u.Ping)
+			authGroup.GET("/logged_in", u.IsLoggedIn)
 			authGroup.GET("/user_info", u.GetUserInfo)
 			authGroup.GET("/create_link_token", p.CreateLinkToken)
 			authGroup.POST("/set_access_token", p.SetAccessToken)

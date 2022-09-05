@@ -1,27 +1,17 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import logger from "../logger"
+import { useLoginStatus } from "../hooks/useLoginStatus"
 
 export default function AdminPage() {
+  const navigate = useNavigate()
+  const isLoggedIn = useLoginStatus()
+  if (!isLoggedIn) navigate("/login")
+
   const [refreshToken, setRefreshToken] = useState("")
   const [accessToken, setAccessToken] = useState("")
   const [refreshTokenExp, setRefreshTokenExp] = useState("")
   const [accessTokenExp, setAccessTokenExp] = useState("")
   const [now, setNow] = useState("")
-
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    fetch(`${process.env.REACT_APP_API_URL}/ping`, {
-      method: "GET",
-    })
-      .then((res) => {
-        if (res.status !== 200) navigate("/login")
-      })
-      .catch((err) => {
-        logger("error pinging server", err)
-      })
-  }, [navigate])
 
   function fetchTokenExpirations() {}
 
