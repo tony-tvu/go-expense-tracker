@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"gorm.io/gorm"
+	"time"
 )
 
 type Type string
@@ -12,9 +12,12 @@ const (
 )
 
 type User struct {
-	gorm.Model
+	ID       uint   `json:"id" gorm:"primarykey"`
 	Username string `json:"username" gorm:"unique"`
 	Email    string `json:"email" gorm:"unique"`
 	Password string `json:"password"`
 	Type     Type   `json:"type"`
+
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

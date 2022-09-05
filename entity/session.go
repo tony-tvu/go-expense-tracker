@@ -2,13 +2,14 @@ package entity
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type Session struct {
-	gorm.Model
-	Username     string
-	RefreshToken string
-	ExpiresAt    time.Time
+	ID           uint      `json:"id" gorm:"primarykey"`
+	Username     string    `json:"username"`
+	RefreshToken string    `json:"refresh_token"`
+	ExpiresAt    time.Time `json:"expires_at"`
+
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

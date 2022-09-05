@@ -53,6 +53,7 @@ func (a *App) Start(ctx context.Context) {
 	db.AutoMigrate(&entity.Session{})
 	db.AutoMigrate(&entity.User{})
 	db.AutoMigrate(&entity.Item{})
+	db.AutoMigrate(&entity.Transaction{})
 
 	createInitialAdminUser(ctx, db)
 	a.Db = db
