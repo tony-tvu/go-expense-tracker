@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/devtools"
 	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/middleware"
@@ -35,7 +34,7 @@ func init() {
 	}
 }
 
-func (a *App) Start(ctx context.Context) {
+func (a *App) Initialize(ctx context.Context) {
 	env := os.Getenv("ENV")
 	if env == "" {
 		log.Fatal("ENV is not set")
@@ -58,28 +57,9 @@ func (a *App) Start(ctx context.Context) {
 	createInitialAdminUser(ctx, db)
 	a.Db = db
 
-	// Init Plaid
-	var plaidEnvs = map[string]plaid.Environment{
-		"sandbox":     plaid.Sandbox,
-		"development": plaid.Development,
-		"production":  plaid.Production,
-	}
-	clientID := os.Getenv("PLAID_CLIENT_ID")
-	secret := os.Getenv("PLAID_SECRET")
-	plaidEnv := os.Getenv("PLAID_ENV")
-	if util.ContainsEmpty(clientID, secret, env) {
-		log.Println("plaid env configs are missing - service will not work")
-	}
-
-	plaidCfg := plaid.NewConfiguration()
-	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", clientID)
-	plaidCfg.AddDefaultHeader("PLAID-SECRET", secret)
-	plaidCfg.UseEnvironment(plaidEnvs[plaidEnv])
-	pc := plaid.NewAPIClient(plaidCfg)
-
 	// Init handlers
 	u := &user.UserHandler{Db: db}
-	p := &plaidapi.PlaidHandler{Db: db, Client: pc}
+	p := &plaidapi.PlaidHandler{Db: db}
 
 	// Init router
 	gin.SetMode(gin.ReleaseMode)
@@ -122,15 +102,11 @@ func (a *App) Start(ctx context.Context) {
 		ctx.File("./web/build")
 	})
 	a.Router = router
+}
 
-	// Start scheduled tasks
-	tasks := &scheduledtasks.ScheduledTasks{Db: db, Client: pc}
-	tasks.StartRefreshTransactionsTask()
+func (a *App) Serve() {
+	scheduledtasks.Start(a.Db)
 
-	// Start server
-	if env == "test" {
-		return
-	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -143,7 +119,7 @@ func (a *App) Start(ctx context.Context) {
 	}
 
 	log.Printf("Listening on port %s\n", port)
-	if err = srv.ListenAndServe(); err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }

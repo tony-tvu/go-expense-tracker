@@ -3,6 +3,7 @@ package plaidapi
 import (
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -10,17 +11,38 @@ import (
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/util"
 
 	"gorm.io/gorm"
 )
 
 type PlaidHandler struct {
-	Db     *gorm.DB
-	Client *plaid.APIClient
+	Db *gorm.DB
 }
 
+var plaidEnvs = map[string]plaid.Environment{
+	"sandbox":     plaid.Sandbox,
+	"development": plaid.Development,
+	"production":  plaid.Production,
+}
+
+var client *plaid.APIClient
 var products string = "transactions"
 var countryCodes string = "US,CA"
+
+func init() {
+	clientID := os.Getenv("PLAID_CLIENT_ID")
+	secret := os.Getenv("PLAID_SECRET")
+	plaidEnv := os.Getenv("PLAID_ENV")
+	if util.ContainsEmpty(clientID, secret, plaidEnv) {
+		log.Println("plaid env configs are missing - service will not work")
+	}
+	plaidCfg := plaid.NewConfiguration()
+	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", clientID)
+	plaidCfg.AddDefaultHeader("PLAID-SECRET", secret)
+	plaidCfg.UseEnvironment(plaidEnvs[plaidEnv])
+	client = plaid.NewAPIClient(plaidCfg)
+}
 
 /*
 This endpoint returns a link_token to the client. From the client, use the
@@ -54,7 +76,7 @@ func (h PlaidHandler) CreateLinkToken(c *gin.Context) {
 	request.SetProducts(p)
 
 	linkTokenCreateResp, _, err :=
-		h.Client.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
+		client.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -74,7 +96,7 @@ func (h PlaidHandler) SetAccessToken(c *gin.Context) {
 
 	// exchange the public_token for a permanent access_token and itemID
 	exchangePublicTokenResp, _, err :=
-		h.Client.PlaidApi.ItemPublicTokenExchange(ctx).
+		client.PlaidApi.ItemPublicTokenExchange(ctx).
 			ItemPublicTokenExchangeRequest(
 				*plaid.NewItemPublicTokenExchangeRequest(publicToken),
 			).Execute()

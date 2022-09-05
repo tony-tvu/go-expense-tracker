@@ -50,7 +50,7 @@ func TestMain(m *testing.M) {
 	db.AutoMigrate(&entity.User{})
 
 	testApp = &app.App{}
-	testApp.Start(ctx)
+	testApp.Initialize(ctx)
 	testApp.Db = db
 
 	// clear tables
