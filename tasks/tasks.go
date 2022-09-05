@@ -29,6 +29,14 @@ func init() {
 
 func Start(gDb *gorm.DB) {
 	db = gDb
+	enabled, err := strconv.ParseBool(os.Getenv("TASKS_ENABLED"))
+	if err != nil {
+		enabled = false
+	}
+	if !enabled {
+		return
+	}
+
 	go RefreshTransactions()
 }
 
