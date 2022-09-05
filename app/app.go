@@ -40,7 +40,7 @@ func (a *App) Initialize(ctx context.Context) {
 		log.Fatal("ENV is not set")
 	}
 
-	// Init database
+	// Database
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
 		log.Fatal("postgres url is missing")
@@ -57,11 +57,11 @@ func (a *App) Initialize(ctx context.Context) {
 	createInitialAdminUser(ctx, db)
 	a.Db = db
 
-	// Init handlers
+	// Handlers
 	u := &user.UserHandler{Db: db}
 	p := &plaidapi.PlaidHandler{Db: db}
 
-	// Init router
+	// Router
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.ForwardedByClientIP = true
@@ -69,31 +69,28 @@ func (a *App) Initialize(ctx context.Context) {
 		devtools.AllowCrossOrigin(router)
 		devtools.CreateDummyUsers(ctx, db)
 	}
-
-	// Apply middlewares
 	router.Use(middleware.RateLimit())
 	router.Use(middleware.Logger(env))
 
-	// Declare routes
-	apiGroup := router.Group("/api", middleware.NoCache)
+	api := router.Group("/api", middleware.NoCache)
 	{
-		apiGroup.GET("/health", func(c *gin.Context) {
+		api.GET("/health", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"message": "Ok"})
 		})
-		apiGroup.POST("/logout", u.Logout)
-		apiGroup.POST("/login", middleware.LoginRateLimit(), u.Login)
+		api.POST("/logout", u.Logout)
+		api.POST("/login", middleware.LoginRateLimit(), u.Login)
 
-		authGroup := apiGroup.Group("/", middleware.AuthRequired(a.Db))
+		authRequired := api.Group("/", middleware.AuthRequired(a.Db))
 		{
-			authGroup.GET("/logged_in", u.IsLoggedIn)
-			authGroup.GET("/user_info", u.GetUserInfo)
-			authGroup.GET("/create_link_token", p.CreateLinkToken)
-			authGroup.POST("/set_access_token", p.SetAccessToken)
+			authRequired.GET("/logged_in", u.IsLoggedIn)
+			authRequired.GET("/user_info", u.GetUserInfo)
+			authRequired.GET("/create_link_token", p.CreateLinkToken)
+			authRequired.POST("/set_access_token", p.SetAccessToken)
 
-			adminGroup := authGroup.Group("/", middleware.AdminRequired(a.Db))
+			adminRequired := authRequired.Group("/", middleware.AdminRequired(a.Db))
 			{
-				adminGroup.POST("/invite", u.InviteUser)
-				adminGroup.GET("/sessions", u.GetSessions)
+				adminRequired.POST("/invite", u.InviteUser)
+				adminRequired.GET("/sessions", u.GetSessions)
 			}
 		}
 	}
@@ -128,8 +125,6 @@ func createInitialAdminUser(ctx context.Context, db *gorm.DB) {
 	username := os.Getenv("ADMIN_USERNAME")
 	email := os.Getenv("ADMIN_EMAIL")
 	pw := os.Getenv("ADMIN_PASSWORD")
-
-	// do not create admin if values are empty
 	if util.ContainsEmpty(username, email, pw) {
 		return
 	}
@@ -138,7 +133,6 @@ func createInitialAdminUser(ctx context.Context, db *gorm.DB) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	var exists bool
 	db.Raw("SELECT EXISTS(SELECT 1 FROM users WHERE username = ?) AS found", username).Scan(&exists)
 	if !exists {
