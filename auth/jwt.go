@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"context"
 	"errors"
 	"log"
 	"os"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/joho/godotenv"
-	"github.com/tony-tvu/goexpense/entity"
 )
 
 type Claims struct {
@@ -27,8 +25,8 @@ type Token struct {
 type TokenType string
 
 const (
-	Access  TokenType = "Access"
-	Refresh TokenType = "Refresh"
+	AccessToken  TokenType = "Access"
+	RefreshToken TokenType = "Refresh"
 )
 
 var jwtKey string
@@ -62,30 +60,7 @@ They are used to generate new access tokens and verify user has logged in.
 These can be revoked by deleting the refresh_token in the collection.
 
 Default expiration time: 24 hours
-*/
-func GetEncryptedRefreshToken(ctx context.Context, u *entity.User) (Token, error) {
-	exp := time.Now().Add(time.Duration(refreshTokenExp) * time.Second)
-	refreshTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
-		Username: u.Username,
-		UserType: string(u.Type),
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(exp),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-	}).SignedString([]byte(jwtKey))
-	if err != nil {
-		return Token{}, errors.New("error signing refresh token")
-	}
 
-	encrpyted, err := Encrypt(refreshTokenStr)
-	if err != nil {
-		return Token{}, errors.New("error encrypting refresh token")
-	}
-
-	return Token{Value: encrpyted, ExpiresAt: exp}, nil
-}
-
-/*
 Access tokens are used to protect role-based endpoints. When these expire,
 get the claims (username and type) from the request's cookie and query the sessions
 collection for an existing session using the username. After verifying the refresh token
@@ -95,9 +70,14 @@ new session/refresh_token.
 
 Default expiration time: 15m
 */
-func GetEncryptedAccessToken(ctx context.Context, username, userType string) (Token, error) {
-	exp := time.Now().Add(
-		time.Duration(accessTokenExp) * time.Second)
+func GetEncryptedToken(tokenType TokenType, username, userType string) (Token, error) {
+	var exp time.Time
+	if tokenType == RefreshToken {
+		exp = time.Now().Add(time.Duration(refreshTokenExp) * time.Second)
+	} else {
+		exp = time.Now().Add(time.Duration(accessTokenExp) * time.Second)
+	}
+
 	accessTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
 		Username: username,
 		UserType: userType,
@@ -107,12 +87,12 @@ func GetEncryptedAccessToken(ctx context.Context, username, userType string) (To
 		},
 	}).SignedString([]byte(jwtKey))
 	if err != nil {
-		return Token{}, errors.New("error signing access token")
+		return Token{}, errors.New("error signing token")
 	}
 
 	encrpyted, err := Encrypt(accessTokenStr)
 	if err != nil {
-		return Token{}, errors.New("error encrypting access token")
+		return Token{}, errors.New("error encrypting token")
 	}
 
 	return Token{Value: encrpyted, ExpiresAt: exp}, nil

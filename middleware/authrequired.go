@@ -13,7 +13,6 @@ import (
 // Middleware restricts access to logged in users only
 func AuthRequired(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ctx := c.Request.Context()
 		refreshCookie, err := c.Request.Cookie("goexpense_refresh")
 
 		// refresh_token missing - make user log in (all requests must have a refresh token)
@@ -57,7 +56,7 @@ func AuthRequired(db *gorm.DB) gin.HandlerFunc {
 			}
 
 			// renew access_token
-			renewed, err := auth.GetEncryptedAccessToken(ctx, refreshClaims.Username, refreshClaims.UserType)
+			renewed, err := auth.GetEncryptedToken(auth.AccessToken, refreshClaims.Username, refreshClaims.UserType)
 			if err != nil {
 				c.AbortWithStatus(http.StatusInternalServerError)
 				return

@@ -35,7 +35,6 @@ func init() {
 }
 
 func (h UserHandler) Login(c *gin.Context) {
-	ctx := c.Request.Context()
 	defer c.Request.Body.Close()
 
 	var input CredentialsInput
@@ -75,7 +74,7 @@ func (h UserHandler) Login(c *gin.Context) {
 	}
 
 	// create refresh token
-	refreshToken, err := auth.GetEncryptedRefreshToken(ctx, u)
+	refreshToken, err := auth.GetEncryptedToken(auth.RefreshToken, u.Username, string(u.Type))
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -97,7 +96,7 @@ func (h UserHandler) Login(c *gin.Context) {
 	}
 
 	// create access token
-	accessToken, err := auth.GetEncryptedAccessToken(ctx, u.Username, string(u.Type))
+	accessToken, err := auth.GetEncryptedToken(auth.AccessToken, u.Username, string(u.Type))
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
