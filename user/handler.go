@@ -14,6 +14,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/util"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -102,23 +103,8 @@ func (h UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "goexpense_access",
-		Value:    accessToken.Value,
-		Expires:  accessToken.ExpiresAt,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-	})
-
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "goexpense_refresh",
-		Value:    refreshToken.Value,
-		Expires:  refreshToken.ExpiresAt,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-	})
+	util.SetCookie(c.Writer, "goexpense_access", accessToken.Value, accessToken.ExpiresAt)
+	util.SetCookie(c.Writer, "goexpense_refresh", refreshToken.Value, refreshToken.ExpiresAt)
 }
 
 func (h UserHandler) Logout(c *gin.Context) {
@@ -141,24 +127,8 @@ func (h UserHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "goexpense_access",
-		Value:    "",
-		Expires:  time.Now(),
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-	})
-
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "goexpense_refresh",
-		Value:    "",
-		Expires:  time.Now(),
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-	})
-
+	util.SetCookie(c.Writer, "goexpense_access", "", time.Now())
+	util.SetCookie(c.Writer, "goexpense_refresh", "", time.Now())
 }
 
 func (h UserHandler) GetUserInfo(c *gin.Context) {

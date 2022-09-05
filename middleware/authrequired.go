@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/util"
 	"gorm.io/gorm"
 )
 
@@ -62,14 +63,7 @@ func AuthRequired(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 
-			http.SetCookie(c.Writer, &http.Cookie{
-				Name:     "goexpense_access",
-				Value:    renewed.Value,
-				Expires:  renewed.ExpiresAt,
-				HttpOnly: true,
-				Secure:   true,
-				SameSite: http.SameSiteStrictMode,
-			})
+			util.SetCookie(c.Writer, "goexpense_access", renewed.Value, renewed.ExpiresAt)
 		}
 
 		c.Next()
