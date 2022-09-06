@@ -9,6 +9,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/plaidapi"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -52,7 +53,7 @@ func RefreshTransactions() {
 		log.Printf("refreshing transactions for %d items\n", len(items))
 
 		for _, item := range items {
-			transactions, _, _, cursor, err := plaidapi.GetTransactions(item)
+			transactions, _, _, _, err := plaidapi.GetTransactions(item)
 			if err != nil {
 				log.Printf("error occurred while getting transaction for itemID: %s; err: %+v", item.ItemID, err)
 				continue
@@ -60,13 +61,14 @@ func RefreshTransactions() {
 
 			// save new transactions
 			for _, t := range transactions {
+				id := uuid.New()
 				date, _ := time.Parse("2006-01-02", t.Date)
 				if result := db.Create(&entity.Transaction{
 					ItemID:        item.ID,
 					Item:          item,
 					UserID:        item.UserID,
 					User:          item.User,
-					TransactionID: t.GetTransactionId(),
+					TransactionID: id.String(),
 					Date:          date,
 					Amount:        t.Amount,
 					Category:      t.Category,
@@ -81,7 +83,7 @@ func RefreshTransactions() {
 			// TODO: handling removed transactions
 
 			// TODO: save new cursor for Item
-			db.Exec("UPDATE items SET cursor = ? WHERE id = ?", cursor, item.ID)
+			// db.Exec("UPDATE items SET cursor = ? WHERE id = ?", cursor, item.ID)
 		}
 
 		time.Sleep(time.Duration(taskInterval) * time.Second)
