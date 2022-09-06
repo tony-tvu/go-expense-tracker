@@ -41,11 +41,17 @@ func (a *App) Initialize(ctx context.Context) {
 	}
 
 	// Database
-	dbURL := os.Getenv("DB_URL")
-	if dbURL == "" {
-		log.Fatal("postgres url is missing")
+		dbUser := os.Getenv("DB_USER")  
+		dbPwd  := os.Getenv("DB_PASS")  
+		dbHost := os.Getenv("DB_HOST") 
+		dbName := os.Getenv("DB_NAME") 
+	if util.ContainsEmpty(dbUser, dbPwd, dbHost, dbName) {
+		log.Fatal("postgres config envs are missing")
 	}
-	db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
+
+	dbURI := fmt.Sprintf("user=%s password=%s database=%s host=%s",
+                dbUser, dbPwd, dbName, dbHost)
+	db, err := gorm.Open(postgres.Open(dbURI), &gorm.Config{})
 	if err != nil {
 		log.Fatalln(err)
 	}
