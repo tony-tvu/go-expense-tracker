@@ -14,7 +14,6 @@ require (
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/goccy/go-json v0.9.11 // indirect
 	github.com/golang-jwt/jwt/v4 v4.4.2
-	github.com/google/uuid v1.3.0
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/lib/pq v1.10.2
 	github.com/mattn/go-isatty v0.0.16 // indirect
