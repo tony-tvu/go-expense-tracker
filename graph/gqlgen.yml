@@ -1,0 +1,28 @@
+schema: ./schema.graphql
+exec:
+  filename: generated.go
+model:
+  filename: models_gen.go
+resolver:
+  # Whenever you add a new query or mutation to `schema.graphql` and run `make graphql`, a file will generate named "resolver_DELETE.go".
+  # Go into that file and copy and paste the new query/mutation method you just created in `schema.graphql` and put it in a separate file 
+  # under the resolvers package (or add it to an existing file if its within scope). Afterwards, you can delete resolver_DELETE.go to get 
+  # rid of the errors.
+  filename: resolvers/resolver_DELETE.go
+  type: Resolver
+autobind:
+models:
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.ID
+      - github.com/99designs/gqlgen/graphql.Int
+      - github.com/99designs/gqlgen/graphql.Int64
+      - github.com/99designs/gqlgen/graphql.Int32
+  Int:
+    model:
+      - github.com/99designs/gqlgen/graphql.Int
+      - github.com/99designs/gqlgen/graphql.Int64
+      - github.com/99designs/gqlgen/graphql.Int32
+  ISOTimestamp:
+    model:
+      - github.com/tony-tvu/goexpense/graph.ISOTimestamp

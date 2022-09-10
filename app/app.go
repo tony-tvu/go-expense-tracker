@@ -8,15 +8,17 @@ import (
 	"os"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/tony-tvu/goexpense/devtools"
+	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/graph"
+	"github.com/tony-tvu/goexpense/graph/resolvers"
 	"github.com/tony-tvu/goexpense/middleware"
-	"github.com/tony-tvu/goexpense/plaidapi"
 	"github.com/tony-tvu/goexpense/tasks"
-	"github.com/tony-tvu/goexpense/user"
 	"github.com/tony-tvu/goexpense/util"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
@@ -24,9 +26,15 @@ import (
 )
 
 type App struct {
-	Db     *gorm.DB
-	Router *gin.Engine
+	Db          *gorm.DB
+	Router      *gin.Engine
+	PlaidClient *plaid.APIClient
 }
+
+const (
+	Production  = "production"
+	Development = "development"
+)
 
 func init() {
 	if err := godotenv.Load(".env"); err != nil {
@@ -40,17 +48,25 @@ func (a *App) Initialize(ctx context.Context) {
 		log.Fatal("ENV is not set")
 	}
 
-	// Database
-		dbUser := os.Getenv("DB_USER")  
-		dbPwd  := os.Getenv("DB_PASS")  
-		dbHost := os.Getenv("DB_HOST") 
-		dbName := os.Getenv("DB_NAME") 
+	// Init database
+	dbUser := os.Getenv("DB_USER")
+	dbPwd := os.Getenv("DB_PASS")
+	dbHost := os.Getenv("DB_HOST")
+	dbName := os.Getenv("DB_NAME")
+	dbPort := os.Getenv("DB_PORT")
 	if util.ContainsEmpty(dbUser, dbPwd, dbHost, dbName) {
 		log.Fatal("postgres config envs are missing")
 	}
 
-	dbURI := fmt.Sprintf("user=%s password=%s database=%s host=%s",
-                dbUser, dbPwd, dbName, dbHost)
+	var dbURI string
+	if dbPort == "" {
+		dbURI = fmt.Sprintf("user=%s password=%s database=%s host=%s",
+			dbUser, dbPwd, dbName, dbHost)
+	} else {
+		dbURI = fmt.Sprintf("user=%s password=%s database=%s host=%s port=%s",
+			dbUser, dbPwd, dbName, dbHost, dbPort)
+	}
+
 	db, err := gorm.Open(postgres.Open(dbURI), &gorm.Config{})
 	if err != nil {
 		log.Fatalln(err)
@@ -63,43 +79,39 @@ func (a *App) Initialize(ctx context.Context) {
 	createInitialAdminUser(ctx, db)
 	a.Db = db
 
-	// Handlers
-	u := &user.UserHandler{Db: db}
-	p := &plaidapi.PlaidHandler{Db: db}
+	// Init plaid client
+	var plaidEnvs = map[string]plaid.Environment{
+		"sandbox":     plaid.Sandbox,
+		"development": plaid.Development,
+		"production":  plaid.Production,
+	}
+	clientID := os.Getenv("PLAID_CLIENT_ID")
+	secret := os.Getenv("PLAID_SECRET")
+	plaidEnv := os.Getenv("PLAID_ENV")
+	if util.ContainsEmpty(clientID, secret, plaidEnv) {
+		log.Println("plaid env configs are missing - service will not work")
+	}
+	plaidCfg := plaid.NewConfiguration()
+	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", clientID)
+	plaidCfg.AddDefaultHeader("PLAID-SECRET", secret)
+	plaidCfg.UseEnvironment(plaidEnvs[plaidEnv])
+	pc := plaid.NewAPIClient(plaidCfg)
+	a.PlaidClient = pc
 
-	// Router
-	gin.SetMode(gin.ReleaseMode)
+	// Init router
+	if env == Production {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	router := gin.New()
 	router.ForwardedByClientIP = true
-	if env == "development" {
-		devtools.AllowCrossOrigin(router)
-		devtools.CreateDummyUsers(ctx, db)
+	if env == Development {
+		allowCrossOrigin(router)
 	}
 	router.Use(middleware.RateLimit())
 	router.Use(middleware.Logger(env))
+	router.Use(middleware.CookieProvider())
 
-	api := router.Group("/api", middleware.NoCache)
-	{
-		api.GET("/health", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{"message": "Ok"})
-		})
-		api.POST("/logout", u.Logout)
-		api.POST("/login", middleware.LoginRateLimit(), u.Login)
-
-		authRequired := api.Group("/", middleware.AuthRequired(a.Db))
-		{
-			authRequired.GET("/logged_in", u.IsLoggedIn)
-			authRequired.GET("/user_info", u.GetUserInfo)
-			authRequired.GET("/create_link_token", p.CreateLinkToken)
-			authRequired.POST("/set_access_token", p.SetAccessToken)
-
-			adminRequired := authRequired.Group("/", middleware.AdminRequired(a.Db))
-			{
-				adminRequired.POST("/invite", u.InviteUser)
-				adminRequired.GET("/sessions", u.GetSessions)
-			}
-		}
-	}
+	router.POST("/api/graphql", middleware.NoCache, graphqlHandler(db, pc))
 	router.Use(middleware.FrontendCache, static.Serve("/", static.LocalFile("./web/build", true)))
 	router.NoRoute(middleware.FrontendCache, func(ctx *gin.Context) {
 		ctx.File("./web/build")
@@ -108,8 +120,10 @@ func (a *App) Initialize(ctx context.Context) {
 }
 
 func (a *App) Serve() {
-	tasks.Start(a.Db)
+	// Start scheduled tasks
+	tasks.Start(a.Db, a.PlaidClient)
 
+	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -124,6 +138,14 @@ func (a *App) Serve() {
 	log.Printf("Listening on port %s\n", port)
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func graphqlHandler(db *gorm.DB, pc *plaid.APIClient) gin.HandlerFunc {
+	h := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &resolvers.Resolver{Db: db, PlaidClient: pc}}))
+
+	return func(c *gin.Context) {
+		h.ServeHTTP(c.Writer, c.Request)
 	}
 }
 
@@ -149,4 +171,21 @@ func createInitialAdminUser(ctx context.Context, db *gorm.DB) {
 			Type:     entity.AdminUser,
 		})
 	}
+}
+
+// Allows cross origin requests from frontend server when in development
+func allowCrossOrigin(r *gin.Engine) {
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Plaid-Public-Token")
+		c.Next()
+	})
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"GET", "PUT", "PATCH", "POST", "DELETE"},
+		AllowCredentials: true,
+		MaxAge:           5 * time.Minute,
+	}))
 }

@@ -12,6 +12,9 @@ build:
 	cd web && npm run build
 	go build -o ./bin/main main.go
 
+graphql:
+	cd graph && go run github.com/99designs/gqlgen generate
+
 api:
 	go run main.go
 

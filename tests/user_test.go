@@ -2,16 +2,18 @@ package tests
 
 import (
 	"encoding/json"
-	"net/http"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tony-tvu/goexpense/entity"
 	"gorm.io/gorm"
 )
 
-func TestUserHandlers(t *testing.T) {
-	t.Run("Login and Logout handlers work correctly", func(t *testing.T) {
+func TestUserResolvers(t *testing.T) {
+	t.Run("Login and Logout resolvers work correctly", func(t *testing.T) {
 		t.Parallel()
 
 		// create user
@@ -22,24 +24,32 @@ func TestUserHandlers(t *testing.T) {
 		defer cleanup()
 
 		// login with wrong password
-		_, _, statusCode := logUserIn(t, username, "wrong")
+		_, _, qlRes := logUserIn(t, username, "wrong")
 
-		// should return 403
-		assert.Equal(t, http.StatusForbidden, statusCode)
+		// should return error
+		assert.Equal(t, "not authorized", qlRes.Errors[0].Message)
 
 		// login with unknown username
-		_, _, statusCode = logUserIn(t, "userNameDoesntExist", password)
+		_, _, qlRes = logUserIn(t, "userNameDoesntExist", password)
 
-		// should return 404
-		assert.Equal(t, http.StatusNotFound, statusCode)
+		// should return unknown user error
+		assert.Equal(t, "user not found", qlRes.Errors[0].Message)
 
 		// login with correct credentials
-		body := map[string]string{
-			"username": username,
-			"password": password,
-		}
-		res := MakeApiRequest(t, "POST", "/api/login", nil, nil, body)
-		assert.Equal(t, http.StatusOK, res.StatusCode)
+		query := fmt.Sprintf(
+			`mutation {
+				login(
+					input: {
+						username: "%s"
+						password: "%s"
+					}
+				)
+			}`, username, password,
+		)
+		res, qlRes := doQL(t, nil, nil, query)
+
+		// should not have errors
+		assert.Nil(t, qlRes.Errors)
 
 		// should have user session saved in db
 		var s entity.Session
@@ -51,36 +61,67 @@ func TestUserHandlers(t *testing.T) {
 		cookies := getCookies(t, res.Cookies())
 		accessToken := cookies["goexpense_access"]
 		refreshToken := cookies["goexpense_refresh"]
-		res = MakeApiRequest(t, "POST", "/api/logout", &accessToken, &refreshToken)
-		assert.Equal(t, http.StatusOK, res.StatusCode)
+		logoutQ :=
+			`mutation {
+			logout
+		}`
+		_, qlRes = doQL(t, &accessToken, &refreshToken, logoutQ)
+		assert.Nil(t, qlRes.Errors)
 
 		// should no longer have user session saved after logging out
 		result = testApp.Db.Where("username = ?", username).First(&s)
 		assert.Equal(t, gorm.ErrRecordNotFound, result.Error)
 	})
 
-	t.Run("GetUserInfo handler returns correct information", func(t *testing.T) {
+	t.Run("UserInfo resolver returns correct information", func(t *testing.T) {
 		t.Parallel()
 
 		// create user
-		username := "GetUserInfo"
-		email := "GetUserInfo@email.com"
+		username := "UserInfo"
+		email := "UserInfo@email.com"
 		password := "^%#(GY%H=G$%asdf"
 		cleanup := createUser(t, username, email, password)
 		defer cleanup()
 
 		accessToken, refreshToken, _ := logUserIn(t, username, password)
-		res := MakeApiRequest(t, "GET", "/api/user_info", &accessToken, &refreshToken)
 
-		// should return 200
-		assert.Equal(t, http.StatusOK, res.StatusCode)
+		// make request
+		query :=
+			`query {
+				userInfo {
+					id
+					username
+					email
+					type
+					createdAt
+					updatedAt
+				}
+			}`
+		_, qlRes := doQL(t, &accessToken, &refreshToken, query)
+
+		// should not have errors
+		assert.Nil(t, qlRes.Errors)
 
 		// should have correct user info returned
-		var u *entity.User
-		json.NewDecoder(res.Body).Decode(&u)
-		assert.Equal(t, username, u.Username)
-		assert.Equal(t, email, u.Email)
-		assert.Equal(t, "", u.Password)
-		assert.Equal(t, entity.RegularUser, u.Type)
+		var res struct {
+			UserInfo struct {
+				ID        int       `json:"id,string"`
+				Username  string    `json:"username"`
+				Email     string    `json:"email"`
+				Type      string    `json:"type"`
+				CreatedAt time.Time `json:"createdAt"`
+				UpdatedAt time.Time `json:"updatedAt"`
+			}
+		}
+
+		err := json.Unmarshal(qlRes.Data, &res)
+		require.NoError(t, err)
+
+		assert.NotNil(t, res.UserInfo.ID)
+		assert.Equal(t, username, res.UserInfo.Username)
+		assert.Equal(t, email, res.UserInfo.Email)
+		assert.Equal(t, "Regular", res.UserInfo.Type)
+		assert.NotNil(t, res.UserInfo.CreatedAt)
+		assert.NotNil(t, res.UserInfo.UpdatedAt)
 	})
 }

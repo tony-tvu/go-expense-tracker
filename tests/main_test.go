@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http/httptest"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/app"
 	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/util"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -42,12 +44,25 @@ func TestMain(m *testing.M) {
 	}
 	accessTokenExp = accessExp
 
-	db, err := gorm.Open(postgres.Open(os.Getenv("DB_URL")), &gorm.Config{})
+	dbUser := os.Getenv("DB_USER")
+	dbPwd := os.Getenv("DB_PASS")
+	dbHost := os.Getenv("DB_HOST")
+	dbName := os.Getenv("DB_NAME")
+	dbPort := os.Getenv("DB_PORT")
+	if util.ContainsEmpty(dbUser, dbPwd, dbHost, dbName, dbPort) {
+		log.Fatal("test postgres config envs are missing")
+	}
+
+	dbURI := fmt.Sprintf("user=%s password=%s database=%s host=%s port=%s",
+		dbUser, dbPwd, dbName, dbHost, dbPort)
+	db, err := gorm.Open(postgres.Open(dbURI), &gorm.Config{})
 	if err != nil {
 		log.Fatalln(err)
 	}
 	db.AutoMigrate(&entity.Session{})
 	db.AutoMigrate(&entity.User{})
+	db.AutoMigrate(&entity.Item{})
+	db.AutoMigrate(&entity.Transaction{})
 
 	testApp = &app.App{}
 	testApp.Initialize(ctx)

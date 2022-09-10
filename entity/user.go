@@ -18,6 +18,6 @@ type User struct {
 	Password string `json:"password"`
 	Type     Type   `json:"type"`
 
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
