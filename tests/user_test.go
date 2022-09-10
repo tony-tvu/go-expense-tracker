@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/graph"
 	"gorm.io/gorm"
 )
 
@@ -103,25 +103,18 @@ func TestUserResolvers(t *testing.T) {
 		assert.Nil(t, qlRes.Errors)
 
 		// should have correct user info returned
-		var res struct {
-			UserInfo struct {
-				ID        int       `json:"id,string"`
-				Username  string    `json:"username"`
-				Email     string    `json:"email"`
-				Type      string    `json:"type"`
-				CreatedAt time.Time `json:"createdAt"`
-				UpdatedAt time.Time `json:"updatedAt"`
-			}
+		var data struct {
+			UserInfo graph.User
 		}
 
-		err := json.Unmarshal(qlRes.Data, &res)
+		err := json.Unmarshal(qlRes.Data, &data)
 		require.NoError(t, err)
 
-		assert.NotNil(t, res.UserInfo.ID)
-		assert.Equal(t, username, res.UserInfo.Username)
-		assert.Equal(t, email, res.UserInfo.Email)
-		assert.Equal(t, "Regular", res.UserInfo.Type)
-		assert.NotNil(t, res.UserInfo.CreatedAt)
-		assert.NotNil(t, res.UserInfo.UpdatedAt)
+		assert.NotNil(t, data.UserInfo.ID)
+		assert.Equal(t, username, data.UserInfo.Username)
+		assert.Equal(t, email, data.UserInfo.Email)
+		assert.Equal(t, "Regular", data.UserInfo.Type)
+		assert.NotNil(t, data.UserInfo.CreatedAt)
+		assert.NotNil(t, data.UserInfo.UpdatedAt)
 	})
 }
