@@ -53,8 +53,8 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		IsLoggedIn   func(childComplexity int) int
 		LinkToken    func(childComplexity int) int
-		Ping         func(childComplexity int) int
 		Sessions     func(childComplexity int) int
 		Transactions func(childComplexity int) int
 		UserInfo     func(childComplexity int) int
@@ -103,7 +103,7 @@ type QueryResolver interface {
 	Sessions(ctx context.Context) ([]*Session, error)
 	Transactions(ctx context.Context) ([]*Transaction, error)
 	UserInfo(ctx context.Context) (*User, error)
-	Ping(ctx context.Context) (bool, error)
+	IsLoggedIn(ctx context.Context) (bool, error)
 	LinkToken(ctx context.Context) (*string, error)
 }
 
@@ -165,19 +165,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.SetAccessToken(childComplexity, args["input"].(PublicToken)), true
 
+	case "Query.isLoggedIn":
+		if e.complexity.Query.IsLoggedIn == nil {
+			break
+		}
+
+		return e.complexity.Query.IsLoggedIn(childComplexity), true
+
 	case "Query.linkToken":
 		if e.complexity.Query.LinkToken == nil {
 			break
 		}
 
 		return e.complexity.Query.LinkToken(childComplexity), true
-
-	case "Query.ping":
-		if e.complexity.Query.Ping == nil {
-			break
-		}
-
-		return e.complexity.Query.Ping(childComplexity), true
 
 	case "Query.sessions":
 		if e.complexity.Query.Sessions == nil {
@@ -1003,8 +1003,8 @@ func (ec *executionContext) fieldContext_Query_userInfo(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_ping(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_ping(ctx, field)
+func (ec *executionContext) _Query_isLoggedIn(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_isLoggedIn(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1017,7 +1017,7 @@ func (ec *executionContext) _Query_ping(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Ping(rctx)
+		return ec.resolvers.Query().IsLoggedIn(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1034,7 +1034,7 @@ func (ec *executionContext) _Query_ping(ctx context.Context, field graphql.Colle
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_ping(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_isLoggedIn(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -4207,7 +4207,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
-		case "ping":
+		case "isLoggedIn":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -4216,7 +4216,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_ping(ctx, field)
+				res = ec._Query_isLoggedIn(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

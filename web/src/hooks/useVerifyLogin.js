@@ -1,22 +1,23 @@
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import logger from "../logger"
+import { useQuery, gql } from "@apollo/client"
+
+const query = gql`
+  query {
+    isLoggedIn
+  }
+`
 
 export function useVerifyLogin() {
   const navigate = useNavigate()
 
+  const { data } = useQuery(query, {
+    fetchPolicy: "no-cache",
+  })
+
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
-      method: "GET",
-      credentials: "include",
-    })
-      .then((res) => {
-        if (res.status !== 200) {
-          navigate("/login")
-        } 
-      })
-      .catch((err) => {
-        logger("error verifying login state", err)
-      })
-  }, [navigate])
+    if (data && !data.isLoggedIn) {
+      navigate("/login")
+    }
+  }, [data, navigate])
 }

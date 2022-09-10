@@ -13,6 +13,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Verifies if user is currently logged in
+func (r *queryResolver) IsLoggedIn(ctx context.Context) (bool, error) {
+	c := middleware.GetWriterAndCookies(ctx)
+
+	if !auth.IsAuthorized(c, r.Db) {
+		return false, nil
+	}
+	
+	return true, nil
+}
+
 func (r *mutationResolver) CreateUser(ctx context.Context, input graph.NewUser) (*graph.User, error) {
 	c := middleware.GetWriterAndCookies(ctx)
 

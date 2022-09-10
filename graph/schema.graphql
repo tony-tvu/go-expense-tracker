@@ -3,7 +3,7 @@ type Query {
   sessions: [Session]!
   transactions: [Transaction!]!
   userInfo: User!
-  ping: Boolean!
+  isLoggedIn: Boolean!
   linkToken: String
 }
 
