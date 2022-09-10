@@ -100,6 +100,9 @@ func GetEncryptedToken(tokenType TokenType, username, userType string) (Token, e
 
 // Function decrypts an encrypted token string, validates the token, then returns the claims.
 func ValidateTokenAndGetClaims(encryptedTkn string) (*Claims, error) {
+	if encryptedTkn == "" {
+		return nil, errors.New("encrypted token is empty")
+	}
 	decrypted, err := Decrypt(encryptedTkn)
 	if err != nil {
 		return nil, err

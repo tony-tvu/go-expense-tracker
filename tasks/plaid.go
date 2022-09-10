@@ -1,4 +1,4 @@
-package plaidapi
+package tasks
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/tony-tvu/goexpense/entity"
 )
 
-func GetTransactions(item entity.Item) ([]plaid.Transaction, []plaid.Transaction, []plaid.RemovedTransaction, string, error) {
+func getTransactions(item entity.Item) ([]plaid.Transaction, []plaid.Transaction, []plaid.RemovedTransaction, string, error) {
 	ctx := context.Background()
 
 	// New transaction updates since "cursor"

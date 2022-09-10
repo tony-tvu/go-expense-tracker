@@ -1,0 +1,63 @@
+type Query {
+  users: [User!]!
+  sessions: [Session]!
+  transactions: [Transaction!]!
+  userInfo: User!
+  isLoggedIn: Boolean!
+  linkToken: String
+}
+
+type Mutation {
+  login(input: LoginInput!): Boolean!
+  logout: Boolean!
+  createUser(input: NewUser!): User!
+  setAccessToken(input: PublicToken!): Boolean!
+}
+
+input LoginInput {
+  username: String!
+  password: String!
+}
+
+input NewUser {
+  username: String!
+  email: String!
+  type: String!
+}
+
+input PublicToken {
+  publicToken: String!
+}
+
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  type: String!
+  createdAt: ISOTimestamp!
+  updatedAt: ISOTimestamp!
+}
+
+type Session {
+  id: ID!
+  username: String!
+  refreshToken: String!
+  expiresAt: ISOTimestamp!
+  createdAt: ISOTimestamp!
+}
+
+type Transaction {
+  id: ID!
+  itemID: Int!
+  userID: Int!
+  transactionID: String!
+  date: ISOTimestamp!
+  amount: Float!
+  category: [String]!
+  name: String!
+  createdAt: ISOTimestamp!
+  updatedAt: ISOTimestamp!
+}
+
+# An ISOTimestamp is an RFC3339-formatted timestamp string.
+scalar ISOTimestamp

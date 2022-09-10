@@ -4,16 +4,23 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/entity"
-	"github.com/tony-tvu/goexpense/plaidapi"
 	"gorm.io/gorm"
 )
 
+type Tasks struct {
+	Db *gorm.DB
+	PlaidClient *plaid.APIClient
+}
+
 var taskInterval int
 var db *gorm.DB
+var client *plaid.APIClient
 
 func init() {
 	godotenv.Load(".env")
@@ -25,8 +32,9 @@ func init() {
 	}
 }
 
-func Start(gDb *gorm.DB) {
+func Start(gDb *gorm.DB, pc *plaid.APIClient) {
 	db = gDb
+	client = pc
 	enabled, err := strconv.ParseBool(os.Getenv("TASKS_ENABLED"))
 	if err != nil {
 		enabled = false
@@ -50,7 +58,7 @@ func RefreshTransactions() {
 
 		for _, item := range items {
 			isSuccess := true
-			transactions, _, _, cursor, err := plaidapi.GetTransactions(item)
+			transactions, _, _, cursor, err := getTransactions(item)
 			if err != nil {
 				log.Printf("error occurred while getting transaction for itemID: %s; err: %+v", item.ItemID, err)
 				isSuccess = false
@@ -70,8 +78,10 @@ func RefreshTransactions() {
 					Category:      t.Category,
 					Name:          t.Name,
 				}); result.Error != nil {
-					log.Printf("error occurred in RefreshTransactionsTask while saving new transaction %+v\n", result.Error)
-					isSuccess = false
+					if !strings.Contains(result.Error.Error(), "duplicate key value violates unique constraint") {
+						log.Printf("error occurred in RefreshTransactionsTask while saving new transaction %+v\n", result.Error)
+						isSuccess = false
+					}
 				}
 			}
 

@@ -22,10 +22,22 @@ import { Link as RouterLink } from "react-router-dom"
 import { APP_NAME } from "../configs"
 import logger from "../logger"
 import { useNavigate } from "react-router-dom"
+import { useQuery, gql, useMutation } from "@apollo/client"
 
 const CFaUserAlt = chakra(FaUserAlt)
 const CFaLock = chakra(FaLock)
 const CFcat = chakra(FaCat)
+
+const query = gql`
+  query {
+    isLoggedIn
+  }
+`
+const mutation = gql`
+  mutation ($input: LoginInput!) {
+    login(input: $input)
+  }
+`
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -34,36 +46,37 @@ export default function LoginPage() {
   const handleShowClick = () => setShowPassword(!showPassword)
   const navigate = useNavigate()
 
+  const bgColor = useColorModeValue(colors.bgLight, colors.bgDark)
+  const logoColor = useColorModeValue("black", colors.primary)
+
+  const { data } = useQuery(query, {
+    fetchPolicy: "no-cache",
+  })
+  const [login] = useMutation(mutation)
+
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
-      method: "GET",
-      credentials: "include",
-    })
-      .then((res) => {
-        if (res.status === 200) {
-          navigate("/")
-        } 
-      })
-      .catch((err) => {
-        logger("error verifying login state", err)
-      })
-  }, [navigate])
+    if (data && data.isLoggedIn) {
+      navigate("/")
+    }
+  }, [data, navigate])
 
   async function handleSubmit(e) {
     e.preventDefault()
-    await fetch(`${process.env.REACT_APP_API_URL}/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    login({
+      variables: {
+        input: {
+          username: username,
+          password: password,
+        },
       },
-      credentials: "include",
-      body: JSON.stringify({ username: username, password: password }),
     })
       .then((res) => {
-        if (res.status === 200) navigate("/")
+        if (!res.errors) {
+          navigate("/")
+        }
       })
-      .catch((e) => {
-        logger("error setting access token", e)
+      .catch((err) => {
+        logger(err)
       })
   }
 
@@ -72,7 +85,7 @@ export default function LoginPage() {
       flexDirection="column"
       width="100wh"
       height="100vh"
-      backgroundColor={useColorModeValue(colors.bgLight, colors.bgDark)}
+      backgroundColor={bgColor}
       alignItems="center"
     >
       <Box bg="gray.800" w="100%" color="white">
@@ -108,11 +121,7 @@ export default function LoginPage() {
         justifyContent="center"
         alignItems="center"
       >
-        <CFcat
-          width={"10vh"}
-          size={"100px"}
-          color={useColorModeValue("black", colors.primary)}
-        />
+        <CFcat width={"10vh"} size={"100px"} color={logoColor} />
 
         <Box
           minW={{ base: "90%", md: "468px" }}

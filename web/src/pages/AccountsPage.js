@@ -1,60 +1,53 @@
 import { useEffect, useState } from "react"
 import { usePlaidLink } from "react-plaid-link"
 import { Button } from "@chakra-ui/react"
-import {
-  Box,
-  Grid,
-  GridItem,
-  Text,
-  Center,
-  Square,
-  Flex,
-} from "@chakra-ui/react"
+import { Text, Center, Flex } from "@chakra-ui/react"
 import logger from "../logger"
 import { useVerifyLogin } from "../hooks/useVerifyLogin"
 import Navbar from "../components/Navbar"
+import { useQuery, gql, useMutation } from "@apollo/client"
+
+const query = gql`
+  query {
+    linkToken
+  }
+`
+
+const mutation = gql`
+  mutation ($input: PublicToken!) {
+    setAccessToken(input: $input)
+  }
+`
 
 export default function Accounts() {
   useVerifyLogin()
 
+  // link_token is required to start linking a bank account
   const [linkToken, setLinkToken] = useState(null)
 
+  const { data } = useQuery(query, {
+    fetchPolicy: "no-cache",
+  })
+
+  const [setAccessToken] = useMutation(mutation)
+
   useEffect(() => {
-    fetchLinkToken()
-  }, [])
-
-  // link_token is required to start linking a bank account
-  const fetchLinkToken = async () => {
-    const response = await fetch(
-      `${process.env.REACT_APP_API_URL}/create_link_token`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      }
-    ).catch((err) => {
-      logger("error fetching link_token", err)
-    })
-
-    if (!response) return
-    const data = await response.json().catch((err) => logger(err))
-    setLinkToken(data?.link_token)
-  }
+    if (data && data.linkToken) {
+      setLinkToken(data.linkToken)
+    }
+  }, [data])
 
   /*
    * Upon linking success, plaid api will return a public_token which will be used
    * to get a permanent access_token for the user's specific linked bank account.
    */
   const onLinkAccountSuccess = async (public_token) => {
-    await fetch(`${process.env.REACT_APP_API_URL}/set_access_token`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Plaid-Public-Token": public_token,
+    setAccessToken({
+      variables: {
+        input: {
+          publicToken: public_token,
+        },
       },
-      credentials: "include",
     }).catch((e) => {
       logger("error setting access token", e)
     })

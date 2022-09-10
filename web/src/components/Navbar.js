@@ -22,6 +22,13 @@ import { MoonIcon, SunIcon } from "@chakra-ui/icons"
 import { APP_NAME } from "../configs"
 import { useNavigate } from "react-router-dom"
 import logger from "../logger"
+import { gql, useMutation } from "@apollo/client"
+
+const mutation = gql`
+  mutation {
+    logout
+  }
+`
 
 export default function Navbar() {
   const { isOpen, onOpen, onClose } = useDisclosure()
@@ -29,17 +36,18 @@ export default function Navbar() {
   const navigate = useNavigate()
   const linkBgColor = useColorModeValue("gray.200", "gray.700")
 
-  function logout() {
-    fetch(`${process.env.REACT_APP_API_URL}/logout`, {
-      method: "POST",
-      credentials: "include",
-    }).then(res => {
-      if (res.status === 200) {
-        navigate("/login")
-      }
-    }).catch((err) => {
-      logger("error logging out", err)
-    })
+  const [logout] = useMutation(mutation)
+
+  function handleLogout() {
+    logout({})
+      .then((res) => {
+        if (!res.errors) {
+          navigate("/login")
+        }
+      })
+      .catch((err) => {
+        logger(err)
+      })
   }
 
   return (
@@ -98,7 +106,7 @@ export default function Navbar() {
                 </MenuItem>
                 <MenuItem>Settings</MenuItem>
                 <MenuDivider />
-                <MenuItem onClick={() =>  logout()}>Logout</MenuItem>
+                <MenuItem onClick={() => handleLogout()}>Logout</MenuItem>
               </MenuList>
             </Menu>
           </Flex>
