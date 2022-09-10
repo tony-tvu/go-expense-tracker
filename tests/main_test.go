@@ -15,6 +15,7 @@ import (
 	"github.com/tony-tvu/goexpense/util"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var (
@@ -55,7 +56,9 @@ func TestMain(m *testing.M) {
 
 	dbURI := fmt.Sprintf("user=%s password=%s database=%s host=%s port=%s",
 		dbUser, dbPwd, dbName, dbHost, dbPort)
-	db, err := gorm.Open(postgres.Open(dbURI), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dbURI), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		log.Fatalln(err)
 	}
