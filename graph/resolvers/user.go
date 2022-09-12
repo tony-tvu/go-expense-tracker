@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/graph"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/util"
@@ -52,7 +52,7 @@ func (r *mutationResolver) Login(ctx context.Context, input graph.LoginInput) (b
 	// TODO: scrub user input
 
 	// find existing user account
-	var u *entity.User
+	var u *models.User
 	result := r.Db.Where("username = ?", input.Username).First(&u)
 	if result.Error != nil {
 		return false, gqlerror.Errorf("user not found")
@@ -76,7 +76,7 @@ func (r *mutationResolver) Login(ctx context.Context, input graph.LoginInput) (b
 	}
 
 	// save new session
-	if result := r.Db.Create(&entity.Session{
+	if result := r.Db.Create(&models.Session{
 		Username:     u.Username,
 		RefreshToken: refreshToken.Value,
 		ExpiresAt:    refreshToken.ExpiresAt,

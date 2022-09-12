@@ -14,7 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
-	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/graph"
 	"github.com/tony-tvu/goexpense/graph/resolvers"
 	"github.com/tony-tvu/goexpense/middleware"
@@ -74,10 +74,10 @@ func (a *App) Initialize(ctx context.Context) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	db.AutoMigrate(&entity.Session{})
-	db.AutoMigrate(&entity.User{})
-	db.AutoMigrate(&entity.Item{})
-	db.AutoMigrate(&entity.Transaction{})
+	db.AutoMigrate(&models.Session{})
+	db.AutoMigrate(&models.User{})
+	db.AutoMigrate(&models.Item{})
+	db.AutoMigrate(&models.Transaction{})
 
 	createInitialAdminUser(ctx, db)
 	a.Db = db
@@ -167,11 +167,11 @@ func createInitialAdminUser(ctx context.Context, db *gorm.DB) {
 	var exists bool
 	db.Raw("SELECT EXISTS(SELECT 1 FROM users WHERE username = ?) AS found", username).Scan(&exists)
 	if !exists {
-		db.Create(&entity.User{
+		db.Create(&models.User{
 			Username: username,
 			Email:    email,
 			Password: string(hash),
-			Type:     entity.AdminUser,
+			Type:     models.AdminUser,
 		})
 	}
 }

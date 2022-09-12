@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/models"
 )
 
 func TestAuth(t *testing.T) {
@@ -145,7 +145,7 @@ func TestAuth(t *testing.T) {
 		assert.Nil(t, qlRes.Errors)
 
 		// make user an admin and login
-		if result := testApp.Db.Model(&entity.User{}).Where("username = ?", username).Update("type", entity.AdminUser); result.Error != nil {
+		if result := testApp.Db.Model(&models.User{}).Where("username = ?", username).Update("type", models.AdminUser); result.Error != nil {
 			t.FailNow()
 		}
 

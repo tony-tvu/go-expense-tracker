@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/graph"
 	"gorm.io/gorm"
 )
@@ -52,7 +52,7 @@ func TestUserResolvers(t *testing.T) {
 		assert.Nil(t, qlRes.Errors)
 
 		// should have user session saved in db
-		var s entity.Session
+		var s models.Session
 		result := testApp.Db.Where("username = ?", username).First(&s)
 		assert.Nil(t, result.Error)
 		assert.Equal(t, username, s.Username)

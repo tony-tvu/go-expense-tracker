@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/models"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -79,11 +79,11 @@ func createUser(t *testing.T, username, email, password string) func() {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	require.NoError(t, err)
 
-	if result := testApp.Db.Create(&entity.User{
+	if result := testApp.Db.Create(&models.User{
 		Username: username,
 		Email:    email,
 		Password: string(hash),
-		Type:     entity.RegularUser,
+		Type:     models.RegularUser,
 	}); result.Error != nil {
 		t.FailNow()
 	}

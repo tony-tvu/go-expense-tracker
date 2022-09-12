@@ -9,7 +9,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
-	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/models"
 	"gorm.io/gorm"
 )
 
@@ -50,7 +50,7 @@ func RefreshTransactions() {
 	for {
 		log.Println("Running scheduled task: RefreshTransactions")
 
-		var items []entity.Item
+		var items []models.Item
 		if result := db.Raw("SELECT * FROM items").Scan(&items); result.Error != nil {
 			log.Printf("error occurred during refreshTransactions task: %+v\n", result.Error)
 		}
@@ -67,7 +67,7 @@ func RefreshTransactions() {
 			// save new transactions
 			for _, t := range transactions {
 				date, _ := time.Parse("2006-01-02", t.Date)
-				if result := db.Create(&entity.Transaction{
+				if result := db.Create(&models.Transaction{
 					ItemID:        item.ID,
 					Item:          item,
 					UserID:        item.UserID,

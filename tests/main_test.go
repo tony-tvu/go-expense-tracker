@@ -11,7 +11,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/app"
-	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/util"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -62,10 +62,10 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	db.AutoMigrate(&entity.Session{})
-	db.AutoMigrate(&entity.User{})
-	db.AutoMigrate(&entity.Item{})
-	db.AutoMigrate(&entity.Transaction{})
+	db.AutoMigrate(&models.Session{})
+	db.AutoMigrate(&models.User{})
+	db.AutoMigrate(&models.Item{})
+	db.AutoMigrate(&models.Transaction{})
 
 	testApp = &app.App{}
 	testApp.Initialize(ctx)
