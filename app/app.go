@@ -14,8 +14,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
-	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/graph"
+	"github.com/tony-tvu/goexpense/graph/models"
 	"github.com/tony-tvu/goexpense/graph/resolvers"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/tasks"
@@ -171,7 +171,7 @@ func createInitialAdminUser(ctx context.Context, db *gorm.DB) {
 			Username: username,
 			Email:    email,
 			Password: string(hash),
-			Type:     models.AdminUser,
+			Type:     models.UserTypeAdmin,
 		})
 	}
 }

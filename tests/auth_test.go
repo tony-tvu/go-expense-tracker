@@ -3,8 +3,8 @@ package tests
 import (
 	"testing"
 
+	"github.com/tony-tvu/goexpense/graph/models"
 	"github.com/stretchr/testify/assert"
-	"github.com/tony-tvu/goexpense/models"
 )
 
 func TestAuth(t *testing.T) {
@@ -145,7 +145,7 @@ func TestAuth(t *testing.T) {
 		assert.Nil(t, qlRes.Errors)
 
 		// make user an admin and login
-		if result := testApp.Db.Model(&models.User{}).Where("username = ?", username).Update("type", models.AdminUser); result.Error != nil {
+		if result := testApp.Db.Model(&models.User{}).Where("username = ?", username).Update("type", models.UserTypeAdmin); result.Error != nil {
 			t.FailNow()
 		}
 

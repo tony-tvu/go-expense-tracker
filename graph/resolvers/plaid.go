@@ -7,8 +7,7 @@ import (
 
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/models"
-	"github.com/tony-tvu/goexpense/graph"
+	"github.com/tony-tvu/goexpense/graph/models"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/util"
 	"github.com/vektah/gqlparser/v2/gqlerror"
@@ -25,11 +24,11 @@ will return a public_token. Send the public_token back to this api (SetAccessTok
 which makes a request with plaid's GetAccessToken and returns a permanent access_token
 and associated item_id, which can be used to get the user's transactions.
 */
-func (r *queryResolver) LinkToken(ctx context.Context) (*string, error) {
+func (r *queryResolver) LinkToken(ctx context.Context) (string, error) {
 	c := middleware.GetWriterAndCookies(ctx)
 
 	if !auth.IsAuthorized(c, r.Db) {
-		return nil, gqlerror.Errorf("not authorized")
+		return "", gqlerror.Errorf("not authorized")
 	}
 
 	cc := []plaid.CountryCode{}
@@ -56,15 +55,15 @@ func (r *queryResolver) LinkToken(ctx context.Context) (*string, error) {
 		r.PlaidClient.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
 
 	if err != nil {
-		return nil, gqlerror.Errorf("internal server error")
+		return "", gqlerror.Errorf("internal server error")
 	}
 
 	linkToken := linkTokenCreateResp.GetLinkToken()
 
-	return &linkToken, nil
+	return linkToken, nil
 }
 
-func (r *mutationResolver) SetAccessToken(ctx context.Context, input graph.PublicToken) (bool, error) {
+func (r *mutationResolver) SetAccessToken(ctx context.Context, input models.PublicTokenInput) (bool, error) {
 	c := middleware.GetWriterAndCookies(ctx)
 
 	if !auth.IsAuthorized(c, r.Db) {
@@ -97,7 +96,6 @@ func (r *mutationResolver) SetAccessToken(ctx context.Context, input graph.Publi
 
 	if result := r.Db.Create(&models.Item{
 		UserID:      u.ID,
-		User:        *u,
 		ItemID:      itemID,
 		AccessToken: accessToken,
 	}); result.Error != nil {

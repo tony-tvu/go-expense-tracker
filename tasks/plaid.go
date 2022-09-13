@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/plaid/plaid-go/plaid"
-	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/graph/models"
 )
 
 func getTransactions(item models.Item) ([]plaid.Transaction, []plaid.Transaction, []plaid.RemovedTransaction, string, error) {
@@ -13,11 +13,10 @@ func getTransactions(item models.Item) ([]plaid.Transaction, []plaid.Transaction
 	// New transaction updates since "cursor"
 	var transactions []plaid.Transaction
 	var modified []plaid.Transaction
-	var removed []plaid.RemovedTransaction // Removed transaction ids
+	var removed []plaid.RemovedTransaction 
 	cursor := item.Cursor
 	hasMore := true
 
-	// Iterate through each page of new transaction updates for item
 	for hasMore {
 		request := plaid.NewTransactionsSyncRequest(item.AccessToken)
 		if cursor != "" {

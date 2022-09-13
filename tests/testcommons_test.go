@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/graph/models"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -83,7 +83,7 @@ func createUser(t *testing.T, username, email, password string) func() {
 		Username: username,
 		Email:    email,
 		Password: string(hash),
-		Type:     models.RegularUser,
+		Type:     models.UserTypeRegular,
 	}); result.Error != nil {
 		t.FailNow()
 	}

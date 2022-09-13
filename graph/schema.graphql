@@ -1,17 +1,28 @@
 type Query {
   users: [User!]!
   sessions: [Session]!
-  transactions: [Transaction!]!
   userInfo: User!
   isLoggedIn: Boolean!
-  linkToken: String
+  linkToken: String!
+  transactions(input: TransactionSearchInput): TransactionConnection!
 }
 
 type Mutation {
   login(input: LoginInput!): Boolean!
   logout: Boolean!
-  createUser(input: NewUser!): User!
-  setAccessToken(input: PublicToken!): Boolean!
+  createUser(input: NewUserInput!): User!
+  setAccessToken(input: PublicTokenInput!): Boolean!
+}
+
+type TransactionConnection {
+  nodes: [Transaction!]!
+  pageInfo: PageInfo!
+}
+
+input TransactionSearchInput {
+  userID: ID!
+  page: Int!
+  perPage: Int!
 }
 
 input LoginInput {
@@ -19,21 +30,27 @@ input LoginInput {
   password: String!
 }
 
-input NewUser {
+input NewUserInput {
   username: String!
   email: String!
   type: String!
 }
 
-input PublicToken {
+input PublicTokenInput {
   publicToken: String!
+}
+
+enum UserType {
+  ADMIN
+  REGULAR
 }
 
 type User {
   id: ID!
   username: String!
   email: String!
-  type: String!
+  type: UserType!
+  password: String!
   createdAt: ISOTimestamp!
   updatedAt: ISOTimestamp!
 }
@@ -48,15 +65,32 @@ type Session {
 
 type Transaction {
   id: ID!
-  itemID: Int!
-  userID: Int!
+  itemID: ID!
+  userID: ID!
   transactionID: String!
   date: ISOTimestamp!
   amount: Float!
-  category: [String]!
+  category: String!
   name: String!
   createdAt: ISOTimestamp!
   updatedAt: ISOTimestamp!
+}
+
+type Item {
+  id: ID!
+  userID: ID!
+  itemID: String!
+  accessToken: String!
+  cursor: String!
+  createdAt: ISOTimestamp!
+  updatedAt: ISOTimestamp!
+}
+
+type PageInfo {
+  limit: Int!
+  page: Int!
+  totalRows: Int!
+  totalPages: Int!
 }
 
 # An ISOTimestamp is an RFC3339-formatted timestamp string.

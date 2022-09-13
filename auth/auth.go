@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/graph/models"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/util"
 	"gorm.io/gorm"
@@ -66,7 +66,7 @@ func IsAdmin(c *middleware.WriterAndCookies, db *gorm.DB) bool {
 		return false
 	}
 
-	if claims.UserType != string(models.AdminUser) {
+	if claims.UserType != string(models.UserTypeAdmin) {
 		return false
 	}
 	return true

@@ -9,12 +9,12 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
-	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/graph/models"
 	"gorm.io/gorm"
 )
 
 type Tasks struct {
-	Db *gorm.DB
+	Db          *gorm.DB
 	PlaidClient *plaid.APIClient
 }
 
@@ -69,14 +69,13 @@ func RefreshTransactions() {
 				date, _ := time.Parse("2006-01-02", t.Date)
 				if result := db.Create(&models.Transaction{
 					ItemID:        item.ID,
-					Item:          item,
 					UserID:        item.UserID,
-					User:          item.User,
 					TransactionID: t.GetTransactionId(),
 					Date:          date,
-					Amount:        t.Amount,
-					Category:      t.Category,
-					Name:          t.Name,
+					Amount:        float64(t.Amount),
+					// TODO: make method to pick one category from plaid's category array
+					Category: strings.Join(t.Category, ","),
+					Name:     t.Name,
 				}); result.Error != nil {
 					if !strings.Contains(result.Error.Error(), "duplicate key value violates unique constraint") {
 						log.Printf("error occurred in RefreshTransactionsTask while saving new transaction %+v\n", result.Error)

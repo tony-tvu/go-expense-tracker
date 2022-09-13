@@ -5,8 +5,7 @@ import (
 	"time"
 
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/models"
-	"github.com/tony-tvu/goexpense/graph"
+	"github.com/tony-tvu/goexpense/graph/models"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/util"
 	"github.com/vektah/gqlparser/v2/gqlerror"
@@ -24,7 +23,7 @@ func (r *queryResolver) IsLoggedIn(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func (r *mutationResolver) CreateUser(ctx context.Context, input graph.NewUser) (*graph.User, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context, input models.NewUserInput) (*models.User, error) {
 	c := middleware.GetWriterAndCookies(ctx)
 
 	if !auth.IsAuthorized(c, r.Db) || !auth.IsAdmin(c, r.Db) {
@@ -34,19 +33,19 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input graph.NewUser) 
 	panic("not implemented")
 }
 
-func (r *queryResolver) Users(ctx context.Context) ([]*graph.User, error) {
+func (r *queryResolver) Users(ctx context.Context) ([]*models.User, error) {
 	c := middleware.GetWriterAndCookies(ctx)
 
 	if !auth.IsAuthorized(c, r.Db) || !auth.IsAdmin(c, r.Db) {
 		return nil, gqlerror.Errorf("not authorized")
 	}
-	var users []*graph.User
+	var users []*models.User
 	r.Db.Raw("SELECT * FROM users").Scan(&users)
 
 	return users, nil
 }
 
-func (r *mutationResolver) Login(ctx context.Context, input graph.LoginInput) (bool, error) {
+func (r *mutationResolver) Login(ctx context.Context, input models.LoginInput) (bool, error) {
 	c := middleware.GetWriterAndCookies(ctx)
 
 	// TODO: scrub user input
@@ -118,7 +117,7 @@ func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func (r *queryResolver) UserInfo(ctx context.Context) (*graph.User, error) {
+func (r *queryResolver) UserInfo(ctx context.Context) (*models.User, error) {
 	c := middleware.GetWriterAndCookies(ctx)
 
 	if !auth.IsAuthorized(c, r.Db) {
@@ -130,7 +129,7 @@ func (r *queryResolver) UserInfo(ctx context.Context) (*graph.User, error) {
 		return nil, gqlerror.Errorf("invalid token")
 	}
 
-	var u *graph.User
+	var u *models.User
 	if result := r.Db.Where("username = ?", claims.Username).First(&u); result.Error != nil {
 		return nil, gqlerror.Errorf("user not found")
 	}
@@ -138,13 +137,13 @@ func (r *queryResolver) UserInfo(ctx context.Context) (*graph.User, error) {
 	return u, nil
 }
 
-func (r *queryResolver) Sessions(ctx context.Context) ([]*graph.Session, error) {
+func (r *queryResolver) Sessions(ctx context.Context) ([]*models.Session, error) {
 	c := middleware.GetWriterAndCookies(ctx)
 	
 	if !auth.IsAuthorized(c, r.Db) || !auth.IsAdmin(c, r.Db) {
 		return nil, gqlerror.Errorf("not authorized")
 	}
-	var sessions []*graph.Session
+	var sessions []*models.Session
 	r.Db.Raw("SELECT * FROM sessions").Scan(&sessions)
 
 	return sessions, nil

@@ -15,6 +15,10 @@ build:
 graphql:
 	cd graph && go run github.com/99designs/gqlgen generate
 
+reset_docker:
+	docker compose down
+	docker compose up
+
 api:
 	go run main.go
 

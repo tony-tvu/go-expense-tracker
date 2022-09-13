@@ -11,7 +11,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/app"
-	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/graph/models"
 	"github.com/tony-tvu/goexpense/util"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

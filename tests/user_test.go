@@ -7,8 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tony-tvu/goexpense/models"
-	"github.com/tony-tvu/goexpense/graph"
+	"github.com/tony-tvu/goexpense/graph/models"
 	"gorm.io/gorm"
 )
 
@@ -104,7 +103,7 @@ func TestUserResolvers(t *testing.T) {
 
 		// should have correct user info returned
 		var data struct {
-			UserInfo graph.User
+			UserInfo models.User
 		}
 
 		err := json.Unmarshal(qlRes.Data, &data)
@@ -113,7 +112,7 @@ func TestUserResolvers(t *testing.T) {
 		assert.NotNil(t, data.UserInfo.ID)
 		assert.Equal(t, username, data.UserInfo.Username)
 		assert.Equal(t, email, data.UserInfo.Email)
-		assert.Equal(t, "Regular", data.UserInfo.Type)
+		assert.Equal(t, models.UserTypeRegular, data.UserInfo.Type)
 		assert.NotNil(t, data.UserInfo.CreatedAt)
 		assert.NotNil(t, data.UserInfo.UpdatedAt)
 	})
