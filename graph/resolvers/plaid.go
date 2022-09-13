@@ -8,7 +8,7 @@ import (
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/entity"
-	"github.com/tony-tvu/goexpense/graph/models"
+	"github.com/tony-tvu/goexpense/graph"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/util"
 	"github.com/vektah/gqlparser/v2/gqlerror"
@@ -64,7 +64,7 @@ func (r *queryResolver) LinkToken(ctx context.Context) (string, error) {
 	return linkToken, nil
 }
 
-func (r *mutationResolver) SetAccessToken(ctx context.Context, input models.PublicTokenInput) (bool, error) {
+func (r *mutationResolver) SetAccessToken(ctx context.Context, input graph.PublicTokenInput) (bool, error) {
 	c := middleware.GetWriterAndCookies(ctx)
 
 	if _, _, err := auth.VerifyUser(c, r.Db); err != nil {

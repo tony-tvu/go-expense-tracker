@@ -3,7 +3,6 @@ package resolvers
 import (
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/graph"
-	"github.com/tony-tvu/goexpense/graph/models"
 	"github.com/tony-tvu/goexpense/util"
 	"gorm.io/gorm"
 )
@@ -13,8 +12,8 @@ type Resolver struct {
 	PlaidClient *plaid.APIClient
 }
 
-func getPageInfo(p *util.Pagination) *models.PageInfo {
-	pageInfo := models.PageInfo{
+func getPageInfo(p *util.Pagination) *graph.PageInfo {
+	pageInfo := graph.PageInfo{
 		Limit: p.Limit,
 		Page: p.Page,
 		Sort: p.Sort,

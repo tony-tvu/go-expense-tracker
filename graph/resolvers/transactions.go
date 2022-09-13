@@ -5,13 +5,13 @@ import (
 	"log"
 
 	// "github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/graph/models"
+	"github.com/tony-tvu/goexpense/graph"
 	// "github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/util"
 	// "github.com/vektah/gqlparser/v2/gqlerror"
 )
 
-func (r *queryResolver) Transactions(ctx context.Context, input models.TransactionSearchInput) (*models.TransactionConnection, error) {
+func (r *queryResolver) Transactions(ctx context.Context, input graph.TransactionSearchInput) (*graph.TransactionConnection, error) {
 	// c := middleware.GetWriterAndCookies(ctx)
 
 	// if !auth.IsAuthorized(c, r.Db) {
@@ -24,12 +24,12 @@ func (r *queryResolver) Transactions(ctx context.Context, input models.Transacti
 		Sort: "date desc",
 	}
 
-	conn := new(models.TransactionConnection)
+	conn := new(graph.TransactionConnection)
 
 
-	var transactions []*models.Transaction
+	var transactions []*graph.Transaction
 
-	r.Db.Scopes(util.Paginate(transactions, &pagination, r.Db)).Find(&transactions)
+	r.Db.Scopes(util.Paginate(transactions, &pagination, r.Db)).Where("user_id = ?", 1).Find(&transactions)
 
 	log.Printf("\n%+v\n", pagination)
 

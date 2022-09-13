@@ -2,8 +2,8 @@ schema: ./schema.graphql
 exec:
   filename: generated.go
 model:
-  filename: models/models_gen.go
-  package: models
+  filename: models_gen.go
+  package: graph
 resolver:
   # Whenever you add a new query or mutation to `schema.graphql` and run `make graphql`, a file will generate named "resolver_DELETE.go".
   # Go into that file and copy and paste the new query/mutation method you just created in `schema.graphql` and put it in a separate file 

@@ -15,7 +15,6 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/tony-tvu/goexpense/graph/models"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -57,10 +56,10 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateUser     func(childComplexity int, input models.NewUserInput) int
-		Login          func(childComplexity int, input models.LoginInput) int
+		CreateUser     func(childComplexity int, input NewUserInput) int
+		Login          func(childComplexity int, input LoginInput) int
 		Logout         func(childComplexity int) int
-		SetAccessToken func(childComplexity int, input models.PublicTokenInput) int
+		SetAccessToken func(childComplexity int, input PublicTokenInput) int
 	}
 
 	PageInfo struct {
@@ -75,7 +74,7 @@ type ComplexityRoot struct {
 		IsLoggedIn   func(childComplexity int) int
 		LinkToken    func(childComplexity int) int
 		Sessions     func(childComplexity int) int
-		Transactions func(childComplexity int, input models.TransactionSearchInput) int
+		Transactions func(childComplexity int, input TransactionSearchInput) int
 		UserInfo     func(childComplexity int) int
 		Users        func(childComplexity int) int
 	}
@@ -118,18 +117,18 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	Login(ctx context.Context, input models.LoginInput) (bool, error)
+	Login(ctx context.Context, input LoginInput) (bool, error)
 	Logout(ctx context.Context) (bool, error)
-	CreateUser(ctx context.Context, input models.NewUserInput) (*models.User, error)
-	SetAccessToken(ctx context.Context, input models.PublicTokenInput) (bool, error)
+	CreateUser(ctx context.Context, input NewUserInput) (*User, error)
+	SetAccessToken(ctx context.Context, input PublicTokenInput) (bool, error)
 }
 type QueryResolver interface {
-	Users(ctx context.Context) ([]*models.User, error)
-	Sessions(ctx context.Context) ([]*models.Session, error)
-	UserInfo(ctx context.Context) (*models.User, error)
+	Users(ctx context.Context) ([]*User, error)
+	Sessions(ctx context.Context) ([]*Session, error)
+	UserInfo(ctx context.Context) (*User, error)
 	IsLoggedIn(ctx context.Context) (bool, error)
 	LinkToken(ctx context.Context) (string, error)
-	Transactions(ctx context.Context, input models.TransactionSearchInput) (*models.TransactionConnection, error)
+	Transactions(ctx context.Context, input TransactionSearchInput) (*TransactionConnection, error)
 }
 
 type executableSchema struct {
@@ -206,7 +205,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(models.NewUserInput)), true
+		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(NewUserInput)), true
 
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
@@ -218,7 +217,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Login(childComplexity, args["input"].(models.LoginInput)), true
+		return e.complexity.Mutation.Login(childComplexity, args["input"].(LoginInput)), true
 
 	case "Mutation.logout":
 		if e.complexity.Mutation.Logout == nil {
@@ -237,7 +236,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.SetAccessToken(childComplexity, args["input"].(models.PublicTokenInput)), true
+		return e.complexity.Mutation.SetAccessToken(childComplexity, args["input"].(PublicTokenInput)), true
 
 	case "PageInfo.limit":
 		if e.complexity.PageInfo.Limit == nil {
@@ -305,7 +304,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Transactions(childComplexity, args["input"].(models.TransactionSearchInput)), true
+		return e.complexity.Query.Transactions(childComplexity, args["input"].(TransactionSearchInput)), true
 
 	case "Query.userInfo":
 		if e.complexity.Query.UserInfo == nil {
@@ -584,10 +583,10 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 models.NewUserInput
+	var arg0 NewUserInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNNewUserInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐNewUserInput(ctx, tmp)
+		arg0, err = ec.unmarshalNNewUserInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐNewUserInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -599,10 +598,10 @@ func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 models.LoginInput
+	var arg0 LoginInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNLoginInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐLoginInput(ctx, tmp)
+		arg0, err = ec.unmarshalNLoginInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐLoginInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -614,10 +613,10 @@ func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawAr
 func (ec *executionContext) field_Mutation_setAccessToken_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 models.PublicTokenInput
+	var arg0 PublicTokenInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNPublicTokenInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐPublicTokenInput(ctx, tmp)
+		arg0, err = ec.unmarshalNPublicTokenInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐPublicTokenInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -644,10 +643,10 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_transactions_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 models.TransactionSearchInput
+	var arg0 TransactionSearchInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNTransactionSearchInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐTransactionSearchInput(ctx, tmp)
+		arg0, err = ec.unmarshalNTransactionSearchInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐTransactionSearchInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -694,7 +693,7 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _Item_id(ctx context.Context, field graphql.CollectedField, obj *models.Item) (ret graphql.Marshaler) {
+func (ec *executionContext) _Item_id(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Item_id(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -738,7 +737,7 @@ func (ec *executionContext) fieldContext_Item_id(ctx context.Context, field grap
 	return fc, nil
 }
 
-func (ec *executionContext) _Item_userID(ctx context.Context, field graphql.CollectedField, obj *models.Item) (ret graphql.Marshaler) {
+func (ec *executionContext) _Item_userID(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Item_userID(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -782,7 +781,7 @@ func (ec *executionContext) fieldContext_Item_userID(ctx context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Item_itemID(ctx context.Context, field graphql.CollectedField, obj *models.Item) (ret graphql.Marshaler) {
+func (ec *executionContext) _Item_itemID(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Item_itemID(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -826,7 +825,7 @@ func (ec *executionContext) fieldContext_Item_itemID(ctx context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Item_accessToken(ctx context.Context, field graphql.CollectedField, obj *models.Item) (ret graphql.Marshaler) {
+func (ec *executionContext) _Item_accessToken(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Item_accessToken(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -870,7 +869,7 @@ func (ec *executionContext) fieldContext_Item_accessToken(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Item_cursor(ctx context.Context, field graphql.CollectedField, obj *models.Item) (ret graphql.Marshaler) {
+func (ec *executionContext) _Item_cursor(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Item_cursor(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -914,7 +913,7 @@ func (ec *executionContext) fieldContext_Item_cursor(ctx context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Item_createdAt(ctx context.Context, field graphql.CollectedField, obj *models.Item) (ret graphql.Marshaler) {
+func (ec *executionContext) _Item_createdAt(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Item_createdAt(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -958,7 +957,7 @@ func (ec *executionContext) fieldContext_Item_createdAt(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Item_updatedAt(ctx context.Context, field graphql.CollectedField, obj *models.Item) (ret graphql.Marshaler) {
+func (ec *executionContext) _Item_updatedAt(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Item_updatedAt(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1016,7 +1015,7 @@ func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.C
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Login(rctx, fc.Args["input"].(models.LoginInput))
+		return ec.resolvers.Mutation().Login(rctx, fc.Args["input"].(LoginInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1115,7 +1114,7 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateUser(rctx, fc.Args["input"].(models.NewUserInput))
+		return ec.resolvers.Mutation().CreateUser(rctx, fc.Args["input"].(NewUserInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1127,9 +1126,9 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.User)
+	res := resTmp.(*User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1186,7 +1185,7 @@ func (ec *executionContext) _Mutation_setAccessToken(ctx context.Context, field 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().SetAccessToken(rctx, fc.Args["input"].(models.PublicTokenInput))
+		return ec.resolvers.Mutation().SetAccessToken(rctx, fc.Args["input"].(PublicTokenInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1227,7 +1226,7 @@ func (ec *executionContext) fieldContext_Mutation_setAccessToken(ctx context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _PageInfo_limit(ctx context.Context, field graphql.CollectedField, obj *models.PageInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PageInfo_limit(ctx context.Context, field graphql.CollectedField, obj *PageInfo) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PageInfo_limit(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1271,7 +1270,7 @@ func (ec *executionContext) fieldContext_PageInfo_limit(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _PageInfo_page(ctx context.Context, field graphql.CollectedField, obj *models.PageInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PageInfo_page(ctx context.Context, field graphql.CollectedField, obj *PageInfo) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PageInfo_page(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1315,7 +1314,7 @@ func (ec *executionContext) fieldContext_PageInfo_page(ctx context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _PageInfo_sort(ctx context.Context, field graphql.CollectedField, obj *models.PageInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PageInfo_sort(ctx context.Context, field graphql.CollectedField, obj *PageInfo) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PageInfo_sort(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1359,7 +1358,7 @@ func (ec *executionContext) fieldContext_PageInfo_sort(ctx context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _PageInfo_totalRows(ctx context.Context, field graphql.CollectedField, obj *models.PageInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PageInfo_totalRows(ctx context.Context, field graphql.CollectedField, obj *PageInfo) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PageInfo_totalRows(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1403,7 +1402,7 @@ func (ec *executionContext) fieldContext_PageInfo_totalRows(ctx context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _PageInfo_totalPages(ctx context.Context, field graphql.CollectedField, obj *models.PageInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PageInfo_totalPages(ctx context.Context, field graphql.CollectedField, obj *PageInfo) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PageInfo_totalPages(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1473,9 +1472,9 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*models.User)
+	res := resTmp.([]*User)
 	fc.Result = res
-	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐUserᚄ(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐUserᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1533,9 +1532,9 @@ func (ec *executionContext) _Query_sessions(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*models.Session)
+	res := resTmp.([]*Session)
 	fc.Result = res
-	return ec.marshalNSession2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐSession(ctx, field.Selections, res)
+	return ec.marshalNSession2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐSession(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_sessions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1589,9 +1588,9 @@ func (ec *executionContext) _Query_userInfo(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.User)
+	res := resTmp.(*User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_userInfo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1725,7 +1724,7 @@ func (ec *executionContext) _Query_transactions(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Transactions(rctx, fc.Args["input"].(models.TransactionSearchInput))
+		return ec.resolvers.Query().Transactions(rctx, fc.Args["input"].(TransactionSearchInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1737,9 +1736,9 @@ func (ec *executionContext) _Query_transactions(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.TransactionConnection)
+	res := resTmp.(*TransactionConnection)
 	fc.Result = res
-	return ec.marshalNTransactionConnection2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐTransactionConnection(ctx, field.Selections, res)
+	return ec.marshalNTransactionConnection2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐTransactionConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_transactions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1901,7 +1900,7 @@ func (ec *executionContext) fieldContext_Query___schema(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Session_id(ctx context.Context, field graphql.CollectedField, obj *models.Session) (ret graphql.Marshaler) {
+func (ec *executionContext) _Session_id(ctx context.Context, field graphql.CollectedField, obj *Session) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Session_id(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1945,7 +1944,7 @@ func (ec *executionContext) fieldContext_Session_id(ctx context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Session_username(ctx context.Context, field graphql.CollectedField, obj *models.Session) (ret graphql.Marshaler) {
+func (ec *executionContext) _Session_username(ctx context.Context, field graphql.CollectedField, obj *Session) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Session_username(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1989,7 +1988,7 @@ func (ec *executionContext) fieldContext_Session_username(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Session_refreshToken(ctx context.Context, field graphql.CollectedField, obj *models.Session) (ret graphql.Marshaler) {
+func (ec *executionContext) _Session_refreshToken(ctx context.Context, field graphql.CollectedField, obj *Session) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Session_refreshToken(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2033,7 +2032,7 @@ func (ec *executionContext) fieldContext_Session_refreshToken(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Session_expiresAt(ctx context.Context, field graphql.CollectedField, obj *models.Session) (ret graphql.Marshaler) {
+func (ec *executionContext) _Session_expiresAt(ctx context.Context, field graphql.CollectedField, obj *Session) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Session_expiresAt(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2077,7 +2076,7 @@ func (ec *executionContext) fieldContext_Session_expiresAt(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Session_createdAt(ctx context.Context, field graphql.CollectedField, obj *models.Session) (ret graphql.Marshaler) {
+func (ec *executionContext) _Session_createdAt(ctx context.Context, field graphql.CollectedField, obj *Session) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Session_createdAt(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2121,7 +2120,7 @@ func (ec *executionContext) fieldContext_Session_createdAt(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Transaction_id(ctx context.Context, field graphql.CollectedField, obj *models.Transaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Transaction_id(ctx context.Context, field graphql.CollectedField, obj *Transaction) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Transaction_id(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2165,7 +2164,7 @@ func (ec *executionContext) fieldContext_Transaction_id(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Transaction_itemID(ctx context.Context, field graphql.CollectedField, obj *models.Transaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Transaction_itemID(ctx context.Context, field graphql.CollectedField, obj *Transaction) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Transaction_itemID(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2209,7 +2208,7 @@ func (ec *executionContext) fieldContext_Transaction_itemID(ctx context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Transaction_userID(ctx context.Context, field graphql.CollectedField, obj *models.Transaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Transaction_userID(ctx context.Context, field graphql.CollectedField, obj *Transaction) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Transaction_userID(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2253,7 +2252,7 @@ func (ec *executionContext) fieldContext_Transaction_userID(ctx context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Transaction_transactionID(ctx context.Context, field graphql.CollectedField, obj *models.Transaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Transaction_transactionID(ctx context.Context, field graphql.CollectedField, obj *Transaction) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Transaction_transactionID(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2297,7 +2296,7 @@ func (ec *executionContext) fieldContext_Transaction_transactionID(ctx context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _Transaction_date(ctx context.Context, field graphql.CollectedField, obj *models.Transaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Transaction_date(ctx context.Context, field graphql.CollectedField, obj *Transaction) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Transaction_date(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2341,7 +2340,7 @@ func (ec *executionContext) fieldContext_Transaction_date(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Transaction_amount(ctx context.Context, field graphql.CollectedField, obj *models.Transaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Transaction_amount(ctx context.Context, field graphql.CollectedField, obj *Transaction) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Transaction_amount(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2385,7 +2384,7 @@ func (ec *executionContext) fieldContext_Transaction_amount(ctx context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Transaction_category(ctx context.Context, field graphql.CollectedField, obj *models.Transaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Transaction_category(ctx context.Context, field graphql.CollectedField, obj *Transaction) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Transaction_category(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2429,7 +2428,7 @@ func (ec *executionContext) fieldContext_Transaction_category(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Transaction_name(ctx context.Context, field graphql.CollectedField, obj *models.Transaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Transaction_name(ctx context.Context, field graphql.CollectedField, obj *Transaction) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Transaction_name(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2473,7 +2472,7 @@ func (ec *executionContext) fieldContext_Transaction_name(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Transaction_createdAt(ctx context.Context, field graphql.CollectedField, obj *models.Transaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Transaction_createdAt(ctx context.Context, field graphql.CollectedField, obj *Transaction) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Transaction_createdAt(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2517,7 +2516,7 @@ func (ec *executionContext) fieldContext_Transaction_createdAt(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Transaction_updatedAt(ctx context.Context, field graphql.CollectedField, obj *models.Transaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Transaction_updatedAt(ctx context.Context, field graphql.CollectedField, obj *Transaction) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Transaction_updatedAt(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2561,7 +2560,7 @@ func (ec *executionContext) fieldContext_Transaction_updatedAt(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _TransactionConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *models.TransactionConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _TransactionConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *TransactionConnection) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_TransactionConnection_nodes(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2587,9 +2586,9 @@ func (ec *executionContext) _TransactionConnection_nodes(ctx context.Context, fi
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*models.Transaction)
+	res := resTmp.([]*Transaction)
 	fc.Result = res
-	return ec.marshalNTransaction2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐTransactionᚄ(ctx, field.Selections, res)
+	return ec.marshalNTransaction2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐTransactionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_TransactionConnection_nodes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2627,7 +2626,7 @@ func (ec *executionContext) fieldContext_TransactionConnection_nodes(ctx context
 	return fc, nil
 }
 
-func (ec *executionContext) _TransactionConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *models.TransactionConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _TransactionConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *TransactionConnection) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_TransactionConnection_pageInfo(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2653,9 +2652,9 @@ func (ec *executionContext) _TransactionConnection_pageInfo(ctx context.Context,
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.PageInfo)
+	res := resTmp.(*PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_TransactionConnection_pageInfo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2683,7 +2682,7 @@ func (ec *executionContext) fieldContext_TransactionConnection_pageInfo(ctx cont
 	return fc, nil
 }
 
-func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_id(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2727,7 +2726,7 @@ func (ec *executionContext) fieldContext_User_id(ctx context.Context, field grap
 	return fc, nil
 }
 
-func (ec *executionContext) _User_username(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_username(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_username(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2771,7 +2770,7 @@ func (ec *executionContext) fieldContext_User_username(ctx context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _User_email(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_email(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_email(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2815,7 +2814,7 @@ func (ec *executionContext) fieldContext_User_email(ctx context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _User_type(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_type(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_type(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2841,9 +2840,9 @@ func (ec *executionContext) _User_type(ctx context.Context, field graphql.Collec
 		}
 		return graphql.Null
 	}
-	res := resTmp.(models.UserType)
+	res := resTmp.(UserType)
 	fc.Result = res
-	return ec.marshalNUserType2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐUserType(ctx, field.Selections, res)
+	return ec.marshalNUserType2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐUserType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_User_type(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2859,7 +2858,7 @@ func (ec *executionContext) fieldContext_User_type(ctx context.Context, field gr
 	return fc, nil
 }
 
-func (ec *executionContext) _User_password(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_password(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_password(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2903,7 +2902,7 @@ func (ec *executionContext) fieldContext_User_password(ctx context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _User_createdAt(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_createdAt(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_createdAt(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -2947,7 +2946,7 @@ func (ec *executionContext) fieldContext_User_createdAt(ctx context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _User_updatedAt(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_updatedAt(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_updatedAt(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -4764,8 +4763,8 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj interface{}) (models.LoginInput, error) {
-	var it models.LoginInput
+func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj interface{}) (LoginInput, error) {
+	var it LoginInput
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
@@ -4800,8 +4799,8 @@ func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj in
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewUserInput(ctx context.Context, obj interface{}) (models.NewUserInput, error) {
-	var it models.NewUserInput
+func (ec *executionContext) unmarshalInputNewUserInput(ctx context.Context, obj interface{}) (NewUserInput, error) {
+	var it NewUserInput
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
@@ -4844,8 +4843,8 @@ func (ec *executionContext) unmarshalInputNewUserInput(ctx context.Context, obj 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputPageInfoInput(ctx context.Context, obj interface{}) (models.PageInfoInput, error) {
-	var it models.PageInfoInput
+func (ec *executionContext) unmarshalInputPageInfoInput(ctx context.Context, obj interface{}) (PageInfoInput, error) {
+	var it PageInfoInput
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
@@ -4880,8 +4879,8 @@ func (ec *executionContext) unmarshalInputPageInfoInput(ctx context.Context, obj
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputPublicTokenInput(ctx context.Context, obj interface{}) (models.PublicTokenInput, error) {
-	var it models.PublicTokenInput
+func (ec *executionContext) unmarshalInputPublicTokenInput(ctx context.Context, obj interface{}) (PublicTokenInput, error) {
+	var it PublicTokenInput
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
@@ -4908,8 +4907,8 @@ func (ec *executionContext) unmarshalInputPublicTokenInput(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputTransactionSearchInput(ctx context.Context, obj interface{}) (models.TransactionSearchInput, error) {
-	var it models.TransactionSearchInput
+func (ec *executionContext) unmarshalInputTransactionSearchInput(ctx context.Context, obj interface{}) (TransactionSearchInput, error) {
+	var it TransactionSearchInput
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
@@ -4934,7 +4933,7 @@ func (ec *executionContext) unmarshalInputTransactionSearchInput(ctx context.Con
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pageInfo"))
-			it.PageInfo, err = ec.unmarshalOPageInfoInput2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐPageInfoInput(ctx, v)
+			it.PageInfo, err = ec.unmarshalOPageInfoInput2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐPageInfoInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4954,7 +4953,7 @@ func (ec *executionContext) unmarshalInputTransactionSearchInput(ctx context.Con
 
 var itemImplementors = []string{"Item"}
 
-func (ec *executionContext) _Item(ctx context.Context, sel ast.SelectionSet, obj *models.Item) graphql.Marshaler {
+func (ec *executionContext) _Item(ctx context.Context, sel ast.SelectionSet, obj *Item) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, itemImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
@@ -5090,7 +5089,7 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 var pageInfoImplementors = []string{"PageInfo"}
 
-func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet, obj *models.PageInfo) graphql.Marshaler {
+func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet, obj *PageInfo) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, pageInfoImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
@@ -5326,7 +5325,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 
 var sessionImplementors = []string{"Session"}
 
-func (ec *executionContext) _Session(ctx context.Context, sel ast.SelectionSet, obj *models.Session) graphql.Marshaler {
+func (ec *executionContext) _Session(ctx context.Context, sel ast.SelectionSet, obj *Session) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, sessionImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
@@ -5382,7 +5381,7 @@ func (ec *executionContext) _Session(ctx context.Context, sel ast.SelectionSet, 
 
 var transactionImplementors = []string{"Transaction"}
 
-func (ec *executionContext) _Transaction(ctx context.Context, sel ast.SelectionSet, obj *models.Transaction) graphql.Marshaler {
+func (ec *executionContext) _Transaction(ctx context.Context, sel ast.SelectionSet, obj *Transaction) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, transactionImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
@@ -5473,7 +5472,7 @@ func (ec *executionContext) _Transaction(ctx context.Context, sel ast.SelectionS
 
 var transactionConnectionImplementors = []string{"TransactionConnection"}
 
-func (ec *executionContext) _TransactionConnection(ctx context.Context, sel ast.SelectionSet, obj *models.TransactionConnection) graphql.Marshaler {
+func (ec *executionContext) _TransactionConnection(ctx context.Context, sel ast.SelectionSet, obj *TransactionConnection) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, transactionConnectionImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
@@ -5508,7 +5507,7 @@ func (ec *executionContext) _TransactionConnection(ctx context.Context, sel ast.
 
 var userImplementors = []string{"User"}
 
-func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *models.User) graphql.Marshaler {
+func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *User) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
@@ -5969,17 +5968,17 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐLoginInput(ctx context.Context, v interface{}) (models.LoginInput, error) {
+func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐLoginInput(ctx context.Context, v interface{}) (LoginInput, error) {
 	res, err := ec.unmarshalInputLoginInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNNewUserInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐNewUserInput(ctx context.Context, v interface{}) (models.NewUserInput, error) {
+func (ec *executionContext) unmarshalNNewUserInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐNewUserInput(ctx context.Context, v interface{}) (NewUserInput, error) {
 	res, err := ec.unmarshalInputNewUserInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *models.PageInfo) graphql.Marshaler {
+func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *PageInfo) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -5989,12 +5988,12 @@ func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoex
 	return ec._PageInfo(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNPublicTokenInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐPublicTokenInput(ctx context.Context, v interface{}) (models.PublicTokenInput, error) {
+func (ec *executionContext) unmarshalNPublicTokenInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐPublicTokenInput(ctx context.Context, v interface{}) (PublicTokenInput, error) {
 	res, err := ec.unmarshalInputPublicTokenInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNSession2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐSession(ctx context.Context, sel ast.SelectionSet, v []*models.Session) graphql.Marshaler {
+func (ec *executionContext) marshalNSession2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐSession(ctx context.Context, sel ast.SelectionSet, v []*Session) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -6018,7 +6017,7 @@ func (ec *executionContext) marshalNSession2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgo
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOSession2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐSession(ctx, sel, v[i])
+			ret[i] = ec.marshalOSession2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐSession(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -6047,7 +6046,7 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNTransaction2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐTransactionᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.Transaction) graphql.Marshaler {
+func (ec *executionContext) marshalNTransaction2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐTransactionᚄ(ctx context.Context, sel ast.SelectionSet, v []*Transaction) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -6071,7 +6070,7 @@ func (ec *executionContext) marshalNTransaction2ᚕᚖgithubᚗcomᚋtonyᚑtvu�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTransaction2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐTransaction(ctx, sel, v[i])
+			ret[i] = ec.marshalNTransaction2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐTransaction(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -6091,7 +6090,7 @@ func (ec *executionContext) marshalNTransaction2ᚕᚖgithubᚗcomᚋtonyᚑtvu�
 	return ret
 }
 
-func (ec *executionContext) marshalNTransaction2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐTransaction(ctx context.Context, sel ast.SelectionSet, v *models.Transaction) graphql.Marshaler {
+func (ec *executionContext) marshalNTransaction2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐTransaction(ctx context.Context, sel ast.SelectionSet, v *Transaction) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -6101,11 +6100,11 @@ func (ec *executionContext) marshalNTransaction2ᚖgithubᚗcomᚋtonyᚑtvuᚋg
 	return ec._Transaction(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNTransactionConnection2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐTransactionConnection(ctx context.Context, sel ast.SelectionSet, v models.TransactionConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNTransactionConnection2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐTransactionConnection(ctx context.Context, sel ast.SelectionSet, v TransactionConnection) graphql.Marshaler {
 	return ec._TransactionConnection(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTransactionConnection2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐTransactionConnection(ctx context.Context, sel ast.SelectionSet, v *models.TransactionConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNTransactionConnection2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐTransactionConnection(ctx context.Context, sel ast.SelectionSet, v *TransactionConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -6115,16 +6114,16 @@ func (ec *executionContext) marshalNTransactionConnection2ᚖgithubᚗcomᚋtony
 	return ec._TransactionConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNTransactionSearchInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐTransactionSearchInput(ctx context.Context, v interface{}) (models.TransactionSearchInput, error) {
+func (ec *executionContext) unmarshalNTransactionSearchInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐTransactionSearchInput(ctx context.Context, v interface{}) (TransactionSearchInput, error) {
 	res, err := ec.unmarshalInputTransactionSearchInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNUser2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v models.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐUser(ctx context.Context, sel ast.SelectionSet, v User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*User) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -6148,7 +6147,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexp
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐUser(ctx, sel, v[i])
+			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐUser(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -6168,7 +6167,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexp
 	return ret
 }
 
-func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v *models.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐUser(ctx context.Context, sel ast.SelectionSet, v *User) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -6178,13 +6177,13 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpens
 	return ec._User(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNUserType2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐUserType(ctx context.Context, v interface{}) (models.UserType, error) {
-	var res models.UserType
+func (ec *executionContext) unmarshalNUserType2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐUserType(ctx context.Context, v interface{}) (UserType, error) {
+	var res UserType
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNUserType2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐUserType(ctx context.Context, sel ast.SelectionSet, v models.UserType) graphql.Marshaler {
+func (ec *executionContext) marshalNUserType2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐUserType(ctx context.Context, sel ast.SelectionSet, v UserType) graphql.Marshaler {
 	return v
 }
 
@@ -6467,7 +6466,7 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) unmarshalOPageInfoInput2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐPageInfoInput(ctx context.Context, v interface{}) (*models.PageInfoInput, error) {
+func (ec *executionContext) unmarshalOPageInfoInput2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐPageInfoInput(ctx context.Context, v interface{}) (*PageInfoInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -6475,7 +6474,7 @@ func (ec *executionContext) unmarshalOPageInfoInput2ᚖgithubᚗcomᚋtonyᚑtvu
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOSession2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐSession(ctx context.Context, sel ast.SelectionSet, v *models.Session) graphql.Marshaler {
+func (ec *executionContext) marshalOSession2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐSession(ctx context.Context, sel ast.SelectionSet, v *Session) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
