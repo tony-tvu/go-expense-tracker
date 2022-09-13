@@ -6,7 +6,7 @@ import (
 
 type Session struct {
 	ID           uint `gorm:"primarykey"`
-	Username     string
+	UserID       uint
 	RefreshToken string
 	ExpiresAt    time.Time
 	CreatedAt    time.Time

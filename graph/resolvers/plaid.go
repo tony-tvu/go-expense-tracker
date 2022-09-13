@@ -91,7 +91,7 @@ func (r *mutationResolver) SetAccessToken(ctx context.Context, input models.Publ
 	// save new Item
 	claims, _ := auth.ValidateTokenAndGetClaims(c.EncryptedRefreshToken)
 	var u *entity.User
-	if result := r.Db.Where("username = ?", claims.Username).First(&u); result.Error != nil {
+	if result := r.Db.Where("id = ?", claims.UserID).First(&u); result.Error != nil {
 		return false, gqlerror.Errorf("internal server error")
 	}
 

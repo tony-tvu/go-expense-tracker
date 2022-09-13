@@ -20,7 +20,7 @@ func (r *queryResolver) IsLoggedIn(ctx context.Context) (bool, error) {
 	if !auth.IsAuthorized(c, r.Db) {
 		return false, nil
 	}
-	
+
 	return true, nil
 }
 
@@ -30,7 +30,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input models.NewUserI
 	if !auth.IsAuthorized(c, r.Db) || !auth.IsAdmin(c) {
 		return nil, gqlerror.Errorf("not authorized")
 	}
-	
+
 	panic("not implemented")
 }
 
@@ -65,7 +65,7 @@ func (r *mutationResolver) Login(ctx context.Context, input models.LoginInput) (
 	}
 
 	// create refresh token
-	refreshToken, err := auth.GetEncryptedToken(auth.RefreshToken, u.Username, string(u.Type))
+	refreshToken, err := auth.GetEncryptedToken(auth.RefreshToken, u.ID, string(u.Type))
 	if err != nil {
 		return false, gqlerror.Errorf("internal server error")
 	}
@@ -77,7 +77,7 @@ func (r *mutationResolver) Login(ctx context.Context, input models.LoginInput) (
 
 	// save new session
 	if result := r.Db.Create(&entity.Session{
-		Username:     u.Username,
+		UserID:       u.ID,
 		RefreshToken: refreshToken.Value,
 		ExpiresAt:    refreshToken.ExpiresAt,
 	}); result.Error != nil {
@@ -85,7 +85,7 @@ func (r *mutationResolver) Login(ctx context.Context, input models.LoginInput) (
 	}
 
 	// create access token
-	accessToken, err := auth.GetEncryptedToken(auth.AccessToken, u.Username, string(u.Type))
+	accessToken, err := auth.GetEncryptedToken(auth.AccessToken, u.ID, string(u.Type))
 	if err != nil {
 		return false, gqlerror.Errorf("internal server error")
 	}
@@ -108,7 +108,7 @@ func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
 		return false, gqlerror.Errorf("invalid token")
 	}
 
-	if result := r.Db.Exec("DELETE FROM sessions WHERE username = ?", claims.Username); result.Error != nil {
+	if result := r.Db.Exec("DELETE FROM sessions WHERE username = ?", claims.ID); result.Error != nil {
 		return false, gqlerror.Errorf("internal server error")
 	}
 
@@ -131,7 +131,7 @@ func (r *queryResolver) UserInfo(ctx context.Context) (*models.User, error) {
 	}
 
 	var u *models.User
-	if result := r.Db.Where("username = ?", claims.Username).First(&u); result.Error != nil {
+	if result := r.Db.Where("id = ?", claims.UserID).First(&u); result.Error != nil {
 		return nil, gqlerror.Errorf("user not found")
 	}
 
@@ -140,7 +140,7 @@ func (r *queryResolver) UserInfo(ctx context.Context) (*models.User, error) {
 
 func (r *queryResolver) Sessions(ctx context.Context) ([]*models.Session, error) {
 	c := middleware.GetWriterAndCookies(ctx)
-	
+
 	if !auth.IsAuthorized(c, r.Db) || !auth.IsAdmin(c) {
 		return nil, gqlerror.Errorf("not authorized")
 	}
@@ -151,4 +151,3 @@ func (r *queryResolver) Sessions(ctx context.Context) ([]*models.Session, error)
 }
 
 // TODO: add resolver for first time user logins to set password (from an admin invite / user creation)
-

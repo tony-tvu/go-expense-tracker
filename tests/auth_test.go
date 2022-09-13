@@ -15,7 +15,7 @@ func TestAuth(t *testing.T) {
 		username := "isauthorized"
 		email := "isauthorized@email.com"
 		password := "password"
-		cleanup := createUser(t, username, email, password)
+		_, cleanup := createUser(t, username, email, password)
 		defer cleanup()
 		accessToken, refreshToken, _ := logUserIn(t, username, password)
 
@@ -49,7 +49,7 @@ func TestAuth(t *testing.T) {
 		username := "revokeMe"
 		email := "revokeMe@email.com"
 		password := "^%#(GY%H=G$%asdf"
-		cleanup := createUser(t, username, email, password)
+		user, cleanup := createUser(t, username, email, password)
 		defer cleanup()
 		accessToken, refreshToken, _ := logUserIn(t, username, password)
 
@@ -68,7 +68,7 @@ func TestAuth(t *testing.T) {
 		assert.Nil(t, qlRes.Errors)
 
 		// revoke token
-		if result := testApp.Db.Exec("DELETE FROM sessions WHERE username = ?", username); result.Error != nil {
+		if result := testApp.Db.Exec("DELETE FROM sessions WHERE user_id = ?", user.ID); result.Error != nil {
 			t.FailNow()
 		}
 
@@ -126,7 +126,7 @@ func TestAuth(t *testing.T) {
 		username := "IsAdmin"
 		email := "IsAdmin@email.com"
 		password := "^%#(GY%H=G$%asdf"
-		cleanup := createUser(t, username, email, password)
+		user, cleanup := createUser(t, username, email, password)
 		defer cleanup()
 		accessToken, refreshToken, _ := logUserIn(t, username, password)
 
@@ -145,7 +145,7 @@ func TestAuth(t *testing.T) {
 		assert.Nil(t, qlRes.Errors)
 
 		// make user an admin and login
-		if result := testApp.Db.Model(&entity.User{}).Where("username = ?", username).Update("type", entity.AdminUser); result.Error != nil {
+		if result := testApp.Db.Model(&entity.User{}).Where("id = ?", user.ID).Update("type", entity.AdminUser); result.Error != nil {
 			t.FailNow()
 		}
 

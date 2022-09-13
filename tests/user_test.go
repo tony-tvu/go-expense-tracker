@@ -19,7 +19,7 @@ func TestUserResolvers(t *testing.T) {
 		username := "loginTestUser"
 		email := "loginTestUser@email.com"
 		password := "password"
-		cleanup := createUser(t, username, email, password)
+		user, cleanup := createUser(t, username, email, password)
 		defer cleanup()
 
 		// login with wrong password
@@ -52,9 +52,8 @@ func TestUserResolvers(t *testing.T) {
 
 		// should have user session saved in db
 		var s entity.Session
-		result := testApp.Db.Where("username = ?", username).First(&s)
+		result := testApp.Db.Where("user_id = ?", user.ID).First(&s)
 		assert.Nil(t, result.Error)
-		assert.Equal(t, username, s.Username)
 
 		// logout
 		cookies := getCookies(t, res.Cookies())
@@ -79,7 +78,7 @@ func TestUserResolvers(t *testing.T) {
 		username := "UserInfo"
 		email := "UserInfo@email.com"
 		password := "^%#(GY%H=G$%asdf"
-		cleanup := createUser(t, username, email, password)
+		_, cleanup := createUser(t, username, email, password)
 		defer cleanup()
 
 		accessToken, refreshToken, _ := logUserIn(t, username, password)

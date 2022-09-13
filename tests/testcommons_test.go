@@ -73,22 +73,24 @@ func logUserIn(t *testing.T, username, password string) (string, string, *QLResp
 }
 
 // Save a new user to db
-func createUser(t *testing.T, username, email, password string) func() {
+func createUser(t *testing.T, username, email, password string) (*entity.User, func()) {
 	t.Helper()
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	require.NoError(t, err)
 
-	if result := testApp.Db.Create(&entity.User{
+	user := &entity.User{
 		Username: username,
 		Email:    email,
 		Password: string(hash),
 		Type:     entity.RegularUser,
-	}); result.Error != nil {
+	}
+
+	if result := testApp.Db.Create(&user); result.Error != nil {
 		t.FailNow()
 	}
 
-	return func() {
+	return user, func() {
 		deleteUser(t, username)
 	}
 }

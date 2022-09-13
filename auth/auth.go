@@ -28,7 +28,7 @@ func IsAuthorized(c *middleware.WriterAndCookies, db *gorm.DB) bool {
 
 		// find existing session
 		var s *entity.Session
-		if result := db.Where("username = ?", refreshClaims.Username).First(&s); result.Error != nil {
+		if result := db.Where("user_id = ?", refreshClaims.UserID).First(&s); result.Error != nil {
 			return false
 		}
 
@@ -44,7 +44,7 @@ func IsAuthorized(c *middleware.WriterAndCookies, db *gorm.DB) bool {
 		}
 
 		// renew access_token
-		renewed, err := GetEncryptedToken(AccessToken, refreshClaims.Username, refreshClaims.UserType)
+		renewed, err := GetEncryptedToken(AccessToken, refreshClaims.UserID, refreshClaims.UserType)
 		if err != nil {
 			return false
 		}
