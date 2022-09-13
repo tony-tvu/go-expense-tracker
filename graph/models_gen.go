@@ -39,8 +39,7 @@ type PageInfo struct {
 }
 
 type PageInfoInput struct {
-	Limit int `json:"limit"`
-	Page  int `json:"page"`
+	Page int `json:"page"`
 }
 
 type PublicTokenInput struct {

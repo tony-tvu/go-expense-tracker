@@ -94,7 +94,6 @@ type PageInfo {
 }
 
 input PageInfoInput {
-  limit: Int!
   page: Int!
 }
 

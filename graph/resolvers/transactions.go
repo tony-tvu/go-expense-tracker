@@ -4,32 +4,34 @@ import (
 	"context"
 	"log"
 
-	// "github.com/tony-tvu/goexpense/auth"
+	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/graph"
-	// "github.com/tony-tvu/goexpense/middleware"
+	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/util"
-	// "github.com/vektah/gqlparser/v2/gqlerror"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
-func (r *queryResolver) Transactions(ctx context.Context, input graph.TransactionSearchInput) (*graph.TransactionConnection, error) {
-	// c := middleware.GetWriterAndCookies(ctx)
+var PAGE_LIMIT = 50
 
-	// if !auth.IsAuthorized(c, r.Db) {
-	// 	return nil, gqlerror.Errorf("not authorized")
-	// }
+func (r *queryResolver) Transactions(ctx context.Context, input graph.TransactionSearchInput) (*graph.TransactionConnection, error) {
+	c := middleware.GetWriterAndCookies(ctx)
+
+	id, _, err := auth.VerifyUser(c, r.Db)
+	if err != nil || *id != input.UserID {
+		return nil, gqlerror.Errorf("not authorized")
+	}
 
 	pagination := util.Pagination{
-		Limit: input.PageInfo.Limit,
-		Page: input.PageInfo.Page,
-		Sort: "date desc",
+		Limit: PAGE_LIMIT,
+		Page:  input.PageInfo.Page,
+		Sort:  "date desc",
 	}
 
 	conn := new(graph.TransactionConnection)
 
-
 	var transactions []*graph.Transaction
 
-	r.Db.Scopes(util.Paginate(transactions, &pagination, r.Db)).Where("user_id = ?", 1).Find(&transactions)
+	r.Db.Scopes(util.Paginate(transactions, &pagination, r.Db)).Where("user_id = ?", input.UserID).Find(&transactions)
 
 	log.Printf("\n%+v\n", pagination)
 
