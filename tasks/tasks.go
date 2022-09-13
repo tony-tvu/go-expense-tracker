@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"context"
 	"log"
 	"os"
 	"strconv"
@@ -98,4 +99,36 @@ func RefreshTransactions() {
 
 		time.Sleep(time.Duration(taskInterval) * time.Second)
 	}
+}
+
+func getTransactions(item entity.Item) ([]plaid.Transaction, []plaid.Transaction, []plaid.RemovedTransaction, string, error) {
+	ctx := context.Background()
+
+	// New transaction updates since "cursor"
+	var transactions []plaid.Transaction
+	var modified []plaid.Transaction
+	var removed []plaid.RemovedTransaction
+	cursor := item.Cursor
+	hasMore := true
+
+	for hasMore {
+		request := plaid.NewTransactionsSyncRequest(item.AccessToken)
+		if cursor != "" {
+			request.SetCursor(cursor)
+		}
+		resp, _, err := client.PlaidApi.TransactionsSync(
+			ctx,
+		).TransactionsSyncRequest(*request).Execute()
+		if err != nil {
+			return nil, nil, nil, "", err
+		}
+
+		transactions = append(transactions, resp.GetAdded()...)
+		modified = append(modified, resp.GetModified()...)
+		removed = append(removed, resp.GetRemoved()...)
+
+		hasMore = resp.GetHasMore()
+		cursor = resp.GetNextCursor()
+	}
+	return transactions, modified, removed, cursor, nil
 }

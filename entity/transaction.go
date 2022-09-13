@@ -10,6 +10,7 @@ type Transaction struct {
 	ID     uint `gorm:"primarykey"`
 	ItemID string
 	UserID uint
+	User   User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 
 	TransactionID string `gorm:"unique"`
 	Date          time.Time

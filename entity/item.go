@@ -12,8 +12,9 @@ Plaid Item:
 type Item struct {
 	ID     uint `gorm:"primarykey"`
 	UserID uint
+	User   User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 
-	ItemID      string
+	ItemID      string 
 	AccessToken string
 	Cursor      string
 
