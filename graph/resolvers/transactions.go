@@ -2,7 +2,6 @@ package resolvers
 
 import (
 	"context"
-	"log"
 
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/graph"
@@ -30,10 +29,7 @@ func (r *queryResolver) Transactions(ctx context.Context, input graph.Transactio
 	conn := new(graph.TransactionConnection)
 
 	var transactions []*graph.Transaction
-
 	r.Db.Scopes(util.Paginate(transactions, &pagination, r.Db)).Where("user_id = ?", input.UserID).Find(&transactions)
-
-	log.Printf("\n%+v\n", pagination)
 
 	conn.Nodes = transactions
 	conn.PageInfo = getPageInfo(&pagination)
