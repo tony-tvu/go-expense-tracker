@@ -28,9 +28,9 @@ and associated item_id, which can be used to get the user's transactions.
 func (r *queryResolver) LinkToken(ctx context.Context) (string, error) {
 	c := middleware.GetWriterAndCookies(ctx)
 
-	if !auth.IsAuthorized(c, r.Db) {
+	if _, _, err := auth.VerifyUser(c, r.Db); err != nil {
 		return "", gqlerror.Errorf("not authorized")
-	}
+	}	
 
 	cc := []plaid.CountryCode{}
 	for _, countryCode := range strings.Split(countryCodes, ",") {
@@ -67,9 +67,9 @@ func (r *queryResolver) LinkToken(ctx context.Context) (string, error) {
 func (r *mutationResolver) SetAccessToken(ctx context.Context, input models.PublicTokenInput) (bool, error) {
 	c := middleware.GetWriterAndCookies(ctx)
 
-	if !auth.IsAuthorized(c, r.Db) {
+	if _, _, err := auth.VerifyUser(c, r.Db); err != nil {
 		return false, gqlerror.Errorf("not authorized")
-	}
+	}	
 
 	if util.ContainsEmpty(input.PublicToken) {
 		return false, gqlerror.Errorf("bad request")

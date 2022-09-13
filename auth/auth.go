@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"errors"
+
 	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/util"
@@ -8,17 +10,23 @@ import (
 )
 
 // Function verifies if user is logged in and tokens are valid
-// Refreshes access tokens if they've expired and refresh token is valid
-func IsAuthorized(c *middleware.WriterAndCookies, db *gorm.DB) bool {
+// Refreshes access token if it has expired and returns user ID and type
+func VerifyUser(c *middleware.WriterAndCookies, db *gorm.DB) (*uint, *string, error) {
+	var userID uint
+	var userType string
+
 	if util.ContainsEmpty(c.EncryptedRefreshToken) {
-		return false
+		return nil, nil, errors.New("not authorized")
 	}
 
 	// validate refresh_token
 	refreshClaims, err := ValidateTokenAndGetClaims(c.EncryptedRefreshToken)
 	if err != nil {
-		return false
+		return nil, nil, errors.New("not authorized")
 	}
+
+	userID = refreshClaims.UserID
+	userType = refreshClaims.UserType
 
 	// check if access_token has expired
 	_, err = ValidateTokenAndGetClaims(c.EncryptedAccessToken)
@@ -29,45 +37,28 @@ func IsAuthorized(c *middleware.WriterAndCookies, db *gorm.DB) bool {
 		// find existing session
 		var s *entity.Session
 		if result := db.Where("user_id = ?", refreshClaims.UserID).First(&s); result.Error != nil {
-			return false
+			return nil, nil, errors.New("not authorized")
 		}
 
 		// verify token from db session matches request's token
 		if s.RefreshToken != c.EncryptedRefreshToken {
-			return false
+			return nil, nil, errors.New("not authorized")
 		}
 
 		// validate refresh_token from db
 		_, err := ValidateTokenAndGetClaims(s.RefreshToken)
 		if err != nil {
-			return false
+			return nil, nil, errors.New("not authorized")
 		}
 
 		// renew access_token
 		renewed, err := GetEncryptedToken(AccessToken, refreshClaims.UserID, refreshClaims.UserType)
 		if err != nil {
-			return false
+			return nil, nil, errors.New("not authorized")
 		}
 
 		c.SetToken("goexpense_access", renewed.Value, renewed.ExpiresAt)
 	}
 
-	return true
-}
-
-// Function verifies if user is an admin
-func IsAdmin(c *middleware.WriterAndCookies) bool {
-	if util.ContainsEmpty(c.EncryptedRefreshToken) {
-		return false
-	}
-
-	claims, err := ValidateTokenAndGetClaims(c.EncryptedRefreshToken)
-	if err != nil {
-		return false
-	}
-
-	if claims.UserType != string(entity.AdminUser) {
-		return false
-	}
-	return true
+	return &userID, &userType, nil
 }
