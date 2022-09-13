@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/tony-tvu/goexpense/auth"
+	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/graph/models"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/util"
@@ -75,7 +76,7 @@ func (r *mutationResolver) Login(ctx context.Context, input models.LoginInput) (
 	}
 
 	// save new session
-	if result := r.Db.Create(&models.Session{
+	if result := r.Db.Create(&entity.Session{
 		Username:     u.Username,
 		RefreshToken: refreshToken.Value,
 		ExpiresAt:    refreshToken.ExpiresAt,
