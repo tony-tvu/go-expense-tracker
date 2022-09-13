@@ -53,7 +53,7 @@ func (r *mutationResolver) Login(ctx context.Context, input models.LoginInput) (
 	// TODO: scrub user input
 
 	// find existing user account
-	var u *models.User
+	var u *entity.User
 	result := r.Db.Where("username = ?", input.Username).First(&u)
 	if result.Error != nil {
 		return false, gqlerror.Errorf("user not found")
@@ -72,7 +72,7 @@ func (r *mutationResolver) Login(ctx context.Context, input models.LoginInput) (
 	}
 
 	// delete existing sessions
-	if result := r.Db.Exec("DELETE FROM sessions WHERE username = ?", u.Username); result.Error != nil {
+	if result := r.Db.Exec("DELETE FROM sessions WHERE user_id = ?", u.ID); result.Error != nil {
 		return false, gqlerror.Errorf("internal server error")
 	}
 
@@ -109,7 +109,7 @@ func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
 		return false, gqlerror.Errorf("invalid token")
 	}
 
-	if result := r.Db.Exec("DELETE FROM sessions WHERE username = ?", claims.ID); result.Error != nil {
+	if result := r.Db.Exec("DELETE FROM sessions WHERE user_id = ?", claims.UserID); result.Error != nil {
 		return false, gqlerror.Errorf("internal server error")
 	}
 

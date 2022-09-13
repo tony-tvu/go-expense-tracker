@@ -12,7 +12,7 @@ import (
 )
 
 type Claims struct {
-	UserID uint
+	UserID   uint
 	UserType string
 	jwt.RegisteredClaims
 }
@@ -79,7 +79,7 @@ func GetEncryptedToken(tokenType TokenType, userID uint, userType string) (Token
 	}
 
 	accessTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
-		UserID: userID,
+		UserID:   userID,
 		UserType: userType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),

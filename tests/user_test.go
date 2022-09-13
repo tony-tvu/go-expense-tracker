@@ -67,7 +67,7 @@ func TestLoginAndLogout(t *testing.T) {
 	assert.Nil(t, qlRes.Errors)
 
 	// should no longer have user session saved after logging out
-	result = testApp.Db.Where("username = ?", username).First(&s)
+	result = testApp.Db.Where("user_id = ?", user.ID).First(&s)
 	assert.Equal(t, gorm.ErrRecordNotFound, result.Error)
 }
 
