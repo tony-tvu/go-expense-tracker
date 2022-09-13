@@ -26,7 +26,7 @@ func (r *queryResolver) IsLoggedIn(ctx context.Context) (bool, error) {
 func (r *mutationResolver) CreateUser(ctx context.Context, input models.NewUserInput) (*models.User, error) {
 	c := middleware.GetWriterAndCookies(ctx)
 
-	if !auth.IsAuthorized(c, r.Db) || !auth.IsAdmin(c, r.Db) {
+	if !auth.IsAuthorized(c, r.Db) || !auth.IsAdmin(c) {
 		return nil, gqlerror.Errorf("not authorized")
 	}
 	
@@ -36,7 +36,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input models.NewUserI
 func (r *queryResolver) Users(ctx context.Context) ([]*models.User, error) {
 	c := middleware.GetWriterAndCookies(ctx)
 
-	if !auth.IsAuthorized(c, r.Db) || !auth.IsAdmin(c, r.Db) {
+	if !auth.IsAuthorized(c, r.Db) || !auth.IsAdmin(c) {
 		return nil, gqlerror.Errorf("not authorized")
 	}
 	var users []*models.User
@@ -140,7 +140,7 @@ func (r *queryResolver) UserInfo(ctx context.Context) (*models.User, error) {
 func (r *queryResolver) Sessions(ctx context.Context) ([]*models.Session, error) {
 	c := middleware.GetWriterAndCookies(ctx)
 	
-	if !auth.IsAuthorized(c, r.Db) || !auth.IsAdmin(c, r.Db) {
+	if !auth.IsAuthorized(c, r.Db) || !auth.IsAdmin(c) {
 		return nil, gqlerror.Errorf("not authorized")
 	}
 	var sessions []*models.Session

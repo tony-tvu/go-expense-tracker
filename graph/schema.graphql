@@ -4,7 +4,7 @@ type Query {
   userInfo: User!
   isLoggedIn: Boolean!
   linkToken: String!
-  transactions(input: TransactionSearchInput): TransactionConnection!
+  transactions(input: TransactionSearchInput!): TransactionConnection!
 }
 
 type Mutation {
@@ -21,8 +21,7 @@ type TransactionConnection {
 
 input TransactionSearchInput {
   userID: ID!
-  page: Int!
-  perPage: Int!
+  pageInfo: PageInfoInput
 }
 
 input LoginInput {
@@ -65,7 +64,7 @@ type Session {
 
 type Transaction {
   id: ID!
-  itemID: ID!
+  itemID: String!
   userID: ID!
   transactionID: String!
   date: ISOTimestamp!
@@ -89,8 +88,14 @@ type Item {
 type PageInfo {
   limit: Int!
   page: Int!
+  sort: String!
   totalRows: Int!
   totalPages: Int!
+}
+
+input PageInfoInput {
+  limit: Int!
+  page: Int!
 }
 
 # An ISOTimestamp is an RFC3339-formatted timestamp string.

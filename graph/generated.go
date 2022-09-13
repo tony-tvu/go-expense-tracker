@@ -66,6 +66,7 @@ type ComplexityRoot struct {
 	PageInfo struct {
 		Limit      func(childComplexity int) int
 		Page       func(childComplexity int) int
+		Sort       func(childComplexity int) int
 		TotalPages func(childComplexity int) int
 		TotalRows  func(childComplexity int) int
 	}
@@ -74,7 +75,7 @@ type ComplexityRoot struct {
 		IsLoggedIn   func(childComplexity int) int
 		LinkToken    func(childComplexity int) int
 		Sessions     func(childComplexity int) int
-		Transactions func(childComplexity int, input *models.TransactionSearchInput) int
+		Transactions func(childComplexity int, input models.TransactionSearchInput) int
 		UserInfo     func(childComplexity int) int
 		Users        func(childComplexity int) int
 	}
@@ -128,7 +129,7 @@ type QueryResolver interface {
 	UserInfo(ctx context.Context) (*models.User, error)
 	IsLoggedIn(ctx context.Context) (bool, error)
 	LinkToken(ctx context.Context) (string, error)
-	Transactions(ctx context.Context, input *models.TransactionSearchInput) (*models.TransactionConnection, error)
+	Transactions(ctx context.Context, input models.TransactionSearchInput) (*models.TransactionConnection, error)
 }
 
 type executableSchema struct {
@@ -252,6 +253,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PageInfo.Page(childComplexity), true
 
+	case "PageInfo.sort":
+		if e.complexity.PageInfo.Sort == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.Sort(childComplexity), true
+
 	case "PageInfo.totalPages":
 		if e.complexity.PageInfo.TotalPages == nil {
 			break
@@ -297,7 +305,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Transactions(childComplexity, args["input"].(*models.TransactionSearchInput)), true
+		return e.complexity.Query.Transactions(childComplexity, args["input"].(models.TransactionSearchInput)), true
 
 	case "Query.userInfo":
 		if e.complexity.Query.UserInfo == nil {
@@ -491,6 +499,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputLoginInput,
 		ec.unmarshalInputNewUserInput,
+		ec.unmarshalInputPageInfoInput,
 		ec.unmarshalInputPublicTokenInput,
 		ec.unmarshalInputTransactionSearchInput,
 	)
@@ -635,10 +644,10 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_transactions_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *models.TransactionSearchInput
+	var arg0 models.TransactionSearchInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalOTransactionSearchInput2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐTransactionSearchInput(ctx, tmp)
+		arg0, err = ec.unmarshalNTransactionSearchInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐTransactionSearchInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1306,6 +1315,50 @@ func (ec *executionContext) fieldContext_PageInfo_page(ctx context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _PageInfo_sort(ctx context.Context, field graphql.CollectedField, obj *models.PageInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PageInfo_sort(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Sort, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PageInfo_sort(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PageInfo_totalRows(ctx context.Context, field graphql.CollectedField, obj *models.PageInfo) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_PageInfo_totalRows(ctx, field)
 	if err != nil {
@@ -1672,7 +1725,7 @@ func (ec *executionContext) _Query_transactions(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Transactions(rctx, fc.Args["input"].(*models.TransactionSearchInput))
+		return ec.resolvers.Query().Transactions(rctx, fc.Args["input"].(models.TransactionSearchInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2138,9 +2191,9 @@ func (ec *executionContext) _Transaction_itemID(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.(uint)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNID2uint(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Transaction_itemID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2150,7 +2203,7 @@ func (ec *executionContext) fieldContext_Transaction_itemID(ctx context.Context,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2617,6 +2670,8 @@ func (ec *executionContext) fieldContext_TransactionConnection_pageInfo(ctx cont
 				return ec.fieldContext_PageInfo_limit(ctx, field)
 			case "page":
 				return ec.fieldContext_PageInfo_page(ctx, field)
+			case "sort":
+				return ec.fieldContext_PageInfo_sort(ctx, field)
 			case "totalRows":
 				return ec.fieldContext_PageInfo_totalRows(ctx, field)
 			case "totalPages":
@@ -4789,6 +4844,42 @@ func (ec *executionContext) unmarshalInputNewUserInput(ctx context.Context, obj 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputPageInfoInput(ctx context.Context, obj interface{}) (models.PageInfoInput, error) {
+	var it models.PageInfoInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"limit", "page"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "limit":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+			it.Limit, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "page":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
+			it.Page, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputPublicTokenInput(ctx context.Context, obj interface{}) (models.PublicTokenInput, error) {
 	var it models.PublicTokenInput
 	asMap := map[string]interface{}{}
@@ -4824,7 +4915,7 @@ func (ec *executionContext) unmarshalInputTransactionSearchInput(ctx context.Con
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"userID", "page", "perPage"}
+	fieldsInOrder := [...]string{"userID", "pageInfo"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -4839,19 +4930,11 @@ func (ec *executionContext) unmarshalInputTransactionSearchInput(ctx context.Con
 			if err != nil {
 				return it, err
 			}
-		case "page":
+		case "pageInfo":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
-			it.Page, err = ec.unmarshalNInt2int(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "perPage":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("perPage"))
-			it.PerPage, err = ec.unmarshalNInt2int(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pageInfo"))
+			it.PageInfo, err = ec.unmarshalOPageInfoInput2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐPageInfoInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5025,6 +5108,13 @@ func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet,
 		case "page":
 
 			out.Values[i] = ec._PageInfo_page(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "sort":
+
+			out.Values[i] = ec._PageInfo_sort(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -6025,6 +6115,11 @@ func (ec *executionContext) marshalNTransactionConnection2ᚖgithubᚗcomᚋtony
 	return ec._TransactionConnection(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNTransactionSearchInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐTransactionSearchInput(ctx context.Context, v interface{}) (models.TransactionSearchInput, error) {
+	res, err := ec.unmarshalInputTransactionSearchInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNUser2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v models.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
@@ -6372,6 +6467,14 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
+func (ec *executionContext) unmarshalOPageInfoInput2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐPageInfoInput(ctx context.Context, v interface{}) (*models.PageInfoInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputPageInfoInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalOSession2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐSession(ctx context.Context, sel ast.SelectionSet, v *models.Session) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -6393,14 +6496,6 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	}
 	res := graphql.MarshalString(*v)
 	return res
-}
-
-func (ec *executionContext) unmarshalOTransactionSearchInput2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚋmodelsᚐTransactionSearchInput(ctx context.Context, v interface{}) (*models.TransactionSearchInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputTransactionSearchInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
-	"github.com/tony-tvu/goexpense/graph/models"
+	"github.com/tony-tvu/goexpense/entity"
 	"gorm.io/gorm"
 )
 
@@ -50,7 +50,7 @@ func RefreshTransactions() {
 	for {
 		log.Println("Running scheduled task: RefreshTransactions")
 
-		var items []models.Item
+		var items []entity.Item
 		if result := db.Raw("SELECT * FROM items").Scan(&items); result.Error != nil {
 			log.Printf("error occurred during refreshTransactions task: %+v\n", result.Error)
 		}
@@ -67,14 +67,14 @@ func RefreshTransactions() {
 			// save new transactions
 			for _, t := range transactions {
 				date, _ := time.Parse("2006-01-02", t.Date)
-				if result := db.Create(&models.Transaction{
-					ItemID:        item.ID,
+				if result := db.Create(&entity.Transaction{
+					ItemID:        item.ItemID,
 					UserID:        item.UserID,
 					TransactionID: t.GetTransactionId(),
 					Date:          date,
-					Amount:        float64(t.Amount),
+					Amount:        t.Amount,
 					// TODO: make method to pick one category from plaid's category array
-					Category: strings.Join(t.Category, ","),
+					Category: t.Category,
 					Name:     t.Name,
 				}); result.Error != nil {
 					if !strings.Contains(result.Error.Error(), "duplicate key value violates unique constraint") {

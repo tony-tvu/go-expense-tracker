@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tony-tvu/goexpense/graph/models"
+	"github.com/tony-tvu/goexpense/entity"
 	"gorm.io/gorm"
 )
 
@@ -51,7 +51,7 @@ func TestUserResolvers(t *testing.T) {
 		assert.Nil(t, qlRes.Errors)
 
 		// should have user session saved in db
-		var s models.Session
+		var s entity.Session
 		result := testApp.Db.Where("username = ?", username).First(&s)
 		assert.Nil(t, result.Error)
 		assert.Equal(t, username, s.Username)
@@ -103,7 +103,7 @@ func TestUserResolvers(t *testing.T) {
 
 		// should have correct user info returned
 		var data struct {
-			UserInfo models.User
+			UserInfo entity.User
 		}
 
 		err := json.Unmarshal(qlRes.Data, &data)
@@ -112,7 +112,7 @@ func TestUserResolvers(t *testing.T) {
 		assert.NotNil(t, data.UserInfo.ID)
 		assert.Equal(t, username, data.UserInfo.Username)
 		assert.Equal(t, email, data.UserInfo.Email)
-		assert.Equal(t, models.UserTypeRegular, data.UserInfo.Type)
+		assert.Equal(t, entity.RegularUser, data.UserInfo.Type)
 		assert.NotNil(t, data.UserInfo.CreatedAt)
 		assert.NotNil(t, data.UserInfo.UpdatedAt)
 	})

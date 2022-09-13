@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/plaid/plaid-go/plaid"
-	"github.com/tony-tvu/goexpense/graph/models"
+	"github.com/tony-tvu/goexpense/entity"
 )
 
-func getTransactions(item models.Item) ([]plaid.Transaction, []plaid.Transaction, []plaid.RemovedTransaction, string, error) {
+func getTransactions(item entity.Item) ([]plaid.Transaction, []plaid.Transaction, []plaid.RemovedTransaction, string, error) {
 	ctx := context.Background()
 
 	// New transaction updates since "cursor"

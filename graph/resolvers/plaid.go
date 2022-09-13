@@ -7,6 +7,7 @@ import (
 
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/auth"
+	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/graph/models"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/util"
@@ -89,12 +90,12 @@ func (r *mutationResolver) SetAccessToken(ctx context.Context, input models.Publ
 
 	// save new Item
 	claims, _ := auth.ValidateTokenAndGetClaims(c.EncryptedRefreshToken)
-	var u *models.User
+	var u *entity.User
 	if result := r.Db.Where("username = ?", claims.Username).First(&u); result.Error != nil {
 		return false, gqlerror.Errorf("internal server error")
 	}
 
-	if result := r.Db.Create(&models.Item{
+	if result := r.Db.Create(&entity.Item{
 		UserID:      u.ID,
 		ItemID:      itemID,
 		AccessToken: accessToken,

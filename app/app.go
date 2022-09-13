@@ -14,8 +14,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
+	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/graph"
-	"github.com/tony-tvu/goexpense/graph/models"
 	"github.com/tony-tvu/goexpense/graph/resolvers"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/tasks"
@@ -23,7 +23,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 type App struct {
@@ -68,16 +67,14 @@ func (a *App) Initialize(ctx context.Context) {
 			dbUser, dbPwd, dbName, dbHost, dbPort)
 	}
 
-	db, err := gorm.Open(postgres.Open(dbURI), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
+	db, err := gorm.Open(postgres.Open(dbURI), &gorm.Config{})
 	if err != nil {
 		log.Fatalln(err)
 	}
-	db.AutoMigrate(&models.Session{})
-	db.AutoMigrate(&models.User{})
-	db.AutoMigrate(&models.Item{})
-	db.AutoMigrate(&models.Transaction{})
+	db.AutoMigrate(&entity.Session{})
+	db.AutoMigrate(&entity.User{})
+	db.AutoMigrate(&entity.Item{})
+	db.AutoMigrate(&entity.Transaction{})
 
 	createInitialAdminUser(ctx, db)
 	a.Db = db
@@ -167,11 +164,11 @@ func createInitialAdminUser(ctx context.Context, db *gorm.DB) {
 	var exists bool
 	db.Raw("SELECT EXISTS(SELECT 1 FROM users WHERE username = ?) AS found", username).Scan(&exists)
 	if !exists {
-		db.Create(&models.User{
+		db.Create(&entity.User{
 			Username: username,
 			Email:    email,
 			Password: string(hash),
-			Type:     models.UserTypeAdmin,
+			Type:     entity.AdminUser,
 		})
 	}
 }

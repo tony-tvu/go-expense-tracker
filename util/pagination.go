@@ -14,7 +14,6 @@ type Pagination struct {
 	Sort       string
 	TotalRows  int64
 	TotalPages int
-	Rows       interface{}
 }
 
 func (p *Pagination) GetOffset() int {

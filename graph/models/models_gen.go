@@ -31,10 +31,16 @@ type NewUserInput struct {
 }
 
 type PageInfo struct {
-	Limit      int `json:"limit"`
-	Page       int `json:"page"`
-	TotalRows  int `json:"totalRows"`
-	TotalPages int `json:"totalPages"`
+	Limit      int    `json:"limit"`
+	Page       int    `json:"page"`
+	Sort       string `json:"sort"`
+	TotalRows  int    `json:"totalRows"`
+	TotalPages int    `json:"totalPages"`
+}
+
+type PageInfoInput struct {
+	Limit int `json:"limit"`
+	Page  int `json:"page"`
 }
 
 type PublicTokenInput struct {
@@ -51,7 +57,7 @@ type Session struct {
 
 type Transaction struct {
 	ID            uint      `json:"id"`
-	ItemID        uint      `json:"itemID"`
+	ItemID        string    `json:"itemID"`
 	UserID        uint      `json:"userID"`
 	TransactionID string    `json:"transactionID"`
 	Date          time.Time `json:"date"`
@@ -68,9 +74,8 @@ type TransactionConnection struct {
 }
 
 type TransactionSearchInput struct {
-	UserID  uint `json:"userID"`
-	Page    int  `json:"page"`
-	PerPage int  `json:"perPage"`
+	UserID   uint           `json:"userID"`
+	PageInfo *PageInfoInput `json:"pageInfo"`
 }
 
 type User struct {

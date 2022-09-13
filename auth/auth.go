@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/tony-tvu/goexpense/graph/models"
+	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/util"
 	"gorm.io/gorm"
@@ -27,7 +27,7 @@ func IsAuthorized(c *middleware.WriterAndCookies, db *gorm.DB) bool {
 	if err != nil {
 
 		// find existing session
-		var s *models.Session
+		var s *entity.Session
 		if result := db.Where("username = ?", refreshClaims.Username).First(&s); result.Error != nil {
 			return false
 		}
@@ -56,7 +56,7 @@ func IsAuthorized(c *middleware.WriterAndCookies, db *gorm.DB) bool {
 }
 
 // Function verifies if user is an admin
-func IsAdmin(c *middleware.WriterAndCookies, db *gorm.DB) bool {
+func IsAdmin(c *middleware.WriterAndCookies) bool {
 	if util.ContainsEmpty(c.EncryptedRefreshToken) {
 		return false
 	}
@@ -66,7 +66,7 @@ func IsAdmin(c *middleware.WriterAndCookies, db *gorm.DB) bool {
 		return false
 	}
 
-	if claims.UserType != string(models.UserTypeAdmin) {
+	if claims.UserType != string(entity.AdminUser) {
 		return false
 	}
 	return true
