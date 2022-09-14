@@ -46,10 +46,9 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Item struct {
-		AccessToken func(childComplexity int) int
 		CreatedAt   func(childComplexity int) int
-		Cursor      func(childComplexity int) int
 		ID          func(childComplexity int) int
+		Institution func(childComplexity int) int
 		ItemID      func(childComplexity int) int
 		UpdatedAt   func(childComplexity int) int
 		UserID      func(childComplexity int) int
@@ -146,13 +145,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
-	case "Item.accessToken":
-		if e.complexity.Item.AccessToken == nil {
-			break
-		}
-
-		return e.complexity.Item.AccessToken(childComplexity), true
-
 	case "Item.createdAt":
 		if e.complexity.Item.CreatedAt == nil {
 			break
@@ -160,19 +152,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Item.CreatedAt(childComplexity), true
 
-	case "Item.cursor":
-		if e.complexity.Item.Cursor == nil {
-			break
-		}
-
-		return e.complexity.Item.Cursor(childComplexity), true
-
 	case "Item.id":
 		if e.complexity.Item.ID == nil {
 			break
 		}
 
 		return e.complexity.Item.ID(childComplexity), true
+
+	case "Item.institution":
+		if e.complexity.Item.Institution == nil {
+			break
+		}
+
+		return e.complexity.Item.Institution(childComplexity), true
 
 	case "Item.itemID":
 		if e.complexity.Item.ItemID == nil {
@@ -825,8 +817,8 @@ func (ec *executionContext) fieldContext_Item_itemID(ctx context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Item_accessToken(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Item_accessToken(ctx, field)
+func (ec *executionContext) _Item_institution(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Item_institution(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -839,7 +831,7 @@ func (ec *executionContext) _Item_accessToken(ctx context.Context, field graphql
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.AccessToken, nil
+		return obj.Institution, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -856,51 +848,7 @@ func (ec *executionContext) _Item_accessToken(ctx context.Context, field graphql
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Item_accessToken(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Item",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Item_cursor(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Item_cursor(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Cursor, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Item_cursor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Item_institution(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Item",
 		Field:      field,
@@ -4974,16 +4922,9 @@ func (ec *executionContext) _Item(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "accessToken":
+		case "institution":
 
-			out.Values[i] = ec._Item_accessToken(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "cursor":
-
-			out.Values[i] = ec._Item_cursor(ctx, field, obj)
+			out.Values[i] = ec._Item_institution(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++

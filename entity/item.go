@@ -14,7 +14,8 @@ type Item struct {
 	UserID uint
 	User   User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 
-	ItemID      string 
+	Institution string
+	ItemID      string
 	AccessToken string
 	Cursor      string
 

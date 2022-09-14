@@ -14,7 +14,7 @@ const query = gql`
 `
 
 const mutation = gql`
-  mutation ($input: PublicToken!) {
+  mutation ($input: PublicTokenInput!) {
     setAccessToken(input: $input)
   }
 `

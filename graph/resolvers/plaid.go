@@ -30,12 +30,8 @@ func (r *queryResolver) LinkToken(ctx context.Context) (string, error) {
 
 	if _, _, err := auth.VerifyUser(c, r.Db); err != nil {
 		return "", gqlerror.Errorf("not authorized")
-	}	
-
-	cc := []plaid.CountryCode{}
-	for _, countryCode := range strings.Split(countryCodes, ",") {
-		cc = append(cc, plaid.CountryCode(countryCode))
 	}
+
 	p := []plaid.Products{}
 	for _, product := range strings.Split(products, ",") {
 		p = append(p, plaid.Products(product))
@@ -47,7 +43,7 @@ func (r *queryResolver) LinkToken(ctx context.Context) (string, error) {
 	request := plaid.NewLinkTokenCreateRequest(
 		"Plaid Quickstart",
 		"en",
-		cc,
+		convertCountryCodes(strings.Split(countryCodes, ",")),
 		user,
 	)
 	request.SetProducts(p)
@@ -69,7 +65,7 @@ func (r *mutationResolver) SetAccessToken(ctx context.Context, input graph.Publi
 
 	if _, _, err := auth.VerifyUser(c, r.Db); err != nil {
 		return false, gqlerror.Errorf("not authorized")
-	}	
+	}
 
 	if util.ContainsEmpty(input.PublicToken) {
 		return false, gqlerror.Errorf("bad request")
@@ -88,6 +84,11 @@ func (r *mutationResolver) SetAccessToken(ctx context.Context, input graph.Publi
 	accessToken := exchangePublicTokenResp.GetAccessToken()
 	itemID := exchangePublicTokenResp.GetItemId()
 
+	institution, err := getInstitution(ctx, r.PlaidClient, accessToken)
+	if err != nil {
+		return false, gqlerror.Errorf("internal server error")
+	}
+
 	// save new Item
 	claims, _ := auth.ValidateTokenAndGetClaims(c.EncryptedRefreshToken)
 	var u *entity.User
@@ -96,6 +97,7 @@ func (r *mutationResolver) SetAccessToken(ctx context.Context, input graph.Publi
 	}
 
 	if result := r.Db.Create(&entity.Item{
+		Institution: *institution,
 		UserID:      u.ID,
 		ItemID:      itemID,
 		AccessToken: accessToken,
@@ -104,4 +106,35 @@ func (r *mutationResolver) SetAccessToken(ctx context.Context, input graph.Publi
 	}
 
 	return true, nil
+}
+
+func getInstitution(ctx context.Context, client *plaid.APIClient, accessToken string) (*string, error) {
+	itemGetResp, _, err := client.PlaidApi.ItemGet(ctx).ItemGetRequest(
+		*plaid.NewItemGetRequest(accessToken),
+	).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	institutionGetByIdResp, _, err := client.PlaidApi.InstitutionsGetById(ctx).InstitutionsGetByIdRequest(
+		*plaid.NewInstitutionsGetByIdRequest(
+			*itemGetResp.GetItem().InstitutionId.Get(),
+			convertCountryCodes(strings.Split(countryCodes, ",")),
+		),
+	).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	institution := institutionGetByIdResp.GetInstitution().Name
+	return &institution, nil
+}
+
+func convertCountryCodes(countryCodeStrs []string) []plaid.CountryCode {
+	codes := []plaid.CountryCode{}
+	for _, countryCodeStr := range countryCodeStrs {
+		codes = append(codes, plaid.CountryCode(countryCodeStr))
+	}
+
+	return codes
 }

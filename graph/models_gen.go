@@ -13,8 +13,7 @@ type Item struct {
 	ID          uint      `json:"id"`
 	UserID      uint      `json:"userID"`
 	ItemID      string    `json:"itemID"`
-	AccessToken string    `json:"accessToken"`
-	Cursor      string    `json:"cursor"`
+	Institution string    `json:"institution"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 }

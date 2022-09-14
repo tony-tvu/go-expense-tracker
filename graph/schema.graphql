@@ -79,8 +79,7 @@ type Item {
   id: ID!
   userID: ID!
   itemID: String!
-  accessToken: String!
-  cursor: String!
+  institution: String!
   createdAt: ISOTimestamp!
   updatedAt: ISOTimestamp!
 }
