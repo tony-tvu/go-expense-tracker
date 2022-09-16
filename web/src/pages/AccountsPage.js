@@ -1,82 +1,103 @@
-import { useEffect, useState } from "react"
-import { usePlaidLink } from "react-plaid-link"
-import { Button } from "@chakra-ui/react"
-import { Text, Center, Flex } from "@chakra-ui/react"
-import logger from "../logger"
+import React, { useEffect } from "react"
 import { useVerifyLogin } from "../hooks/useVerifyLogin"
 import Navbar from "../components/Navbar"
-import { useQuery, gql, useMutation } from "@apollo/client"
+import { useLazyQuery, gql } from "@apollo/client"
+
+import {
+  Box,
+  Stack,
+  Grid,
+  GridItem,
+  Text,
+  Spacer,
+  Center,
+  Spinner,
+  HStack,
+  useColorModeValue,
+} from "@chakra-ui/react"
+import EditAccountBtn from "../components/EditAccountBtn"
+import AddAccountBtn from "../components/AddAccountBtn"
 
 const query = gql`
   query {
-    linkToken
-  }
-`
-
-const mutation = gql`
-  mutation ($input: PublicTokenInput!) {
-    setAccessToken(input: $input)
+    items {
+      id
+      userID
+      institution
+      createdAt
+      updatedAt
+    }
   }
 `
 
 export default function Accounts() {
   useVerifyLogin()
 
-  // link_token is required to start linking a bank account
-  const [linkToken, setLinkToken] = useState(null)
-
-  const { data } = useQuery(query, {
+  const [getItems, { data, loading }] = useLazyQuery(query, {
     fetchPolicy: "no-cache",
   })
 
-  const [setAccessToken] = useMutation(mutation)
+  const stackBgColor = useColorModeValue("white", "gray.900")
 
   useEffect(() => {
-    if (data && data.linkToken) {
-      setLinkToken(data.linkToken)
-    }
-  }, [data])
+    getItems()
+  }, [getItems])
 
-  /*
-   * Upon linking success, plaid api will return a public_token which will be used
-   * to get a permanent access_token for the user's specific linked bank account.
-   */
-  const onLinkAccountSuccess = async (public_token) => {
-    setAccessToken({
-      variables: {
-        input: {
-          publicToken: public_token,
-        },
-      },
-    }).catch((e) => {
-      logger("error setting access token", e)
-    })
+  function renderItem(item) {
+    return (
+      <GridItem w="100%" key={item.id}>
+        <HStack
+          borderWidth="1px"
+          borderRadius="lg"
+          height={"150px"}
+          bg={stackBgColor}
+          boxShadow={"2xl"}
+        >
+          <Stack flex={1} alignItems="center">
+            <Text fontSize="xl" as="b">
+              {item.institution}
+            </Text>
+          </Stack>
+          <Stack justifyContent="center" alignItems="center" p={5}>
+            <EditAccountBtn item={item} onSuccess={getItems} />
+          </Stack>
+        </HStack>
+      </GridItem>
+    )
   }
-
-  const plaidConfig = {
-    token: linkToken,
-    onSuccess: onLinkAccountSuccess,
-  }
-  const { open: openLinkingPopup, ready: isReadyToLinkAccount } =
-    usePlaidLink(plaidConfig)
 
   return (
-    <div>
+    <>
       <Navbar />
-      <Flex color="white" minH="85vh">
-        <Button
-          type="button"
-          onClick={() => openLinkingPopup()}
-          disabled={!isReadyToLinkAccount}
-          colorScheme="teal"
-          size="md"
-        >
-          Connect Account
-        </Button>
-        <Center w="500px" bg="green.500">
-          <Text>Box 1</Text>
-        </Center>
-      </Flex>
-    </div>
+      <Box pt={5} px={5} min={"100vh"}>
+        <Stack direction={{ base: "row", md: "row" }} pb={5} alignItems="end">
+          <Stack direction={{ base: "row", md: "row" }} alignItems="end">
+            <Text fontSize="3xl" as="b" pl={1}>
+              Accounts
+            </Text>
+          </Stack>
+          <Spacer />
+          <AddAccountBtn onSuccess={getItems} />
+        </Stack>
+
+        {!data || loading ? (
+          <Center pt={10}>
+            <Spinner
+              thickness="4px"
+              speed="0.65s"
+              emptyColor="gray.200"
+              color="blue.500"
+              size="xl"
+            />
+          </Center>
+        ) : (
+          <Grid templateColumns="repeat(2, 1fr)" gap={5}>
+            {data.items.map((item) => {
+              return renderItem(item)
+            })}
+          </Grid>
+        )}
+      </Box>
+    </>
   )
 }

@@ -10,15 +10,7 @@ export default function HomePage() {
   return (
     <>
       <Navbar />
-      <Flex
-        flexDirection="column"
-        width="100wh"
-        height="100vh"
-        backgroundColor={useColorModeValue(colors.bgLight, colors.bgDark)}
-        alignItems="center"
-      >
-        HOMEPAGE
-      </Flex>
+      HOMEPAGE
     </>
   )
 }

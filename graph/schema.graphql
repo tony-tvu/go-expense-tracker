@@ -5,6 +5,7 @@ type Query {
   isLoggedIn: Boolean!
   linkToken: String!
   transactions(input: TransactionSearchInput!): TransactionConnection!
+  items: [Item!]!
 }
 
 type Mutation {
@@ -12,6 +13,7 @@ type Mutation {
   logout: Boolean!
   createUser(input: NewUserInput!): User!
   setAccessToken(input: PublicTokenInput!): Boolean!
+  deleteItem(input: DeleteItemInput!): Boolean!
 }
 
 type TransactionConnection {
@@ -20,7 +22,8 @@ type TransactionConnection {
 }
 
 input TransactionSearchInput {
-  userID: ID!
+  # TODO: allow searching
+  # query: String
   pageInfo: PageInfoInput
 }
 
@@ -39,6 +42,10 @@ input PublicTokenInput {
   publicToken: String!
 }
 
+input DeleteItemInput {
+  id: ID!
+}
+
 enum UserType {
   ADMIN
   REGULAR
@@ -51,7 +58,6 @@ type User {
   type: UserType!
   password: String!
   createdAt: ISOTimestamp!
-  updatedAt: ISOTimestamp!
 }
 
 type Session {
@@ -72,13 +78,11 @@ type Transaction {
   category: String!
   name: String!
   createdAt: ISOTimestamp!
-  updatedAt: ISOTimestamp!
 }
 
 type Item {
   id: ID!
   userID: ID!
-  itemID: String!
   institution: String!
   createdAt: ISOTimestamp!
   updatedAt: ISOTimestamp!

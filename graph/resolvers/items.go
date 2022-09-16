@@ -138,3 +138,33 @@ func convertCountryCodes(countryCodeStrs []string) []plaid.CountryCode {
 
 	return codes
 }
+
+
+func (r *queryResolver) Items(ctx context.Context) ([]*graph.Item, error) {
+	c := middleware.GetWriterAndCookies(ctx)
+
+	userID, _, err := auth.VerifyUser(c, r.Db)
+	if err != nil {
+		return nil, gqlerror.Errorf("not authorized")
+	}
+
+	var items []*graph.Item
+	r.Db.Raw("SELECT * FROM items WHERE user_id = ?", userID).Scan(&items)
+
+	return items, nil
+}
+
+func (r *mutationResolver) DeleteItem(ctx context.Context, input graph.DeleteItemInput) (bool, error) {
+	c := middleware.GetWriterAndCookies(ctx)
+
+	userID, _, err := auth.VerifyUser(c, r.Db)
+	if err != nil {
+		return false, gqlerror.Errorf("not authorized")
+	}
+
+	if result := r.Db.Exec("DELETE FROM items WHERE user_id = ? AND id = ?", userID, input.ID); result.Error != nil {
+		return false, gqlerror.Errorf("internal server error")
+	}
+
+	return true, nil
+}

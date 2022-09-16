@@ -8,7 +8,8 @@ import (
 
 type Transaction struct {
 	ID     uint `gorm:"primarykey"`
-	ItemID string
+	ItemID uint
+	Item   Item `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	UserID uint
 	User   User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 
@@ -19,5 +20,4 @@ type Transaction struct {
 	Name          string
 
 	CreatedAt time.Time
-	UpdatedAt time.Time
 }

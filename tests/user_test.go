@@ -114,5 +114,4 @@ func TestUserInfo(t *testing.T) {
 	assert.Equal(t, email, data.UserInfo.Email)
 	assert.Equal(t, entity.RegularUser, data.UserInfo.Type)
 	assert.NotNil(t, data.UserInfo.CreatedAt)
-	assert.NotNil(t, data.UserInfo.UpdatedAt)
 }

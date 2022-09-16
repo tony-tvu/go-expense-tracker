@@ -49,13 +49,13 @@ type ComplexityRoot struct {
 		CreatedAt   func(childComplexity int) int
 		ID          func(childComplexity int) int
 		Institution func(childComplexity int) int
-		ItemID      func(childComplexity int) int
 		UpdatedAt   func(childComplexity int) int
 		UserID      func(childComplexity int) int
 	}
 
 	Mutation struct {
 		CreateUser     func(childComplexity int, input NewUserInput) int
+		DeleteItem     func(childComplexity int, input DeleteItemInput) int
 		Login          func(childComplexity int, input LoginInput) int
 		Logout         func(childComplexity int) int
 		SetAccessToken func(childComplexity int, input PublicTokenInput) int
@@ -71,6 +71,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		IsLoggedIn   func(childComplexity int) int
+		Items        func(childComplexity int) int
 		LinkToken    func(childComplexity int) int
 		Sessions     func(childComplexity int) int
 		Transactions func(childComplexity int, input TransactionSearchInput) int
@@ -95,7 +96,6 @@ type ComplexityRoot struct {
 		ItemID        func(childComplexity int) int
 		Name          func(childComplexity int) int
 		TransactionID func(childComplexity int) int
-		UpdatedAt     func(childComplexity int) int
 		UserID        func(childComplexity int) int
 	}
 
@@ -110,7 +110,6 @@ type ComplexityRoot struct {
 		ID        func(childComplexity int) int
 		Password  func(childComplexity int) int
 		Type      func(childComplexity int) int
-		UpdatedAt func(childComplexity int) int
 		Username  func(childComplexity int) int
 	}
 }
@@ -120,6 +119,7 @@ type MutationResolver interface {
 	Logout(ctx context.Context) (bool, error)
 	CreateUser(ctx context.Context, input NewUserInput) (*User, error)
 	SetAccessToken(ctx context.Context, input PublicTokenInput) (bool, error)
+	DeleteItem(ctx context.Context, input DeleteItemInput) (bool, error)
 }
 type QueryResolver interface {
 	Users(ctx context.Context) ([]*User, error)
@@ -128,6 +128,7 @@ type QueryResolver interface {
 	IsLoggedIn(ctx context.Context) (bool, error)
 	LinkToken(ctx context.Context) (string, error)
 	Transactions(ctx context.Context, input TransactionSearchInput) (*TransactionConnection, error)
+	Items(ctx context.Context) ([]*Item, error)
 }
 
 type executableSchema struct {
@@ -166,13 +167,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Item.Institution(childComplexity), true
 
-	case "Item.itemID":
-		if e.complexity.Item.ItemID == nil {
-			break
-		}
-
-		return e.complexity.Item.ItemID(childComplexity), true
-
 	case "Item.updatedAt":
 		if e.complexity.Item.UpdatedAt == nil {
 			break
@@ -198,6 +192,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(NewUserInput)), true
+
+	case "Mutation.deleteItem":
+		if e.complexity.Mutation.DeleteItem == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteItem_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteItem(childComplexity, args["input"].(DeleteItemInput)), true
 
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
@@ -271,6 +277,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.IsLoggedIn(childComplexity), true
+
+	case "Query.items":
+		if e.complexity.Query.Items == nil {
+			break
+		}
+
+		return e.complexity.Query.Items(childComplexity), true
 
 	case "Query.linkToken":
 		if e.complexity.Query.LinkToken == nil {
@@ -403,13 +416,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Transaction.TransactionID(childComplexity), true
 
-	case "Transaction.updatedAt":
-		if e.complexity.Transaction.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.Transaction.UpdatedAt(childComplexity), true
-
 	case "Transaction.userID":
 		if e.complexity.Transaction.UserID == nil {
 			break
@@ -466,13 +472,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Type(childComplexity), true
 
-	case "User.updatedAt":
-		if e.complexity.User.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.User.UpdatedAt(childComplexity), true
-
 	case "User.username":
 		if e.complexity.User.Username == nil {
 			break
@@ -488,6 +487,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputDeleteItemInput,
 		ec.unmarshalInputLoginInput,
 		ec.unmarshalInputNewUserInput,
 		ec.unmarshalInputPageInfoInput,
@@ -579,6 +579,21 @@ func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNNewUserInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐNewUserInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteItem_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 DeleteItemInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNDeleteItemInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐDeleteItemInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -768,50 +783,6 @@ func (ec *executionContext) fieldContext_Item_userID(ctx context.Context, field 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Item_itemID(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Item_itemID(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ItemID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Item_itemID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Item",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1099,8 +1070,6 @@ func (ec *executionContext) fieldContext_Mutation_createUser(ctx context.Context
 				return ec.fieldContext_User_password(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_User_updatedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -1168,6 +1137,61 @@ func (ec *executionContext) fieldContext_Mutation_setAccessToken(ctx context.Con
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_setAccessToken_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteItem(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteItem(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteItem(rctx, fc.Args["input"].(DeleteItemInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteItem(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteItem_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -1445,8 +1469,6 @@ func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field 
 				return ec.fieldContext_User_password(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_User_updatedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -1561,8 +1583,6 @@ func (ec *executionContext) fieldContext_Query_userInfo(ctx context.Context, fie
 				return ec.fieldContext_User_password(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_User_updatedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -1715,6 +1735,62 @@ func (ec *executionContext) fieldContext_Query_transactions(ctx context.Context,
 	if fc.Args, err = ec.field_Query_transactions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_items(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_items(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Items(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*Item)
+	fc.Result = res
+	return ec.marshalNItem2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐItemᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_items(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Item_id(ctx, field)
+			case "userID":
+				return ec.fieldContext_Item_userID(ctx, field)
+			case "institution":
+				return ec.fieldContext_Item_institution(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Item_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Item_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Item", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -2464,50 +2540,6 @@ func (ec *executionContext) fieldContext_Transaction_createdAt(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Transaction_updatedAt(ctx context.Context, field graphql.CollectedField, obj *Transaction) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Transaction_updatedAt(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UpdatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(time.Time)
-	fc.Result = res
-	return ec.marshalNISOTimestamp2timeᚐTime(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Transaction_updatedAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Transaction",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ISOTimestamp does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _TransactionConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *TransactionConnection) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_TransactionConnection_nodes(ctx, field)
 	if err != nil {
@@ -2565,8 +2597,6 @@ func (ec *executionContext) fieldContext_TransactionConnection_nodes(ctx context
 				return ec.fieldContext_Transaction_name(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Transaction_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_Transaction_updatedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Transaction", field.Name)
 		},
@@ -2882,50 +2912,6 @@ func (ec *executionContext) _User_createdAt(ctx context.Context, field graphql.C
 }
 
 func (ec *executionContext) fieldContext_User_createdAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "User",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ISOTimestamp does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _User_updatedAt(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_User_updatedAt(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.UpdatedAt, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(time.Time)
-	fc.Result = res
-	return ec.marshalNISOTimestamp2timeᚐTime(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_User_updatedAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
@@ -4711,6 +4697,34 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputDeleteItemInput(ctx context.Context, obj interface{}) (DeleteItemInput, error) {
+	var it DeleteItemInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2uint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj interface{}) (LoginInput, error) {
 	var it LoginInput
 	asMap := map[string]interface{}{}
@@ -4854,21 +4868,13 @@ func (ec *executionContext) unmarshalInputTransactionSearchInput(ctx context.Con
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"userID", "pageInfo"}
+	fieldsInOrder := [...]string{"pageInfo"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "userID":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
-			it.UserID, err = ec.unmarshalNID2uint(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "pageInfo":
 			var err error
 
@@ -4911,13 +4917,6 @@ func (ec *executionContext) _Item(ctx context.Context, sel ast.SelectionSet, obj
 		case "userID":
 
 			out.Values[i] = ec._Item_userID(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "itemID":
-
-			out.Values[i] = ec._Item_itemID(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -5004,6 +5003,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_setAccessToken(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deleteItem":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteItem(ctx, field)
 			})
 
 			if out.Values[i] == graphql.Null {
@@ -5233,6 +5241,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
+		case "items":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_items(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "__type":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -5385,13 +5416,6 @@ func (ec *executionContext) _Transaction(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "updatedAt":
-
-			out.Values[i] = ec._Transaction_updatedAt(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5486,13 +5510,6 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "createdAt":
 
 			out.Values[i] = ec._User_createdAt(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "updatedAt":
-
-			out.Values[i] = ec._User_updatedAt(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -5841,6 +5858,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) unmarshalNDeleteItemInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐDeleteItemInput(ctx context.Context, v interface{}) (DeleteItemInput, error) {
+	res, err := ec.unmarshalInputDeleteItemInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
 	res, err := graphql.UnmarshalFloatContext(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5899,6 +5921,60 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNItem2ᚕᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐItemᚄ(ctx context.Context, sel ast.SelectionSet, v []*Item) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNItem2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐItem(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNItem2ᚖgithubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐItem(ctx context.Context, sel ast.SelectionSet, v *Item) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Item(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋtonyᚑtvuᚋgoexpenseᚋgraphᚐLoginInput(ctx context.Context, v interface{}) (LoginInput, error) {

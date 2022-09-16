@@ -19,5 +19,4 @@ type User struct {
 	Type     Type
 
 	CreatedAt time.Time
-	UpdatedAt time.Time
 }

@@ -9,10 +9,13 @@ import (
 	"time"
 )
 
+type DeleteItemInput struct {
+	ID uint `json:"id"`
+}
+
 type Item struct {
 	ID          uint      `json:"id"`
 	UserID      uint      `json:"userID"`
-	ItemID      string    `json:"itemID"`
 	Institution string    `json:"institution"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
@@ -63,7 +66,6 @@ type Transaction struct {
 	Category      string    `json:"category"`
 	Name          string    `json:"name"`
 	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
 type TransactionConnection struct {
@@ -72,7 +74,6 @@ type TransactionConnection struct {
 }
 
 type TransactionSearchInput struct {
-	UserID   uint           `json:"userID"`
 	PageInfo *PageInfoInput `json:"pageInfo"`
 }
 
@@ -83,7 +84,6 @@ type User struct {
 	Type      UserType  `json:"type"`
 	Password  string    `json:"password"`
 	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type UserType string

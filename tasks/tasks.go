@@ -69,7 +69,7 @@ func RefreshTransactions() {
 			for _, t := range transactions {
 				date, _ := time.Parse("2006-01-02", t.Date)
 				if result := db.Create(&entity.Transaction{
-					ItemID:        item.ItemID,
+					ItemID:        item.ID,
 					UserID:        item.UserID,
 					TransactionID: t.GetTransactionId(),
 					Date:          date,
@@ -93,7 +93,7 @@ func RefreshTransactions() {
 
 			// Do not save new cursor if there was an error - we want to retry in the next task run
 			if isSuccess {
-				db.Exec("UPDATE items SET cursor = ? WHERE id = ?", cursor, item.ID)
+				db.Exec("UPDATE items SET cursor = ?, updated_at = ? WHERE id = ?", cursor, time.Now(), item.ID)
 			}
 		}
 

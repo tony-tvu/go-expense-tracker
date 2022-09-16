@@ -16,7 +16,7 @@ func (r *queryResolver) Transactions(ctx context.Context, input graph.Transactio
 	c := middleware.GetWriterAndCookies(ctx)
 
 	id, _, err := auth.VerifyUser(c, r.Db)
-	if err != nil || *id != input.UserID {
+	if err != nil {
 		return nil, gqlerror.Errorf("not authorized")
 	}
 
@@ -29,7 +29,7 @@ func (r *queryResolver) Transactions(ctx context.Context, input graph.Transactio
 	conn := new(graph.TransactionConnection)
 
 	var transactions []*graph.Transaction
-	r.Db.Scopes(util.Paginate(transactions, &pagination, r.Db)).Where("user_id = ?", input.UserID).Find(&transactions)
+	r.Db.Scopes(util.Paginate(transactions, &pagination, r.Db)).Where("user_id = ?", id).Find(&transactions)
 
 	conn.Nodes = transactions
 	conn.PageInfo = getPageInfo(&pagination)

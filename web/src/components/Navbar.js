@@ -15,14 +15,18 @@ import {
   useColorModeValue,
   useColorMode,
   Stack,
+  chakra,
 } from "@chakra-ui/react"
 import { Link as RouterLink } from "react-router-dom"
 import { HamburgerIcon, CloseIcon } from "@chakra-ui/icons"
-import { MoonIcon, SunIcon } from "@chakra-ui/icons"
-import { APP_NAME } from "../configs"
 import { useNavigate } from "react-router-dom"
 import logger from "../logger"
 import { gql, useMutation } from "@apollo/client"
+import { ColorModeSwitcher } from "../ColorModeSwitcher"
+import { FaCat } from "react-icons/fa"
+import { colors } from "../theme"
+
+const CFcat = chakra(FaCat)
 
 const mutation = gql`
   mutation {
@@ -52,18 +56,33 @@ export default function Navbar() {
 
   return (
     <>
-      <Box bg={useColorModeValue("gray.100", "gray.900")} px={4}>
-        <Flex h={16} alignItems={"center"} justifyContent={"space-between"}>
+      <Box>
+        <Flex
+          bg={"gray.800"}
+          h={"50px"}
+          pl={"2vw"}
+          pr={"2vw"}
+          alignItems={"center"}
+          justifyContent={"space-between"}
+          borderBottom={1}
+          borderStyle={"solid"}
+          borderColor={"gray.600"}
+        >
           <IconButton
             size={"md"}
             icon={isOpen ? <CloseIcon /> : <HamburgerIcon />}
             aria-label={"Open Menu"}
             display={{ md: "none" }}
             onClick={isOpen ? onClose : onOpen}
+            bg={"gray.700"}
+            color={"white"}
+            _hover={{
+              borderColor: "gray.500",
+            }}
           />
           <HStack spacing={8} alignItems={"center"}>
             <RouterLink to="/">
-              <Box>{APP_NAME}</Box>
+              <CFcat size={"30px"} color={colors.primary} />
             </RouterLink>
             <HStack
               as={"nav"}
@@ -76,19 +95,18 @@ export default function Navbar() {
                 rounded={"md"}
                 _hover={{
                   textDecoration: "none",
-                  bg: linkBgColor,
+                  bg: "gray.700",
                 }}
                 href={"/"}
+                color={"white"}
               >
-                Navlink 1
+                Overview
               </Link>
             </HStack>
           </HStack>
 
           <Flex alignItems={"center"}>
-            <Button onClick={toggleColorMode}>
-              {colorMode === "light" ? <MoonIcon /> : <SunIcon />}
-            </Button>
+            <ColorModeSwitcher justifySelf="flex-end" color="white" />
             <Menu>
               <MenuButton
                 ml={"20px"}
@@ -98,7 +116,7 @@ export default function Navbar() {
                 cursor={"pointer"}
                 minW={0}
               >
-                <Avatar size={"sm"} bg="teal.500" />
+                <Avatar size={"sm"} bg={colors.primary} />
               </MenuButton>
               <MenuList>
                 <MenuItem onClick={() => navigate("/accounts")}>
@@ -125,7 +143,7 @@ export default function Navbar() {
                 }}
                 href={"/"}
               >
-                Navlink 1
+                Overview
               </Link>
             </Stack>
           </Box>

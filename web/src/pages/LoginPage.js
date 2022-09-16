@@ -101,12 +101,7 @@ export default function LoginPage() {
         >
           <Flex flex={{ base: 1 }}>
             <RouterLink to="/">
-              <Text
-                fontSize="xl"
-                as="b"
-                fontFamily={"heading"}
-                color={"whiteAlpha.800"}
-              >
+              <Text fontSize="xl" as="b" fontFamily={"heading"} color={"white"}>
                 {APP_NAME}
               </Text>
             </RouterLink>
@@ -196,11 +191,11 @@ export default function LoginPage() {
                 borderRadius={0}
                 type="submit"
                 variant="solid"
-                backgroundColor={colors.primary}
+                bg={colors.primary}
                 width="full"
-                color={"black"}
+                color={"white"}
                 _hover={{
-                  bg: "pink.300",
+                  bg: colors.primaryFaded,
                 }}
               >
                 Login
