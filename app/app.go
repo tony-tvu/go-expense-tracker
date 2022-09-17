@@ -48,7 +48,7 @@ func (a *App) Initialize(ctx context.Context) {
 		log.Fatal("ENV is not set")
 	}
 
-	// Init database
+	// Database
 	dbUser := os.Getenv("DB_USER")
 	dbPwd := os.Getenv("DB_PASS")
 	dbHost := os.Getenv("DB_HOST")
@@ -79,7 +79,7 @@ func (a *App) Initialize(ctx context.Context) {
 	createInitialAdminUser(ctx, db)
 	a.Db = db
 
-	// Init plaid client
+	// Plaid
 	var plaidEnvs = map[string]plaid.Environment{
 		"sandbox":     plaid.Sandbox,
 		"development": plaid.Development,
@@ -98,7 +98,11 @@ func (a *App) Initialize(ctx context.Context) {
 	pc := plaid.NewAPIClient(plaidCfg)
 	a.PlaidClient = pc
 
-	// Init router
+	// Handlers
+	u := &handlers.UserHandler{Db: db}
+	p := &plaidapi.PlaidHandler{Db: db}
+
+	// Router
 	if env == Production {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -109,9 +113,37 @@ func (a *App) Initialize(ctx context.Context) {
 	}
 	router.Use(middleware.RateLimit())
 	router.Use(middleware.Logger(env))
-	router.Use(middleware.CookieProvider())
 
-	router.POST("/api/graphql", middleware.NoCache, graphqlHandler(db, pc))
+	api := router.Group("/api", middleware.NoCache)
+	{
+		api.GET("/health", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "Ok"})
+		})
+		api.POST("/logout", u.Logout)
+		api.POST("/login", middleware.LoginRateLimit(), u.Login)
+
+		authRequired := api.Group("/", middleware.AuthRequired(a.Db))
+		{
+			authRequired.GET("/logged_in", u.IsLoggedIn)
+			authRequired.GET("/user_info", u.GetUserInfo)
+			authRequired.GET("/create_link_token", p.CreateLinkToken)
+			authRequired.POST("/set_access_token", p.SetAccessToken)
+
+			adminRequired := authRequired.Group("/", middleware.AdminRequired(a.Db))
+			{
+				adminRequired.POST("/invite", u.InviteUser)
+				adminRequired.GET("/sessions", u.GetSessions)
+			}
+		}
+	}
+	
+
+
+
+
+
+
+
 	router.Use(middleware.FrontendCache, static.Serve("/", static.LocalFile("./web/build", true)))
 	router.NoRoute(middleware.FrontendCache, func(ctx *gin.Context) {
 		ctx.File("./web/build")
