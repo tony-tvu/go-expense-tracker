@@ -126,8 +126,8 @@ func TestAuthAdminRestricted(t *testing.T) {
 	assert.Equal(t, "not authorized", qlRes.Errors[0].Message)
 
 	// create regular user and login
-	username := "IsAdmin"
-	email := "IsAdmin@email.com"
+	username := "adminRestricted"
+	email := "adminRestricted@email.com"
 	password := "^%#(GY%H=G$%asdf"
 	user, cleanup := createUser(t, username, email, password)
 	defer cleanup()
@@ -148,7 +148,8 @@ func TestAuthAdminRestricted(t *testing.T) {
 	assert.Nil(t, qlRes.Errors)
 
 	// make user an admin and login
-	if result := testApp.Db.Model(&entity.User{}).Where("id = ?", user.ID).Update("type", entity.AdminUser); result.Error != nil {
+	result := testApp.Db.Model(&entity.User{}).Where("id = ?", user.ID).Update("type", entity.AdminUser)
+	if result.Error != nil {
 		t.FailNow()
 	}
 

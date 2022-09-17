@@ -106,6 +106,20 @@ export default function LoginPage() {
               </Text>
             </RouterLink>
           </Flex>
+          <Link
+            px={2}
+            py={1}
+            rounded={"md"}
+            _hover={{
+              textDecoration: "none",
+              bg: "gray.700",
+            }}
+            href={"/"}
+            color={"white"}
+          >
+            Register
+          </Link>
+
           <ColorModeSwitcher justifySelf="flex-end" />
         </Flex>
       </Box>
@@ -126,8 +140,9 @@ export default function LoginPage() {
             <Stack
               spacing={4}
               p="1rem"
-              backgroundColor={"whiteAlpha.800"}
-              boxShadow="md"
+              backgroundColor={useColorModeValue("whiteAlpha.800", "gray.900")}
+              boxShadow={"2xl"}
+              borderWidth="1px"
             >
               <FormControl>
                 <InputGroup>
@@ -139,13 +154,13 @@ export default function LoginPage() {
                     type="username"
                     placeholder="username"
                     _placeholder={{ color: "gray.500" }}
-                    borderColor={"gray.200"}
+                    borderColor={useColorModeValue("gray.300", "gray.600")}
                     _hover={{
                       borderColor: "gray.500",
                     }}
-                    color={"black"}
                     onChange={(event) => setUsername(event.target.value)}
-                    bg={"whiteAlpha.800"}
+                    color={useColorModeValue("black", "white")}
+                    bg={useColorModeValue("whiteAlpha.800", "gray.900")}
                   />
                 </InputGroup>
               </FormControl>
@@ -161,30 +176,38 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="password"
                     _placeholder={{ color: "gray.500" }}
-                    borderColor={"gray.200"}
+                    borderColor={useColorModeValue("gray.300", "gray.600")}
                     _hover={{
                       borderColor: "gray.500",
                     }}
-                    color={"black"}
-                    bg={"white"}
+                    color={useColorModeValue("black", "white")}
+                    bg={useColorModeValue("whiteAlpha.800", "gray.900")}
                   />
                   <InputRightElement width="4.5rem">
                     <Button
                       h="1.75rem"
                       size="sm"
                       onClick={handleShowClick}
-                      backgroundColor={"gray.200"}
+                      backgroundColor={useColorModeValue(
+                        "gray.300",
+                        "gray.900"
+                      )}
+                      color={useColorModeValue("black", "white")}
                       _hover={{
-                        backgroundColor: "gray.300",
+                        backgroundColor: useColorModeValue(
+                          "gray.400",
+                          "gray.700"
+                        ),
                       }}
-                      color={"black"}
                     >
                       {showPassword ? "Hide" : "Show"}
                     </Button>
                   </InputRightElement>
                 </InputGroup>
                 <FormHelperText textAlign="right">
-                  <Link color={"gray.600"}>forgot password?</Link>
+                  <Link color={useColorModeValue("black", "whiteAlpha.800")}>
+                    forgot password?
+                  </Link>
                 </FormHelperText>
               </FormControl>
               <Button

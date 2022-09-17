@@ -36,7 +36,6 @@ const mutation = gql`
 
 export default function Navbar() {
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { colorMode, toggleColorMode } = useColorMode()
   const navigate = useNavigate()
   const linkBgColor = useColorModeValue("gray.200", "gray.700")
 
