@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
+	"github.com/tony-tvu/goexpense/cache"
 	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/handlers"
 	"github.com/tony-tvu/goexpense/middleware"
@@ -73,9 +74,14 @@ func (a *App) Initialize(ctx context.Context) {
 	db.AutoMigrate(&entity.User{})
 	db.AutoMigrate(&entity.Item{})
 	db.AutoMigrate(&entity.Transaction{})
+	db.AutoMigrate(&entity.Config{})
 
 	createInitialAdminUser(ctx, db)
 	a.Db = db
+
+	// Caches
+	configCache := &cache.ConfigCache{}
+	configCache.InitConfigCache(db)
 
 	// Plaid
 	var plaidEnvs = map[string]plaid.Environment{
@@ -100,6 +106,7 @@ func (a *App) Initialize(ctx context.Context) {
 	users := &handlers.UserHandler{Db: db}
 	items := &handlers.ItemHandler{Db: db, Client: pc}
 	transactions := &handlers.TransactionHandler{Db: db}
+	config := &handlers.ConfigHandler{Cache: configCache}
 
 	// Router
 	if env == Production {
@@ -115,7 +122,10 @@ func (a *App) Initialize(ctx context.Context) {
 
 	api := router.Group("/api", middleware.NoCache)
 	{
-		// user
+		// configs
+		api.GET("/registration_allowed", config.RegistrationAllowed)
+
+		// users
 		api.POST("/logout", users.Logout)
 		api.POST("/login", middleware.LoginRateLimit(), users.Login)
 		api.GET("/logged_in", users.IsLoggedIn)
