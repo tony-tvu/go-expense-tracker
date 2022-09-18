@@ -121,10 +121,6 @@ func (a *App) Initialize(ctx context.Context) {
 	// middleware
 	router.Use(middleware.RateLimit())
 	router.Use(middleware.Logger(env))
-	router.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Content-Type", "application/json")
-		c.Next()
-	})
 
 	api := router.Group("/api", middleware.NoCache)
 	{

@@ -29,6 +29,9 @@ export default function Accounts() {
     await fetch(`${process.env.REACT_APP_API_URL}/items`, {
       method: 'GET',
       credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
     })
       .then(async (res) => {
         if (!res) return
@@ -111,10 +114,4 @@ export default function Accounts() {
       </Box>
     </>
   )
-}
-
-{
-  /* <Text fontSize="l" pl={1}>
-You have not linked any accounts.
-</Text> */
 }

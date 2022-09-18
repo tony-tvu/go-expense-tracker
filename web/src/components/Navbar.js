@@ -23,13 +23,30 @@ import logger from '../logger'
 import { ColorModeSwitcher } from '../ColorModeSwitcher'
 import { FaCat } from 'react-icons/fa'
 import { colors } from '../theme'
+import { useEffect, useState } from 'react'
 
 const CFcat = chakra(FaCat)
 
 export default function Navbar() {
+  const [isAdmin, setIsAdmin] = useState(false)
   const { isOpen, onOpen, onClose } = useDisclosure()
   const navigate = useNavigate()
   const linkBgColor = useColorModeValue('gray.200', 'gray.700')
+
+  useEffect(() => {
+    fetch(`${process.env.REACT_APP_API_URL}/is_admin`, {
+      method: 'GET',
+      credentials: 'include',
+    })
+      .then((res) => {
+        if (res.status === 200) {
+          setIsAdmin(true)
+        }
+      })
+      .catch((err) => {
+        logger('error verifying login state', err)
+      })
+  }, [])
 
   function logout() {
     fetch(`${process.env.REACT_APP_API_URL}/logout`, {
@@ -114,7 +131,11 @@ export default function Navbar() {
                 <MenuItem onClick={() => navigate('/accounts')}>
                   Accounts
                 </MenuItem>
-                <MenuItem>Settings</MenuItem>
+                {isAdmin && (
+                  <MenuItem onClick={() => navigate('/admin')}>
+                    Admin
+                  </MenuItem>
+                )}
                 <MenuDivider />
                 <MenuItem onClick={logout}>Logout</MenuItem>
               </MenuList>

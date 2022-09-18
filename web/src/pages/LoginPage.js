@@ -67,12 +67,14 @@ export default function LoginPage() {
     ])
   }, [navigate])
 
-  console.log(registrationEnabled)
   async function handleSubmit(e) {
     e.preventDefault()
     await fetch(`${process.env.REACT_APP_API_URL}/login`, {
       method: 'POST',
       credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ username: username, password: password }),
     })
       .then((res) => {
@@ -109,7 +111,7 @@ export default function LoginPage() {
               </Text>
             </RouterLink>
           </Flex>
-          {registrationEnabled ? (
+          {registrationEnabled && (
             <Link
               px={2}
               py={1}
@@ -123,8 +125,6 @@ export default function LoginPage() {
             >
               Register
             </Link>
-          ) : (
-            <></>
           )}
 
           <ColorModeSwitcher justifySelf="flex-end" />
