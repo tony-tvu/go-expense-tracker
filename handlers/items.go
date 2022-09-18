@@ -39,7 +39,7 @@ and associated item_id, which can be used to get the user's transactions.
 func (h *ItemHandler) GetLinkToken(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	if _, _, err := auth.VerifyUser(c, h.Db); err != nil {
+	if _, _, err := auth.AuthorizeUser(c, h.Db); err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
@@ -73,7 +73,7 @@ func (h *ItemHandler) GetLinkToken(c *gin.Context) {
 }
 
 func (h *ItemHandler) GetItems(c *gin.Context) {
-	userID, _, err := auth.VerifyUser(c, h.Db)
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -94,7 +94,7 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 func (h *ItemHandler) CreateItem(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	userID, _, err := auth.VerifyUser(c, h.Db)
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -156,7 +156,7 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 }
 
 func (h *ItemHandler) DeleteItem(c *gin.Context) {
-	userID, _, err := auth.VerifyUser(c, h.Db)
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return

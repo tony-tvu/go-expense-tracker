@@ -23,7 +23,7 @@ type PageInfoInput struct {
 var PAGE_LIMIT = 50
 
 func (h *TransactionHandler) GetTransactions(c *gin.Context) {
-	id, _, err := auth.VerifyUser(c, h.Db)
+	id, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return

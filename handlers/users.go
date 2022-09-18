@@ -28,21 +28,21 @@ func init() {
 }
 
 func (h *UserHandler) IsLoggedIn(c *gin.Context) {
-	if _, _, err := auth.VerifyUser(c, h.Db); err != nil {
+	if _, _, err := auth.AuthorizeUser(c, h.Db); err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 }
 
 func (h *UserHandler) IsAdmin(c *gin.Context) {
-	if _, userType, err := auth.VerifyUser(c, h.Db); err != nil || *userType != string(entity.AdminUser) {
+	if _, userType, err := auth.AuthorizeUser(c, h.Db); err != nil || *userType != string(entity.AdminUser) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 }
 
 func (h *UserHandler) GetUsers(c *gin.Context) {
-	if _, uType, err := auth.VerifyUser(c, h.Db); err != nil || *uType != string(entity.AdminUser) {
+	if _, uType, err := auth.AuthorizeUser(c, h.Db); err != nil || *uType != string(entity.AdminUser) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
@@ -130,7 +130,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 }
 
 func (h *UserHandler) Logout(c *gin.Context) {
-	userID, _, err := auth.VerifyUser(c, h.Db)
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -146,7 +146,7 @@ func (h *UserHandler) Logout(c *gin.Context) {
 }
 
 func (h *UserHandler) GetUserInfo(c *gin.Context) {
-	id, _, err := auth.VerifyUser(c, h.Db)
+	id, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -166,7 +166,7 @@ func (h *UserHandler) GetUserInfo(c *gin.Context) {
 }
 
 func (h *UserHandler) GetSessions(c *gin.Context) {
-	if _, uType, err := auth.VerifyUser(c, h.Db); err != nil || *uType != string(entity.AdminUser) {
+	if _, uType, err := auth.AuthorizeUser(c, h.Db); err != nil || *uType != string(entity.AdminUser) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}

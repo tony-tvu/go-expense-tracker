@@ -8,7 +8,7 @@ import (
 	"github.com/tony-tvu/goexpense/entity"
 )
 
-// VerifyUsers should issue access tokens correctly
+// AuthorizeUser should issue access tokens correctly
 func TestAuthTokens(t *testing.T) {
 	t.Parallel()
 
@@ -34,7 +34,7 @@ func TestAuthTokens(t *testing.T) {
 	assert.NotEqual(t, accessToken, cookies["goexpense_access"])
 }
 
-// VerifyUsers should return 401 for revoked sessions
+// AuthorizeUser should return 401 for revoked sessions
 func TestAuthRevokeTokens(t *testing.T) {
 	t.Parallel()
 

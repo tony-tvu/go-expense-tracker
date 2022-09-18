@@ -10,8 +10,9 @@ import (
 )
 
 // Function verifies if user is logged in and tokens are valid
-// Refreshes access token if it has expired and returns user ID and type
-func VerifyUser(c *gin.Context, db *gorm.DB) (*uint, *string, error) {
+// Refreshes access token if it has expired and extends sessions
+// Returns user ID and type
+func AuthorizeUser(c *gin.Context, db *gorm.DB) (*uint, *string, error) {
 	var userID uint
 	var userType string
 
@@ -60,7 +61,7 @@ func VerifyUser(c *gin.Context, db *gorm.DB) (*uint, *string, error) {
 		}
 		session.RefreshToken = renewedRefresh.Value
 		session.ExpiresAt = renewedRefresh.ExpiresAt
-		db.Save(&session) 
+		db.Save(&session)
 
 		util.SetCookie(c.Writer, "goexpense_refresh", renewedRefresh.Value, renewedRefresh.ExpiresAt)
 	}
