@@ -12,11 +12,12 @@ const (
 )
 
 type User struct {
-	ID       uint   `gorm:"primarykey"`
-	Username string `gorm:"unique"`
-	Email    string `gorm:"unique"`
+	ID       uint   `json:"id" gorm:"primarykey"`
+	Username string `json:"username" gorm:"unique"`
+	Email    string `json:"email" gorm:"unique"`
 	Password string
-	Type     Type
+	Type     Type `json:"type"`
 
-	CreatedAt time.Time
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

@@ -9,6 +9,11 @@ import (
 	"gorm.io/gorm"
 )
 
+// These configuration values are accessed regularly in numerous locations.
+// To avoid making excessive calls to the database, the configs cache is
+// populated on startup using the existing configs from the db and the cached
+// object can be accessed wherever needed. Whenever a config value is updated
+// within the db, the cached configs will also get updated.
 type Configs struct {
 	Cache *bigcache.BigCache
 }

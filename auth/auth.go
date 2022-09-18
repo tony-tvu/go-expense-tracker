@@ -15,6 +15,7 @@ func VerifyUser(c *gin.Context, db *gorm.DB) (*uint, *string, error) {
 	var userID uint
 	var userType string
 
+	// no refresh cookie means session has expired or user is not logged in
 	refreshCookie, err := c.Request.Cookie("goexpense_refresh")
 	if err != nil {
 		return nil, nil, errors.New("not authorized")
@@ -34,29 +35,34 @@ func VerifyUser(c *gin.Context, db *gorm.DB) (*uint, *string, error) {
 	if err != nil {
 
 		// find existing session
-		var s *entity.Session
-		if result := db.Where("user_id = ?", refreshClaims.UserID).First(&s); result.Error != nil {
-			return nil, nil, errors.New("not authorized")
-		}
-
-		// verify token from db session matches request's token
-		if s.RefreshToken != refreshCookie.Value {
+		var session *entity.Session
+		if result := db.Where("user_id = ?", userID).First(&session); result.Error != nil {
 			return nil, nil, errors.New("not authorized")
 		}
 
 		// validate refresh_token from db
-		_, err := ValidateTokenAndGetClaims(s.RefreshToken)
+		_, err := ValidateTokenAndGetClaims(session.RefreshToken)
 		if err != nil {
 			return nil, nil, errors.New("not authorized")
 		}
 
 		// renew access_token
-		renewed, err := GetEncryptedToken(AccessToken, refreshClaims.UserID, refreshClaims.UserType)
+		renewedAccess, err := GetEncryptedToken(AccessToken, userID, userType)
 		if err != nil {
-			return nil, nil, errors.New("not authorized")
+			return nil, nil, errors.New("internal server error")
 		}
+		util.SetCookie(c.Writer, "goexpense_access", renewedAccess.Value, renewedAccess.ExpiresAt)
 
-		util.SetCookie(c.Writer, "goexpense_access", renewed.Value, renewed.ExpiresAt)
+		// extend user session
+		renewedRefresh, err := GetEncryptedToken(RefreshToken, userID, userType)
+		if err != nil {
+			return nil, nil, errors.New("internal server error")
+		}
+		session.RefreshToken = renewedRefresh.Value
+		session.ExpiresAt = renewedRefresh.ExpiresAt
+		db.Save(&session) 
+
+		util.SetCookie(c.Writer, "goexpense_refresh", renewedRefresh.Value, renewedRefresh.ExpiresAt)
 	}
 
 	return &userID, &userType, nil
