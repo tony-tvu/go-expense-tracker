@@ -93,7 +93,8 @@ func RefreshTransactions() {
 
 			// Do not save new cursor if there was an error - we want to retry in the next task run
 			if isSuccess {
-				db.Exec("UPDATE items SET cursor = ?, updated_at = ? WHERE id = ?", cursor, time.Now(), item.ID)
+				item.Cursor = cursor
+				db.Save(&item)
 			}
 		}
 
