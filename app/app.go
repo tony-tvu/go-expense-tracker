@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
+	"github.com/tony-tvu/goexpense/config"
 	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/handlers"
 	"github.com/tony-tvu/goexpense/middleware"
@@ -73,9 +74,14 @@ func (a *App) Initialize(ctx context.Context) {
 	db.AutoMigrate(&entity.User{})
 	db.AutoMigrate(&entity.Item{})
 	db.AutoMigrate(&entity.Transaction{})
+	db.AutoMigrate(&config.Config{})
 
 	createInitialAdminUser(ctx, db)
 	a.Db = db
+
+	// Config cache
+	cache := config.CreateCache(db)
+	log.Println(cache)
 
 	// Plaid
 	var plaidEnvs = map[string]plaid.Environment{

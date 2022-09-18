@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/util"
 	"gorm.io/gorm"
 )
 
@@ -47,14 +48,14 @@ func (h *TransactionHandler) GetTransactions(c *gin.Context) {
 		return
 	}
 
-	pagination := entity.Pagination{
+	pagination := util.Pagination{
 		Limit: PAGE_LIMIT,
 		Page:  input.Page,
 		Sort:  "date desc",
 	}
 
 	var transactions []*entity.Transaction
-	h.Db.Scopes(entity.Paginate(transactions, &pagination, h.Db)).Where("user_id = ?", id).Find(&transactions)
+	h.Db.Scopes(util.Paginate(transactions, &pagination, h.Db)).Where("user_id = ?", id).Find(&transactions)
 
 	c.JSON(http.StatusOK, gin.H{
 		"transactions": transactions,
