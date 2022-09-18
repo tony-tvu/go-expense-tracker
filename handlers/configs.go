@@ -7,18 +7,18 @@ import (
 	"github.com/tony-tvu/goexpense/cache"
 )
 
-type ConfigHandler struct {
-	Cache *cache.ConfigCache
+type ConfigsHandler struct {
+	Cache *cache.Configs
 }
 
-func (h *ConfigHandler) RegistrationAllowed(c *gin.Context) {
-	isAllowed, err := h.Cache.GetRegistrationAllowed()
+func (h *ConfigsHandler) RegistrationEnabled(c *gin.Context) {
+	configs, err := h.Cache.GetConfigs()
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"registration_allowed": isAllowed,
+		"registration_allowed": configs.RegistrationEnabled,
 	})
 }

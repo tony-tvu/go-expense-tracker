@@ -80,8 +80,8 @@ func (a *App) Initialize(ctx context.Context) {
 	a.Db = db
 
 	// Caches
-	configCache := &cache.ConfigCache{}
-	configCache.InitConfigCache(db)
+	cachedConf := &cache.Configs{}
+	cachedConf.InitConfigsCache(db)
 
 	// Plaid
 	var plaidEnvs = map[string]plaid.Environment{
@@ -106,7 +106,7 @@ func (a *App) Initialize(ctx context.Context) {
 	users := &handlers.UserHandler{Db: db}
 	items := &handlers.ItemHandler{Db: db, Client: pc}
 	transactions := &handlers.TransactionHandler{Db: db}
-	config := &handlers.ConfigHandler{Cache: configCache}
+	configs := &handlers.ConfigsHandler{Cache: cachedConf}
 
 	// Router
 	if env == Production {
@@ -123,7 +123,7 @@ func (a *App) Initialize(ctx context.Context) {
 	api := router.Group("/api", middleware.NoCache)
 	{
 		// configs
-		api.GET("/registration_allowed", config.RegistrationAllowed)
+		api.GET("/registration_enabled", configs.RegistrationEnabled)
 
 		// users
 		api.POST("/logout", users.Logout)

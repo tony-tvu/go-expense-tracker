@@ -1,20 +1,19 @@
 package cache
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
-	"strconv"
 
 	"github.com/allegro/bigcache"
 	"github.com/tony-tvu/goexpense/entity"
 	"gorm.io/gorm"
 )
 
-type ConfigCache struct {
+type Configs struct {
 	Cache *bigcache.BigCache
 }
 
-func (c *ConfigCache) InitConfigCache(db *gorm.DB) {
+func (c *Configs) InitConfigsCache(db *gorm.DB) {
 	cacheConfig := bigcache.Config{
 		Shards:     16,
 		LifeWindow: 0,
@@ -44,23 +43,26 @@ func (c *ConfigCache) InitConfigCache(db *gorm.DB) {
 		log.Fatal(err)
 	}
 
-	cache.Set("registration_allowed", []byte(fmt.Sprint(conf.RegistrationAllowed)))
-	cache.Set("quota_enforced", []byte(fmt.Sprint(conf.QuotaEnforced)))
-	cache.Set("quota_limit", []byte(fmt.Sprint(conf.QuotaLimit)))
+	b, err := json.Marshal(conf)
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	cache.Set("configs", b)
 	c.Cache = cache
 }
 
-func (c *ConfigCache) GetRegistrationAllowed() (*bool, error) {
-	value, err := c.Cache.Get("registration_allowed")
+func (c *Configs) GetConfigs() (*entity.Config, error) {
+	var conf entity.Config
+	b, err := c.Cache.Get("configs")
 	if err != nil {
 		return nil, err
 	}
 
-	valuebool, err := strconv.ParseBool(string(value))
+	err = json.Unmarshal(b, &conf)
 	if err != nil {
 		return nil, err
 	}
 
-	return &valuebool, nil
+	return &conf, nil
 }

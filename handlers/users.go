@@ -18,7 +18,7 @@ import (
 
 type UserHandler struct {
 	Db    *gorm.DB
-	Cache *cache.ConfigCache
+	Cache *cache.Configs
 }
 
 var v *validator.Validate
