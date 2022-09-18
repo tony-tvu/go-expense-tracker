@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -18,46 +17,22 @@ type QLResponse struct {
 	Errors []struct{ Message string }
 }
 
-// Log user in and return access token
-func logUserIn(t *testing.T, username, password string) (string, string, *QLResponse) {
+// Log user in and return tokens
+func logUserIn(t *testing.T, username, password string) (string, string, int) {
 	t.Helper()
+	m := map[string]string{"username": username, "password": password}
+	b := new(bytes.Buffer)
 
-	query := fmt.Sprintf(
-		`mutation {
-			login(
-				input: {
-					username: "%s"
-					password: "%s"
-				}
-			)
-		}`, username, password,
-	)
-
-	query = strings.Replace(query, "\t", "", -1)
-	q := struct{ Query string }{Query: query}
-
-	data, err := json.Marshal(q)
-	if err != nil {
-		t.Fatal("failed to marshal graphql query")
-	}
-
-	url := srv.URL + "/api/graphql"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
+	err := json.NewEncoder(b).Encode(m)
 	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
+
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/login", srv.URL), b)
+	require.NoError(t, err)
 
 	res, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
-	defer res.Body.Close()
-	require.Equal(t, 200, res.StatusCode)
-
-	var qlRes QLResponse
-	err = json.NewDecoder(res.Body).Decode(&qlRes)
-	if err != nil {
-		t.Fatal("failed to parse GraphQL response:", err)
-	}
-	if len(qlRes.Errors) > 0 {
-		return "", "", &qlRes
+	if res.StatusCode != 200 {
+		return "", "", res.StatusCode
 	}
 
 	cookies := getCookies(t, res.Cookies())
@@ -69,7 +44,7 @@ func logUserIn(t *testing.T, username, password string) (string, string, *QLResp
 	if refreshToken == "" {
 		t.FailNow()
 	}
-	return accessToken, refreshToken, &qlRes
+	return accessToken, refreshToken, res.StatusCode
 }
 
 // Save a new user to db
@@ -96,6 +71,8 @@ func createUser(t *testing.T, username, email, password string) (*entity.User, f
 }
 
 func deleteUser(t *testing.T, username string) {
+	t.Helper()
+
 	if result := testApp.Db.Exec("DELETE FROM users WHERE username = ?", username); result.Error != nil {
 		t.FailNow()
 	}
@@ -104,33 +81,26 @@ func deleteUser(t *testing.T, username string) {
 // Return cookies map from http response cookies
 func getCookies(t *testing.T, cookies_res []*http.Cookie) map[string]string {
 	t.Helper()
+
 	cookies := make(map[string]string)
 	for _, cookie := range cookies_res {
 		cookies[cookie.Name] = cookie.Value
 	}
 	return cookies
 }
-
-func doQL(t *testing.T, accessToken *string, refreshToken *string, query ...string) (*http.Response, *QLResponse) {
+func makeRequest(t *testing.T, method string, url string, accessToken *string, refreshToken *string, body ...map[string]string) (res *http.Response) {
 	t.Helper()
+	
 	var req *http.Request
-	url := srv.URL + "/api/graphql"
 
-	if len(query) > 0 {
-		rawQuery := query[0]
-		rawQuery = strings.Replace(rawQuery, "\t", "", -1)
-		q := struct{ Query string }{Query: rawQuery}
-
-		data, err := json.Marshal(q)
-		if err != nil {
-			t.Fatal("failed to marshal graphql query")
-		}
-
-		req, _ = http.NewRequest("POST", url, bytes.NewBuffer(data))
+	if len(body) > 0 {
+		b := body[0]
+		bodyJSON, err := json.Marshal(b)
+		require.NoError(t, err)
+		req, _ = http.NewRequest(method, fmt.Sprintf("%s%s", srv.URL, url), bytes.NewBuffer(bodyJSON))
 	} else {
-		req, _ = http.NewRequest("POST", url, nil)
+		req, _ = http.NewRequest(method, fmt.Sprintf("%s%s", srv.URL, url), nil)
 	}
-	req.Header.Set("Content-Type", "application/json")
 
 	if accessToken != nil {
 		req.AddCookie(&http.Cookie{
@@ -146,13 +116,5 @@ func doQL(t *testing.T, accessToken *string, refreshToken *string, query ...stri
 
 	res, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
-	defer res.Body.Close()
-
-	var qlRes QLResponse
-	err = json.NewDecoder(res.Body).Decode(&qlRes)
-	if err != nil {
-		t.Fatal("failed to parse GraphQL response:", err)
-	}
-
-	return res, &qlRes
+	return res
 }

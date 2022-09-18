@@ -8,15 +8,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/entity"
-	"github.com/tony-tvu/goexpense/graph"
-	"github.com/tony-tvu/goexpense/graph/resolvers"
+	"github.com/tony-tvu/goexpense/handlers"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/tasks"
 	"github.com/tony-tvu/goexpense/util"
@@ -48,7 +46,7 @@ func (a *App) Initialize(ctx context.Context) {
 		log.Fatal("ENV is not set")
 	}
 
-	// Init database
+	// Database
 	dbUser := os.Getenv("DB_USER")
 	dbPwd := os.Getenv("DB_PASS")
 	dbHost := os.Getenv("DB_HOST")
@@ -79,7 +77,7 @@ func (a *App) Initialize(ctx context.Context) {
 	createInitialAdminUser(ctx, db)
 	a.Db = db
 
-	// Init plaid client
+	// Plaid
 	var plaidEnvs = map[string]plaid.Environment{
 		"sandbox":     plaid.Sandbox,
 		"development": plaid.Development,
@@ -98,7 +96,12 @@ func (a *App) Initialize(ctx context.Context) {
 	pc := plaid.NewAPIClient(plaidCfg)
 	a.PlaidClient = pc
 
-	// Init router
+	// Handlers
+	users := &handlers.UserHandler{Db: db}
+	items := &handlers.ItemHandler{Db: db, Client: pc}
+	transactions := &handlers.TransactionHandler{Db: db}
+
+	// Router
 	if env == Production {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -109,9 +112,26 @@ func (a *App) Initialize(ctx context.Context) {
 	}
 	router.Use(middleware.RateLimit())
 	router.Use(middleware.Logger(env))
-	router.Use(middleware.CookieProvider())
 
-	router.POST("/api/graphql", middleware.NoCache, graphqlHandler(db, pc))
+	api := router.Group("/api", middleware.NoCache)
+	{
+		// user
+		api.POST("/logout", users.Logout)
+		api.POST("/login", middleware.LoginRateLimit(), users.Login)
+		api.GET("/logged_in", users.IsLoggedIn)
+		api.GET("/user_info", users.GetUserInfo)
+		api.GET("/sessions", users.GetSessions)
+
+		// items
+		api.GET("/link_token", items.GetLinkToken)
+		api.GET("/items", items.GetItems)
+		api.POST("/items", items.CreateItem)
+		api.DELETE("/items", items.DeleteItem)
+
+		// transactions
+		api.GET("/transactions", transactions.GetTransactions)
+	}
+
 	router.Use(middleware.FrontendCache, static.Serve("/", static.LocalFile("./web/build", true)))
 	router.NoRoute(middleware.FrontendCache, func(ctx *gin.Context) {
 		ctx.File("./web/build")
@@ -138,14 +158,6 @@ func (a *App) Serve() {
 	log.Printf("Listening on port %s\n", port)
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
-	}
-}
-
-func graphqlHandler(db *gorm.DB, pc *plaid.APIClient) gin.HandlerFunc {
-	h := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &resolvers.Resolver{Db: db, PlaidClient: pc}}))
-
-	return func(c *gin.Context) {
-		h.ServeHTTP(c.Writer, c.Request)
 	}
 }
 

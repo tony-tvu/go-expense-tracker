@@ -1,32 +1,14 @@
-import React from "react"
-import ReactDOM from "react-dom/client"
-import App from "./App"
-import reportWebVitals from "./reportWebVitals"
-import { ColorModeScript } from "@chakra-ui/react"
-import {
-  ApolloClient,
-  ApolloProvider,
-  createHttpLink,
-  InMemoryCache,
-} from "@apollo/client"
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import reportWebVitals from './reportWebVitals'
+import { ColorModeScript } from '@chakra-ui/react'
 
-const link = createHttpLink({
-  uri: process.env.REACT_APP_API_URL,
-  credentials: "include",
-})
-
-const client = new ApolloClient({
-  cache: new InMemoryCache(),
-  link,
-})
-
-const root = ReactDOM.createRoot(document.getElementById("root"))
+const root = ReactDOM.createRoot(document.getElementById('root'))
 root.render(
   <React.StrictMode>
-    <ApolloProvider client={client}>
-      <ColorModeScript />
-      <App />
-    </ApolloProvider>
+    <ColorModeScript />
+    <App />
   </React.StrictMode>
 )
 

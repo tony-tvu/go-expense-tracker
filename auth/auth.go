@@ -3,24 +3,25 @@ package auth
 import (
 	"errors"
 
+	"github.com/gin-gonic/gin"
 	"github.com/tony-tvu/goexpense/entity"
-	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/util"
 	"gorm.io/gorm"
 )
 
 // Function verifies if user is logged in and tokens are valid
 // Refreshes access token if it has expired and returns user ID and type
-func VerifyUser(c *middleware.WriterAndCookies, db *gorm.DB) (*uint, *string, error) {
+func VerifyUser(c *gin.Context, db *gorm.DB) (*uint, *string, error) {
 	var userID uint
 	var userType string
 
-	if util.ContainsEmpty(c.EncryptedRefreshToken) {
+	refreshCookie, err := c.Request.Cookie("goexpense_refresh")
+	if err != nil {
 		return nil, nil, errors.New("not authorized")
 	}
 
 	// validate refresh_token
-	refreshClaims, err := ValidateTokenAndGetClaims(c.EncryptedRefreshToken)
+	refreshClaims, err := ValidateTokenAndGetClaims(refreshCookie.Value)
 	if err != nil {
 		return nil, nil, errors.New("not authorized")
 	}
@@ -28,10 +29,8 @@ func VerifyUser(c *middleware.WriterAndCookies, db *gorm.DB) (*uint, *string, er
 	userID = refreshClaims.UserID
 	userType = refreshClaims.UserType
 
-	// check if access_token has expired
-	_, err = ValidateTokenAndGetClaims(c.EncryptedAccessToken)
-
 	// handle expired or missing access_token
+	_, err = c.Request.Cookie("goexpense_access")
 	if err != nil {
 
 		// find existing session
@@ -41,7 +40,7 @@ func VerifyUser(c *middleware.WriterAndCookies, db *gorm.DB) (*uint, *string, er
 		}
 
 		// verify token from db session matches request's token
-		if s.RefreshToken != c.EncryptedRefreshToken {
+		if s.RefreshToken != refreshCookie.Value {
 			return nil, nil, errors.New("not authorized")
 		}
 
@@ -57,7 +56,7 @@ func VerifyUser(c *middleware.WriterAndCookies, db *gorm.DB) (*uint, *string, er
 			return nil, nil, errors.New("not authorized")
 		}
 
-		c.SetToken("goexpense_access", renewed.Value, renewed.ExpiresAt)
+		util.SetCookie(c.Writer, "goexpense_access", renewed.Value, renewed.ExpiresAt)
 	}
 
 	return &userID, &userType, nil

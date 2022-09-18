@@ -1,4 +1,4 @@
-package util
+package entity
 
 import (
 	"gorm.io/gorm"
@@ -9,11 +9,11 @@ import (
 )
 
 type Pagination struct {
-	Limit      int
-	Page       int
-	Sort       string
-	TotalRows  int64
-	TotalPages int
+	Limit      int    `json:"limit"`
+	Page       int    `json:"page"`
+	Sort       string `json:"sort"`
+	TotalRows  int64  `json:"total_rows"`
+	TotalPages int    `json:"total_pages"`
 }
 
 func (p *Pagination) GetOffset() int {

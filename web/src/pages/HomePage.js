@@ -1,8 +1,6 @@
-import { Flex, useColorModeValue } from "@chakra-ui/react"
-import React from "react"
-import Navbar from "../components/Navbar"
-import { useVerifyLogin } from "../hooks/useVerifyLogin"
-import { colors } from "../theme"
+import React from 'react'
+import Navbar from '../components/Navbar'
+import { useVerifyLogin } from '../hooks/useVerifyLogin'
 
 export default function HomePage() {
   useVerifyLogin()

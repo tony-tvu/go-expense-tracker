@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -11,15 +12,32 @@ import (
 	"github.com/ulule/limiter/v3/drivers/store/memory"
 )
 
-// Middleware applies rate limiting to all routes
-func RateLimit() gin.HandlerFunc {
-	godotenv.Load(".env")
-	rateLimit := os.Getenv("RATE_LIMIT")
-	if util.ContainsEmpty(rateLimit) {
-		rateLimit = "30-S"
-	}
+var globalRate string
+var loginRate string
 
-	rate, err := limiter.NewRateFromFormatted(rateLimit)
+func init() {
+	godotenv.Load(".env")
+	globalRate = os.Getenv("RATE_LIMIT")
+	loginRate = os.Getenv("LOGIN_RATE_LIMIT")
+	if util.ContainsEmpty(globalRate, loginRate) {
+		log.Fatal("error - rate limits configs not set")
+	}
+}
+
+// Middleware applies to all routes
+func RateLimit() gin.HandlerFunc {
+	rate, err := limiter.NewRateFromFormatted(globalRate)
+	if err != nil {
+		panic(err)
+	}
+	store := memory.NewStore()
+	middleware := mgin.NewMiddleware(limiter.New(store, rate))
+	return middleware
+}
+
+// Middleware applies to login route
+func LoginRateLimit() gin.HandlerFunc {
+	rate, err := limiter.NewRateFromFormatted(loginRate)
 	if err != nil {
 		panic(err)
 	}

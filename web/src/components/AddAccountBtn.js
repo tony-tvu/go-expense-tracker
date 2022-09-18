@@ -1,56 +1,54 @@
-import React, { useEffect, useState } from "react"
-import logger from "../logger"
-import { useQuery, gql, useMutation } from "@apollo/client"
-import { usePlaidLink } from "react-plaid-link"
-import { BsPlus } from "react-icons/bs"
-import { Button } from "@chakra-ui/react"
-import { colors } from "../theme"
-
-const query = gql`
-  query {
-    linkToken
-  }
-`
-
-const mutation = gql`
-  mutation ($input: PublicTokenInput!) {
-    setAccessToken(input: $input)
-  }
-`
+import React, { useEffect, useState } from 'react'
+import logger from '../logger'
+import { usePlaidLink } from 'react-plaid-link'
+import { BsPlus } from 'react-icons/bs'
+import { Button } from '@chakra-ui/react'
+import { colors } from '../theme'
 
 export default function AddAccountBtn(props) {
   const [linkToken, setLinkToken] = useState(null)
 
-  const { data } = useQuery(query, {
-    fetchPolicy: "no-cache",
-  })
-  const [setAccessToken] = useMutation(mutation)
-
   useEffect(() => {
-    if (data && data.linkToken) {
-      setLinkToken(data.linkToken)
-    }
-  }, [data])
+    fetchLinkToken()
+  }, [])
+
+  // link_token is required to start linking a bank account
+  const fetchLinkToken = async () => {
+    await fetch(`${process.env.REACT_APP_API_URL}/link_token`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    })
+      .then(async (res) => {
+        if (!res) return
+        const data = await res.json().catch((err) => logger(err))
+        setLinkToken(data?.link_token)
+      })
+      .catch((err) => {
+        logger('error fetching link_token', err)
+      })
+  }
 
   /*
    * Upon linking success, plaid api will return a public_token which will be used
    * to get a permanent access_token for the user's specific linked bank account.
    */
   const onLinkAccountSuccess = async (public_token) => {
-    setAccessToken({
-      variables: {
-        input: {
-          publicToken: public_token,
-        },
+    await fetch(`${process.env.REACT_APP_API_URL}/items`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
+      credentials: 'include',
+      body: JSON.stringify({ public_token: public_token }),
     })
       .then((res) => {
-        if (!res.errors) {
-          props.onSuccess()
-        }
+        if (res.status === 200) props.onSuccess()
       })
       .catch((e) => {
-        logger("error setting access token", e)
+        logger('error setting access token', e)
       })
   }
   const plaidConfig = {
@@ -68,7 +66,7 @@ export default function AddAccountBtn(props) {
       onClick={() => openLinkingPopup()}
       disabled={!isReadyToLinkAccount}
       bg={colors.primary}
-      color={"white"}
+      color={'white'}
       _hover={{
         bg: colors.primaryFaded,
       }}
