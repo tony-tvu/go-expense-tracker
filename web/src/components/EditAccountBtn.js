@@ -14,24 +14,35 @@ import {
   AlertDialogHeader,
   AlertDialogBody,
   AlertDialogFooter,
-} from "@chakra-ui/react"
+} from '@chakra-ui/react'
 
-import { BsPencil, BsTrash } from "react-icons/bs"
-import { gql, useMutation } from "@apollo/client"
-import React from "react"
-import logger from "../logger"
-
-const deleteAccountMutation = gql`
-  mutation ($input: DeleteItemInput!) {
-    deleteItem(input: $input)
-  }
-`
+import { BsPencil, BsTrash } from 'react-icons/bs'
+import React from 'react'
+import logger from '../logger'
 
 export default function EditAccountBtn(props) {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const cancelRef = React.useRef()
 
-  const [deleteAccount] = useMutation(deleteAccountMutation)
+  async function deleteAccount() {
+    await fetch(`${process.env.REACT_APP_API_URL}/items`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ id: props.item.id }),
+    })
+      .then((res) => {
+        if (res.status === 200) {
+          props.onSuccess()
+          onClose()
+        }
+      })
+      .catch((e) => {
+        logger('error setting access token', e)
+      })
+  }
 
   return (
     <>
@@ -44,7 +55,7 @@ export default function EditAccountBtn(props) {
             w="fit-content"
           />
         </PopoverTrigger>
-        <PopoverContent w="fit-content" _focus={{ boxShadow: "none" }}>
+        <PopoverContent w="fit-content" _focus={{ boxShadow: 'none' }}>
           <PopoverArrow />
           <PopoverBody>
             <Stack>
@@ -85,28 +96,7 @@ export default function EditAccountBtn(props) {
               <Button ref={cancelRef} onClick={onClose}>
                 Cancel
               </Button>
-              <Button
-                colorScheme="red"
-                onClick={() => {
-                  deleteAccount({
-                    variables: {
-                      input: {
-                        id: props.item.id,
-                      },
-                    },
-                  })
-                    .then((res) => {
-                      if (!res.errors) {
-                        props.onSuccess()
-                        onClose()
-                      }
-                    })
-                    .catch((err) => {
-                      logger(err)
-                    })
-                }}
-                ml={3}
-              >
+              <Button colorScheme="red" onClick={deleteAccount} ml={3}>
                 Delete
               </Button>
             </AlertDialogFooter>

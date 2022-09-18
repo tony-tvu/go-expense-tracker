@@ -8,15 +8,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/entity"
-	"github.com/tony-tvu/goexpense/graph"
-	"github.com/tony-tvu/goexpense/graph/resolvers"
+	"github.com/tony-tvu/goexpense/handlers"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/tasks"
 	"github.com/tony-tvu/goexpense/util"
@@ -99,8 +97,9 @@ func (a *App) Initialize(ctx context.Context) {
 	a.PlaidClient = pc
 
 	// Handlers
-	u := &handlers.UserHandler{Db: db}
-	p := &plaidapi.PlaidHandler{Db: db}
+	users := &handlers.UserHandler{Db: db}
+	items := &handlers.ItemHandler{Db: db, Client: pc}
+	transactions := &handlers.TransactionHandler{Db: db}
 
 	// Router
 	if env == Production {
@@ -116,33 +115,22 @@ func (a *App) Initialize(ctx context.Context) {
 
 	api := router.Group("/api", middleware.NoCache)
 	{
-		api.GET("/health", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{"message": "Ok"})
-		})
-		api.POST("/logout", u.Logout)
-		api.POST("/login", middleware.LoginRateLimit(), u.Login)
+		// user
+		api.POST("/logout", users.Logout)
+		api.POST("/login", middleware.LoginRateLimit(), users.Login)
+		api.GET("/logged_in", users.IsLoggedIn)
+		api.GET("/user_info", users.GetUserInfo)
+		api.GET("/sessions", users.GetSessions)
 
-		authRequired := api.Group("/", middleware.AuthRequired(a.Db))
-		{
-			authRequired.GET("/logged_in", u.IsLoggedIn)
-			authRequired.GET("/user_info", u.GetUserInfo)
-			authRequired.GET("/create_link_token", p.CreateLinkToken)
-			authRequired.POST("/set_access_token", p.SetAccessToken)
+		// items
+		api.GET("/link_token", items.GetLinkToken)
+		api.GET("/items", items.GetItems)
+		api.POST("/items", items.CreateItem)
+		api.DELETE("/items", items.DeleteItem)
 
-			adminRequired := authRequired.Group("/", middleware.AdminRequired(a.Db))
-			{
-				adminRequired.POST("/invite", u.InviteUser)
-				adminRequired.GET("/sessions", u.GetSessions)
-			}
-		}
+		// transactions
+		api.GET("/transactions", transactions.GetTransactions)
 	}
-	
-
-
-
-
-
-
 
 	router.Use(middleware.FrontendCache, static.Serve("/", static.LocalFile("./web/build", true)))
 	router.NoRoute(middleware.FrontendCache, func(ctx *gin.Context) {
@@ -170,14 +158,6 @@ func (a *App) Serve() {
 	log.Printf("Listening on port %s\n", port)
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
-	}
-}
-
-func graphqlHandler(db *gorm.DB, pc *plaid.APIClient) gin.HandlerFunc {
-	h := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &resolvers.Resolver{Db: db, PlaidClient: pc}}))
-
-	return func(c *gin.Context) {
-		h.ServeHTTP(c.Writer, c.Request)
 	}
 }
 

@@ -61,7 +61,7 @@ func RefreshTransactions() {
 			isSuccess := true
 			transactions, _, _, cursor, err := getTransactions(item)
 			if err != nil {
-				log.Printf("error occurred while getting transaction for itemID: %s; err: %+v", item.ItemID, err)
+				log.Printf("error occurred while getting transaction for item_id: %v; err: %+v", item.ID, err)
 				isSuccess = false
 			}
 
