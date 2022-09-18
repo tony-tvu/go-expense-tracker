@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
+	"github.com/go-playground/validator"
 	"github.com/tony-tvu/goexpense/auth"
+	"github.com/tony-tvu/goexpense/cache"
 	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/util"
 	"golang.org/x/crypto/bcrypt"
@@ -16,7 +17,8 @@ import (
 )
 
 type UserHandler struct {
-	Db *gorm.DB
+	Db    *gorm.DB
+	Cache *cache.ConfigCache
 }
 
 var v *validator.Validate
@@ -30,11 +32,6 @@ func (h *UserHandler) IsLoggedIn(c *gin.Context) {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-}
-
-// TODO
-func (h UserHandler) RegisterUser(c *gin.Context) {
-	panic("not implemented")
 }
 
 func (h *UserHandler) GetUsers(c *gin.Context) {
@@ -170,4 +167,9 @@ func (h *UserHandler) GetSessions(c *gin.Context) {
 	h.Db.Raw("SELECT * FROM sessions").Scan(&sessions)
 
 	c.JSON(http.StatusOK, sessions)
+}
+
+// TODO
+func (h UserHandler) RegisterUser(c *gin.Context) {
+	panic("not implemented")
 }
