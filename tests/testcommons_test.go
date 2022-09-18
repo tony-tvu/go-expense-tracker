@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/tony-tvu/goexpense/entity"
@@ -48,15 +49,18 @@ func logUserIn(t *testing.T, username, password string) (string, string, int) {
 }
 
 // Save a new user to db
-func createUser(t *testing.T, username, email, password string) (*entity.User, func()) {
+func createTestUser(t *testing.T) (*entity.User, func()) {
 	t.Helper()
 
+	username := fmt.Sprint(time.Now().UnixNano())
+	password := "password123!"
+	
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	require.NoError(t, err)
 
 	user := &entity.User{
 		Username: username,
-		Email:    email,
+		Email:    fmt.Sprintf("%v@email.com", username),
 		Password: string(hash),
 		Type:     entity.RegularUser,
 	}
@@ -64,6 +68,8 @@ func createUser(t *testing.T, username, email, password string) (*entity.User, f
 	if result := testApp.Db.Create(&user); result.Error != nil {
 		t.FailNow()
 	}
+
+	user.Password = password
 
 	return user, func() {
 		deleteUser(t, username)

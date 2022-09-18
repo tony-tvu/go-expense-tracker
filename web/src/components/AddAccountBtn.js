@@ -16,9 +16,6 @@ export default function AddAccountBtn(props) {
   const fetchLinkToken = async () => {
     await fetch(`${process.env.REACT_APP_API_URL}/link_token`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       credentials: 'include',
     })
       .then(async (res) => {
@@ -38,9 +35,6 @@ export default function AddAccountBtn(props) {
   const onLinkAccountSuccess = async (public_token) => {
     await fetch(`${process.env.REACT_APP_API_URL}/items`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       credentials: 'include',
       body: JSON.stringify({ public_token: public_token }),
     })

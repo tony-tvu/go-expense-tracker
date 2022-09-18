@@ -1,10 +1,8 @@
 package tests
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tony-tvu/goexpense/entity"
@@ -15,12 +13,9 @@ func TestAuthTokens(t *testing.T) {
 	t.Parallel()
 
 	// create user and login
-	username := fmt.Sprint(time.Now().UnixNano())
-	email := fmt.Sprintf("%v@email.com", username)
-	password := "password"
-	_, cleanup := createUser(t, username, email, password)
+	user, cleanup := createTestUser(t)
 	defer cleanup()
-	accessToken, refreshToken, _ := logUserIn(t, username, password)
+	accessToken, refreshToken, _ := logUserIn(t, user.Username, user.Password)
 
 	// make request to endpoint where user must be logged in
 	res := makeRequest(t, "GET", "/api/user_info", &accessToken, &refreshToken)
@@ -44,12 +39,9 @@ func TestAuthRevokeTokens(t *testing.T) {
 	t.Parallel()
 
 	// create user and login
-	username := fmt.Sprint(time.Now().UnixNano())
-	email := fmt.Sprintf("%v@email.com", username)
-	password := "password"
-	user, cleanup := createUser(t, username, email, password)
+	user, cleanup := createTestUser(t)
 	defer cleanup()
-	accessToken, refreshToken, _ := logUserIn(t, username, password)
+	accessToken, refreshToken, _ := logUserIn(t, user.Username, user.Password)
 
 	// make request to endpoint where user must be logged in
 	res := makeRequest(t, "GET", "/api/user_info", &accessToken, &refreshToken)
@@ -110,12 +102,9 @@ func TestAuthAdminRestricted(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 	// create regular user and login
-	username := fmt.Sprint(time.Now().UnixNano())
-	email := fmt.Sprintf("%v@email.com", username)
-	password := "password"
-	_, cleanup := createUser(t, username, email, password)
+	user, cleanup := createTestUser(t)
 	defer cleanup()
-	accessToken, refreshToken, _ := logUserIn(t, username, password)
+	accessToken, refreshToken, _ := logUserIn(t, user.Username, user.Password)
 
 	// make request to admin-only route as regular user
 	res = makeRequest(t, "GET", "/api/sessions", &refreshToken, &accessToken)
@@ -128,11 +117,11 @@ func TestAuthAdminRestricted(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// make user an admin and login
-	if result := testApp.Db.Model(&entity.User{}).Where("username = ?", username).Update("type", entity.AdminUser); result.Error != nil {
+	if result := testApp.Db.Model(&entity.User{}).Where("username = ?", user.Username).Update("type", entity.AdminUser); result.Error != nil {
 		t.FailNow()
 	}
 
-	accessToken, refreshToken, _ = logUserIn(t, username, password)
+	accessToken, refreshToken, _ = logUserIn(t, user.Username, user.Password)
 
 	// make request to admin-only endpoint as admin
 	res = makeRequest(t, "GET", "/api/sessions", &accessToken, &refreshToken)

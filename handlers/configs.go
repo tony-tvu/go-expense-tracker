@@ -19,6 +19,6 @@ func (h *ConfigsHandler) RegistrationEnabled(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"registration_allowed": configs.RegistrationEnabled,
+		"registration_enabled": configs.RegistrationEnabled,
 	})
 }

@@ -34,6 +34,13 @@ func (h *UserHandler) IsLoggedIn(c *gin.Context) {
 	}
 }
 
+func (h *UserHandler) IsAdmin(c *gin.Context) {
+	if _, userType, err := auth.VerifyUser(c, h.Db); err != nil || *userType != string(entity.AdminUser) {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+}
+
 func (h *UserHandler) GetUsers(c *gin.Context) {
 	if _, uType, err := auth.VerifyUser(c, h.Db); err != nil || *uType != string(entity.AdminUser) {
 		c.AbortWithStatus(http.StatusUnauthorized)

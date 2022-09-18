@@ -30,6 +30,7 @@ export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [registrationEnabled, setRegistrationEnabled] = useState(false)
   const handleShowClick = () => setShowPassword(!showPassword)
   const navigate = useNavigate()
 
@@ -37,27 +38,40 @@ export default function LoginPage() {
   const logoColor = useColorModeValue('black', colors.primary)
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
-      method: 'GET',
-      credentials: 'include',
-    })
-      .then((res) => {
-        if (res.status === 200) {
-          navigate('/')
-        }
+    Promise.all([
+      fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
+        method: 'GET',
+        credentials: 'include',
       })
-      .catch((err) => {
-        logger('error verifying login state', err)
+        .then((res) => {
+          if (res.status === 200) {
+            navigate('/')
+          }
+        })
+        .catch((err) => {
+          logger('error verifying login state', err)
+        }),
+      fetch(`${process.env.REACT_APP_API_URL}/registration_enabled`, {
+        method: 'GET',
       })
+        .then(async (res) => {
+          if (!res) return
+          const data = await res.json().catch((err) => logger(err))
+          if (data && data.registration_enabled) {
+            setRegistrationEnabled(true)
+          }
+        })
+        .catch((err) => {
+          logger('error getting registration_enabled', err)
+        }),
+    ])
   }, [navigate])
 
+  console.log(registrationEnabled)
   async function handleSubmit(e) {
     e.preventDefault()
     await fetch(`${process.env.REACT_APP_API_URL}/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       credentials: 'include',
       body: JSON.stringify({ username: username, password: password }),
     })
@@ -95,19 +109,23 @@ export default function LoginPage() {
               </Text>
             </RouterLink>
           </Flex>
-          <Link
-            px={2}
-            py={1}
-            rounded={'md'}
-            _hover={{
-              textDecoration: 'none',
-              bg: 'gray.700',
-            }}
-            href={'/'}
-            color={'white'}
-          >
-            Register
-          </Link>
+          {registrationEnabled ? (
+            <Link
+              px={2}
+              py={1}
+              rounded={'md'}
+              _hover={{
+                textDecoration: 'none',
+                bg: 'gray.700',
+              }}
+              href={'/'}
+              color={'white'}
+            >
+              Register
+            </Link>
+          ) : (
+            <></>
+          )}
 
           <ColorModeSwitcher justifySelf="flex-end" />
         </Flex>

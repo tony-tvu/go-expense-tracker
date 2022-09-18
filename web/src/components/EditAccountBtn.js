@@ -27,9 +27,6 @@ export default function EditAccountBtn(props) {
   async function deleteAccount() {
     await fetch(`${process.env.REACT_APP_API_URL}/items`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       credentials: 'include',
       body: JSON.stringify({ id: props.item.id }),
     })

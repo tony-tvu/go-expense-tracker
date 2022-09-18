@@ -117,8 +117,14 @@ func (a *App) Initialize(ctx context.Context) {
 	if env == Development {
 		allowCrossOrigin(router)
 	}
+
+	// middleware
 	router.Use(middleware.RateLimit())
 	router.Use(middleware.Logger(env))
+	router.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.Next()
+	})
 
 	api := router.Group("/api", middleware.NoCache)
 	{
@@ -129,6 +135,7 @@ func (a *App) Initialize(ctx context.Context) {
 		api.POST("/logout", users.Logout)
 		api.POST("/login", middleware.LoginRateLimit(), users.Login)
 		api.GET("/logged_in", users.IsLoggedIn)
+		api.GET("/is_admin", users.IsAdmin)
 		api.GET("/user_info", users.GetUserInfo)
 		api.GET("/sessions", users.GetSessions)
 
