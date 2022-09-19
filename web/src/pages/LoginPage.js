@@ -55,7 +55,6 @@ export default function LoginPage() {
     <Flex
       flexDirection="column"
       width="100wh"
-      height="100vh"
       backgroundColor={bgColor}
       alignItems="center"
     >

@@ -11,9 +11,12 @@ import {
 } from '@chakra-ui/react'
 import { useVerifyAdmin } from '../hooks/useVerifyAdmin'
 import logger from '../logger'
+import { useNavigate } from 'react-router-dom'
 
 export default function AdminPage() {
-  useVerifyAdmin()
+  const navigate = useNavigate()
+  const isAdmin = useVerifyAdmin()
+  if (!isAdmin) navigate('/login')
 
   const stackBgColor = useColorModeValue('white', 'gray.900')
 

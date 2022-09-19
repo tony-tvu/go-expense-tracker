@@ -24,83 +24,70 @@ import logger from '../logger'
 import { ColorModeSwitcher } from '../ColorModeSwitcher'
 import { FaCat } from 'react-icons/fa'
 import { colors } from '../theme'
-import { useCallback, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+import { useVerifyAdmin } from '../hooks/useVerifyAdmin'
+import { useVerifyLogin } from '../hooks/useVerifyLogin'
+import { useRegistration } from '../hooks/useRegistration'
 
 const CFcat = chakra(FaCat)
 
 export default function Navbar() {
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [registrationEnabled, setRegistrationEnabled] = useState(false)
   const { isOpen, onOpen, onClose } = useDisclosure()
   const navigate = useNavigate()
   const location = useLocation()
   const linkBgColor = useColorModeValue('gray.200', 'gray.700')
 
-  const checkIsAdmin = useCallback(async () => {
-    await fetch(`${process.env.REACT_APP_API_URL}/is_admin`, {
-      method: 'GET',
-      credentials: 'include',
-    })
-      .then((res) => {
-        if (res.status === 200) {
-          setIsAdmin(true)
-        }
-      })
-      .catch((err) => {
-        logger('error verifying is_admin', err)
-      })
-  }, [])
+  const isAdmin = useVerifyAdmin()
+  const isLoggedIn = useVerifyLogin()
+  const registrationEnabled = useRegistration()
 
-  const checkIsLoggedIn = useCallback(async () => {
-    await fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
-      method: 'GET',
-      credentials: 'include',
-    })
-      .then((res) => {
-        if (res.status === 200) {
-          setIsLoggedIn(true)
-        }
-        if (
-          res.status === 200 &&
-          (location.pathname === '/login/' || location.pathname === '/login')
-        ) {
-          navigate('/')
-        }
-        if (res.status !== 200) {
-          navigate('/login')
-        }
-      })
-      .catch((err) => {
-        logger('error verifying login state', err)
-      })
-  }, [navigate, location.pathname])
+  // const checkIsLoggedIn = useCallback(async () => {
+  //   await fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
+  //     method: 'GET',
+  //     credentials: 'include',
+  //   })
+  //     .then((res) => {
+  //       if (res.status === 200) {
+  //         setIsLoggedIn(true)
+  //       }
+  //       if (
+  //         res.status === 200 &&
+  //         (location.pathname === '/login/' || location.pathname === '/login')
+  //       ) {
+  //         navigate('/')
+  //       }
+  //       if (res.status !== 200) {
+  //         navigate('/login')
+  //       }
+  //     })
+  //     .catch((err) => {
+  //       logger('error verifying login state', err)
+  //     })
+  // }, [navigate, location.pathname])
 
-  const checkIsRegistrationEnabled = useCallback(async () => {
-    await fetch(`${process.env.REACT_APP_API_URL}/registration_enabled`, {
-      method: 'GET',
-      credentials: 'include',
-    })
-      .then(async (res) => {
-        if (!res) return
-        const data = await res.json().catch((err) => logger(err))
-        if (data && data.registration_enabled) {
-          setRegistrationEnabled(true)
-        }
-      })
-      .catch((err) => {
-        logger('error getting registration_enabled', err)
-      })
-  }, [])
+  // const checkIsRegistrationEnabled = useCallback(async () => {
+  //   await fetch(`${process.env.REACT_APP_API_URL}/registration_enabled`, {
+  //     method: 'GET',
+  //     credentials: 'include',
+  //   })
+  //     .then(async (res) => {
+  //       if (!res) return
+  //       const data = await res.json().catch((err) => logger(err))
+  //       if (data && data.registration_enabled) {
+  //         setRegistrationEnabled(true)
+  //       }
+  //     })
+  //     .catch((err) => {
+  //       logger('error getting registration_enabled', err)
+  //     })
+  // }, [])
 
-  useEffect(() => {
-    Promise.all([
-      checkIsAdmin(),
-      checkIsLoggedIn(),
-      checkIsRegistrationEnabled(),
-    ])
-  }, [checkIsAdmin, checkIsLoggedIn, checkIsRegistrationEnabled])
+  // useEffect(() => {
+  //   Promise.all([
+  //     checkIsLoggedIn(),
+  //     checkIsRegistrationEnabled(),
+  //   ])
+  // }, [checkIsLoggedIn, checkIsRegistrationEnabled])
 
   function logout() {
     fetch(`${process.env.REACT_APP_API_URL}/logout`, {

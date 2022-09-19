@@ -1,23 +1,23 @@
 import { useEffect, useState } from 'react'
 import logger from '../logger'
 
-export function useVerifyAdmin() {
-  const [isAdmin, setIsAdmin] = useState(false)
+export function useVerifyLogin() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_API_URL}/is_admin`, {
+    fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
       method: 'GET',
       credentials: 'include',
     })
       .then((res) => {
         if (res.status === 200) {
-          setIsAdmin(true)
+          setIsLoggedIn(true)
         }
       })
       .catch((err) => {
-        logger('error verifying is_admin', err)
+        logger('error verifying login state', err)
       })
   }, [])
 
-  return isAdmin
+  return isLoggedIn
 }
