@@ -1,24 +1,64 @@
-import { Flex, useColorModeValue } from "@chakra-ui/react"
-import React from "react"
-import Navbar from "../components/Navbar"
-import { useVerifyAdmin } from "../hooks/useVerifyAdmin"
-import { colors } from "../theme"
+import React, { useCallback, useEffect } from 'react'
+import {
+  FormControl,
+  FormHelperText,
+  FormLabel,
+  Input,
+  VStack,
+  Text,
+  useColorModeValue,
+  Container,
+} from '@chakra-ui/react'
+import { useVerifyAdmin } from '../hooks/useVerifyAdmin'
+import logger from '../logger'
 
 export default function AdminPage() {
   useVerifyAdmin()
 
+  const stackBgColor = useColorModeValue('white', 'gray.900')
+
+  const getConfigs = useCallback(async () => {
+    await fetch(`${process.env.REACT_APP_API_URL}/configs`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+      .then(async (res) => {
+        if (!res) return
+        const data = await res.json().catch((err) => logger(err))
+        console.log(data)
+      })
+      .catch((err) => {
+        logger('error getting items', err)
+      })
+  }, [])
+
+  useEffect(() => {
+    getConfigs()
+  }, [getConfigs])
+
   return (
-    <>
-      <Navbar />
-      <Flex
-        flexDirection="column"
-        width="100wh"
-        height="100vh"
-        backgroundColor={useColorModeValue(colors.bgLight, colors.bgDark)}
-        alignItems="center"
-      >
-        ADMIN PAGE
-      </Flex>
-    </>
+    <VStack>
+      <Container maxW="container.md" centerContent>
+        <Text fontSize="2xl" as="b" mb={5} mt={5}>
+          Configuration
+        </Text>
+
+        <FormControl
+          borderWidth="1px"
+          borderRadius="lg"
+          bg={stackBgColor}
+          boxShadow={'2xl'}
+          p={5}
+          mb={5}
+        >
+          <FormLabel>Email address</FormLabel>
+          <Input type="email" />
+          <FormHelperText>We'll never share your email.</FormHelperText>
+        </FormControl>
+      </Container>
+    </VStack>
   )
 }

@@ -23,7 +23,7 @@ type PageInfoInput struct {
 var PAGE_LIMIT = 50
 
 func (h *TransactionHandler) GetTransactions(c *gin.Context) {
-	id, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -55,7 +55,7 @@ func (h *TransactionHandler) GetTransactions(c *gin.Context) {
 	}
 
 	var transactions []*entity.Transaction
-	h.Db.Scopes(util.Paginate(transactions, &pagination, h.Db)).Where("user_id = ?", id).Find(&transactions)
+	h.Db.Scopes(util.Paginate(transactions, &pagination, h.Db)).Where("user_id = ?", userID).Find(&transactions)
 
 	c.JSON(http.StatusOK, gin.H{
 		"transactions": transactions,

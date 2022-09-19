@@ -43,7 +43,7 @@ export default function EditAccountBtn(props) {
 
   return (
     <>
-      <Popover placement="bottom" isLazy>
+      <Popover placement="start-start" isLazy>
         <PopoverTrigger>
           <IconButton
             aria-label="More server options"

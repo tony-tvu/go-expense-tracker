@@ -1,15 +1,17 @@
-import { ChakraProvider, theme } from "@chakra-ui/react"
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
-import HomePage from "./pages/HomePage"
-import AccountsPage from "./pages/AccountsPage"
-import PageNotFound from "./pages/PageNotFound"
-import AdminPage from "./pages/AdminPage"
-import LoginPage from "./pages/LoginPage"
+import { ChakraProvider, theme } from '@chakra-ui/react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import HomePage from './pages/HomePage'
+import AccountsPage from './pages/AccountsPage'
+import PageNotFound from './pages/PageNotFound'
+import AdminPage from './pages/AdminPage'
+import LoginPage from './pages/LoginPage'
+import Navbar from './components/Navbar'
 
 export default function App() {
   return (
     <ChakraProvider theme={theme}>
       <Router>
+        <Navbar />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />

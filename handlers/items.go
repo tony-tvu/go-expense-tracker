@@ -13,6 +13,7 @@ import (
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/util"
 	"gorm.io/gorm"
 )
 
@@ -79,8 +80,15 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 		return
 	}
 
+	// TODO: make limit a cached config and have UI iterate through each page until all acounts returned
+	pagination := util.Pagination{
+		Limit: 500,
+		Page:  1,
+		Sort:  "institution asc",
+	}
+
 	var items []*entity.Item
-	h.Db.Raw("SELECT * FROM items WHERE user_id = ?", userID).Scan(&items)
+	h.Db.Scopes(util.Paginate(items, &pagination, h.Db)).Where("user_id = ?", userID).Find(&items)
 
 	// remove plaid item id and access token - should never expose this info
 	for _, item := range items {
@@ -88,7 +96,10 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 		item.AccessToken = ""
 	}
 
-	c.JSON(http.StatusOK, items)
+	c.JSON(http.StatusOK, gin.H{
+		"items":     items,
+		"page_info": pagination,
+	})
 }
 
 func (h *ItemHandler) CreateItem(c *gin.Context) {

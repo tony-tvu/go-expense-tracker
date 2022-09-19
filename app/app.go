@@ -106,7 +106,7 @@ func (a *App) Initialize(ctx context.Context) {
 	users := &handlers.UserHandler{Db: db}
 	items := &handlers.ItemHandler{Db: db, Client: pc}
 	transactions := &handlers.TransactionHandler{Db: db}
-	configs := &handlers.ConfigsHandler{Cache: cachedConf}
+	configs := &handlers.ConfigsHandler{Db: db, Cache: cachedConf}
 
 	// Router
 	if env == Production {
@@ -126,6 +126,7 @@ func (a *App) Initialize(ctx context.Context) {
 	{
 		// configs
 		api.GET("/registration_enabled", configs.RegistrationEnabled)
+		api.GET("/configs", configs.GetConfigs)
 
 		// users
 		api.POST("/logout", users.Logout)
