@@ -9,14 +9,10 @@ import {
   useColorModeValue,
   Container,
 } from '@chakra-ui/react'
-import { useVerifyAdmin } from '../hooks/useVerifyAdmin'
 import logger from '../logger'
-import { useNavigate } from 'react-router-dom'
 
 export default function AdminPage() {
-  const navigate = useNavigate()
-  const isAdmin = useVerifyAdmin()
-  if (!isAdmin) navigate('/login')
+
 
   const stackBgColor = useColorModeValue('white', 'gray.900')
 
@@ -31,7 +27,7 @@ export default function AdminPage() {
       .then(async (res) => {
         if (!res) return
         const data = await res.json().catch((err) => logger(err))
-        console.log(data)
+        // console.log(data)
       })
       .catch((err) => {
         logger('error getting items', err)

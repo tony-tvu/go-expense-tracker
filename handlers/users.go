@@ -28,16 +28,18 @@ func init() {
 }
 
 func (h *UserHandler) IsLoggedIn(c *gin.Context) {
-	if _, _, err := auth.AuthorizeUser(c, h.Db); err != nil {
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-}
-
-func (h *UserHandler) IsAdmin(c *gin.Context) {
-	if _, userType, err := auth.AuthorizeUser(c, h.Db); err != nil || *userType != string(entity.AdminUser) {
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
+	_, userType, err := auth.AuthorizeUser(c, h.Db)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"logged_in": false,
+			"is_admin":  false,
+		})
+	} else {
+		isAdmin := *userType == string(entity.AdminUser)
+		c.JSON(http.StatusOK, gin.H{
+			"logged_in": true,
+			"is_admin":  isAdmin,
+		})
 	}
 }
 

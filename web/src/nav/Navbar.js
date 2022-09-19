@@ -12,83 +12,24 @@ import {
   MenuItem,
   MenuDivider,
   useDisclosure,
-  Text,
   useColorModeValue,
   Stack,
   chakra,
 } from '@chakra-ui/react'
 import { Link as RouterLink } from 'react-router-dom'
 import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons'
-import { useNavigate } from 'react-router-dom'
 import logger from '../logger'
 import { ColorModeSwitcher } from '../ColorModeSwitcher'
 import { FaCat } from 'react-icons/fa'
 import { colors } from '../theme'
-import { useLocation } from 'react-router-dom'
-import { useVerifyAdmin } from '../hooks/useVerifyAdmin'
-import { useVerifyLogin } from '../hooks/useVerifyLogin'
-import { useRegistration } from '../hooks/useRegistration'
+import { useNavigate } from 'react-router-dom'
 
 const CFcat = chakra(FaCat)
 
-export default function Navbar() {
-  const { isOpen, onOpen, onClose } = useDisclosure()
+export default function Navbar(props) {
   const navigate = useNavigate()
-  const location = useLocation()
+  const { isOpen, onOpen, onClose } = useDisclosure()
   const linkBgColor = useColorModeValue('gray.200', 'gray.700')
-
-  const isAdmin = useVerifyAdmin()
-  const isLoggedIn = useVerifyLogin()
-  const registrationEnabled = useRegistration()
-
-  // const checkIsLoggedIn = useCallback(async () => {
-  //   await fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
-  //     method: 'GET',
-  //     credentials: 'include',
-  //   })
-  //     .then((res) => {
-  //       if (res.status === 200) {
-  //         setIsLoggedIn(true)
-  //       }
-  //       if (
-  //         res.status === 200 &&
-  //         (location.pathname === '/login/' || location.pathname === '/login')
-  //       ) {
-  //         navigate('/')
-  //       }
-  //       if (res.status !== 200) {
-  //         navigate('/login')
-  //       }
-  //     })
-  //     .catch((err) => {
-  //       logger('error verifying login state', err)
-  //     })
-  // }, [navigate, location.pathname])
-
-  // const checkIsRegistrationEnabled = useCallback(async () => {
-  //   await fetch(`${process.env.REACT_APP_API_URL}/registration_enabled`, {
-  //     method: 'GET',
-  //     credentials: 'include',
-  //   })
-  //     .then(async (res) => {
-  //       if (!res) return
-  //       const data = await res.json().catch((err) => logger(err))
-  //       if (data && data.registration_enabled) {
-  //         setRegistrationEnabled(true)
-  //       }
-  //     })
-  //     .catch((err) => {
-  //       logger('error getting registration_enabled', err)
-  //     })
-  // }, [])
-
-  // useEffect(() => {
-  //   Promise.all([
-  //     checkIsLoggedIn(),
-  //     checkIsRegistrationEnabled(),
-  //   ])
-  // }, [checkIsLoggedIn, checkIsRegistrationEnabled])
-
   function logout() {
     fetch(`${process.env.REACT_APP_API_URL}/logout`, {
       method: 'POST',
@@ -109,7 +50,7 @@ export default function Navbar() {
       <Box>
         <Flex
           bg={'gray.800'}
-          h={'50px'}
+          h={'4vh'}
           pl={'2vw'}
           pr={'2vw'}
           alignItems={'center'}
@@ -118,7 +59,7 @@ export default function Navbar() {
           borderStyle={'solid'}
           borderColor={'gray.600'}
         >
-          {isLoggedIn && (
+          {props.isLoggedIn && (
             <IconButton
               size={'md'}
               icon={isOpen ? <CloseIcon /> : <HamburgerIcon />}
@@ -134,24 +75,17 @@ export default function Navbar() {
           )}
 
           <HStack spacing={8} alignItems={'center'}>
-            {isLoggedIn ? (
+            {props.isLoggedIn ? (
               <RouterLink to="/">
                 <CFcat size={'30px'} color={colors.primary} />
               </RouterLink>
             ) : (
               <RouterLink to="/login">
-                <Text
-                  fontSize="xl"
-                  as="b"
-                  fontFamily={'heading'}
-                  color={'white'}
-                >
-                  {process.env.REACT_APP_NAME}
-                </Text>
+                <CFcat size={'30px'} color={colors.primary} />
               </RouterLink>
             )}
 
-            {isLoggedIn && (
+            {props.isLoggedIn && (
               <HStack
                 as={'nav'}
                 spacing={4}
@@ -175,7 +109,7 @@ export default function Navbar() {
           </HStack>
 
           <Flex alignItems={'center'}>
-            {registrationEnabled && (
+            {props.registrationEnabled && (
               <Link
                 px={2}
                 py={1}
@@ -190,12 +124,16 @@ export default function Navbar() {
                 Register
               </Link>
             )}
-            <ColorModeSwitcher justifySelf="flex-end" color="white" />
 
-            {isLoggedIn && (
+            {props.isLoggedIn ? (
+              <ColorModeSwitcher justifySelf="flex-end" color="white" mr={"20px"} />
+            ) : (
+              <ColorModeSwitcher justifySelf="flex-end" color="white" mr={"52px"} />
+            )}
+
+            {props.isLoggedIn && (
               <Menu>
                 <MenuButton
-                  ml={'20px'}
                   as={Button}
                   rounded={'full'}
                   variant={'link'}
@@ -208,7 +146,7 @@ export default function Navbar() {
                   <MenuItem onClick={() => navigate('/accounts')}>
                     Accounts
                   </MenuItem>
-                  {isAdmin && (
+                  {props.isAdmin && (
                     <MenuItem onClick={() => navigate('/admin')}>
                       Admin
                     </MenuItem>

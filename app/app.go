@@ -77,6 +77,9 @@ func (a *App) Initialize(ctx context.Context) {
 	db.AutoMigrate(&entity.Config{})
 
 	createInitialAdminUser(ctx, db)
+	if env == Development {
+		createDummyUser(ctx, db)
+	}
 	a.Db = db
 
 	// Caches
@@ -132,7 +135,6 @@ func (a *App) Initialize(ctx context.Context) {
 		api.POST("/logout", users.Logout)
 		api.POST("/login", middleware.LoginRateLimit(), users.Login)
 		api.GET("/logged_in", users.IsLoggedIn)
-		api.GET("/is_admin", users.IsAdmin)
 		api.GET("/user_info", users.GetUserInfo)
 		api.GET("/sessions", users.GetSessions)
 
@@ -175,6 +177,7 @@ func (a *App) Serve() {
 	}
 }
 
+// Creates initial admin user. Account details can be specified in .env
 func createInitialAdminUser(ctx context.Context, db *gorm.DB) {
 	username := os.Getenv("ADMIN_USERNAME")
 	email := os.Getenv("ADMIN_EMAIL")
@@ -195,6 +198,28 @@ func createInitialAdminUser(ctx context.Context, db *gorm.DB) {
 			Email:    email,
 			Password: string(hash),
 			Type:     entity.AdminUser,
+		})
+	}
+}
+
+// Creates a regular user when in development 
+func createDummyUser(ctx context.Context, db *gorm.DB) {
+	username := "regularuser"
+	email := "regularuser@notAnEmail.com"
+	pw := "password"
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var exists bool
+	db.Raw("SELECT EXISTS(SELECT 1 FROM users WHERE username = ?) AS found", username).Scan(&exists)
+	if !exists {
+		db.Create(&entity.User{
+			Username: username,
+			Email:    email,
+			Password: string(hash),
+			Type:     entity.RegularUser,
 		})
 	}
 }
