@@ -15,6 +15,7 @@ import {
   useColorModeValue,
   Stack,
   chakra,
+  Text,
 } from '@chakra-ui/react'
 import { Link as RouterLink } from 'react-router-dom'
 import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons'
@@ -26,7 +27,7 @@ import { useNavigate } from 'react-router-dom'
 
 const CFcat = chakra(FaCat)
 
-export default function Navbar(props) {
+export default function Navbar({isLoggedIn, registrationEnabled, isAdmin}) {
   const navigate = useNavigate()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const linkBgColor = useColorModeValue('gray.200', 'gray.700')
@@ -50,7 +51,7 @@ export default function Navbar(props) {
       <Box>
         <Flex
           bg={'gray.800'}
-          h={'4vh'}
+          h={isLoggedIn ? '50px' : '5vh'}
           pl={'2vw'}
           pr={'2vw'}
           alignItems={'center'}
@@ -59,7 +60,7 @@ export default function Navbar(props) {
           borderStyle={'solid'}
           borderColor={'gray.600'}
         >
-          {props.isLoggedIn && (
+          {isLoggedIn && (
             <IconButton
               size={'md'}
               icon={isOpen ? <CloseIcon /> : <HamburgerIcon />}
@@ -75,17 +76,24 @@ export default function Navbar(props) {
           )}
 
           <HStack spacing={8} alignItems={'center'}>
-            {props.isLoggedIn ? (
+            {isLoggedIn ? (
               <RouterLink to="/">
                 <CFcat size={'30px'} color={colors.primary} />
               </RouterLink>
             ) : (
               <RouterLink to="/login">
-                <CFcat size={'30px'} color={colors.primary} />
+                <Text
+                  fontSize="xl"
+                  as="b"
+                  fontFamily={'heading'}
+                  color={'white'}
+                >
+                  {process.env.REACT_APP_NAME}
+                </Text>
               </RouterLink>
             )}
 
-            {props.isLoggedIn && (
+            {isLoggedIn && (
               <HStack
                 as={'nav'}
                 spacing={4}
@@ -109,7 +117,7 @@ export default function Navbar(props) {
           </HStack>
 
           <Flex alignItems={'center'}>
-            {props.registrationEnabled && (
+            {registrationEnabled && (
               <Link
                 px={2}
                 py={1}
@@ -125,15 +133,12 @@ export default function Navbar(props) {
               </Link>
             )}
 
-            {props.isLoggedIn ? (
-              <ColorModeSwitcher justifySelf="flex-end" color="white" mr={"20px"} />
-            ) : (
-              <ColorModeSwitcher justifySelf="flex-end" color="white" mr={"52px"} />
-            )}
+            <ColorModeSwitcher justifySelf="flex-end" color="white" />
 
-            {props.isLoggedIn && (
+            {isLoggedIn && (
               <Menu>
                 <MenuButton
+                  ml={5}
                   as={Button}
                   rounded={'full'}
                   variant={'link'}
@@ -146,7 +151,7 @@ export default function Navbar(props) {
                   <MenuItem onClick={() => navigate('/accounts')}>
                     Accounts
                   </MenuItem>
-                  {props.isAdmin && (
+                  {isAdmin && (
                     <MenuItem onClick={() => navigate('/admin')}>
                       Admin
                     </MenuItem>
