@@ -12,16 +12,24 @@ import {
   Switch,
   Stack,
   Select,
+  chakra,
   NumberInput,
   NumberInputField,
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
+  Tooltip,
+  HStack,
 } from '@chakra-ui/react'
 import logger from '../logger'
+import { FaInfoCircle } from 'react-icons/fa'
+import { colors } from '../theme'
+const CFInfoCircle = chakra(FaInfoCircle)
 
 export default function AdminPage() {
   const stackBgColor = useColorModeValue('white', 'gray.900')
+  const tooltipBg = useColorModeValue('white', 'gray.900')
+  const tooltipColor = useColorModeValue('black', 'white')
 
   const getConfigs = useCallback(async () => {
     await fetch(`${process.env.REACT_APP_API_URL}/configs`, {
@@ -85,8 +93,26 @@ export default function AdminPage() {
             </NumberInputStepper>
           </NumberInput>
 
+          <FormLabel mt={5}>
+            <HStack>
+              <Text>Quota</Text>
+              <Tooltip
+                label="Quotas can be set to control the number of times a user is able to link a new account"
+                fontSize="md"
+                bg={tooltipBg}
+                color={tooltipColor}
+                borderWidth="1px"
+                boxShadow={'2xl'}
+                borderRadius="lg"
+                p={5}
+              >
+                <span>
+                  <CFInfoCircle />
+                </span>
+              </Tooltip>
+            </HStack>
+          </FormLabel>
 
-          <FormLabel mt={5}>Quota</FormLabel>
           <Select
             defaultValue={false}
             onChange={(event) => console.log(event.target.value)}
@@ -94,7 +120,6 @@ export default function AdminPage() {
             <option value={true}>Enabled</option>
             <option value={false}>Disabled</option>
           </Select>
-
 
           <FormLabel mt={5}>Quota Limit</FormLabel>
           <NumberInput
@@ -110,11 +135,25 @@ export default function AdminPage() {
             </NumberInputStepper>
           </NumberInput>
 
-
-
-
-
-          <FormLabel mt={5}>Scheduled Tasks</FormLabel>
+          <FormLabel mt={5}>
+            <HStack>
+              <Text>Scheduled Tasks</Text>
+              <Tooltip
+                label="Tasks must be enabled to refresh transactions and account values"
+                fontSize="md"
+                bg={tooltipBg}
+                color={tooltipColor}
+                borderWidth="1px"
+                boxShadow={'2xl'}
+                borderRadius="lg"
+                p={5}
+              >
+                <span>
+                  <CFInfoCircle />
+                </span>
+              </Tooltip>
+            </HStack>
+          </FormLabel>
           <Select
             defaultValue={false}
             onChange={(event) => console.log(event.target.value)}
@@ -141,7 +180,25 @@ export default function AdminPage() {
             </NumberInputStepper>
           </NumberInput>
 
-          <FormLabel mt={5}>User Registration</FormLabel>
+          <FormLabel mt={5}>
+            <HStack>
+              <Text>User Registration</Text>
+              <Tooltip
+                label="Allow new users to create an account from the login page"
+                fontSize="md"
+                bg={tooltipBg}
+                color={tooltipColor}
+                borderWidth="1px"
+                boxShadow={'2xl'}
+                borderRadius="lg"
+                p={5}
+              >
+                <span>
+                  <CFInfoCircle />
+                </span>
+              </Tooltip>
+            </HStack>
+          </FormLabel>
           <Select
             defaultValue={false}
             onChange={(event) => console.log(event.target.value)}

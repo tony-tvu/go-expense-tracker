@@ -64,7 +64,7 @@ export default function Accounts() {
           borderRadius="lg"
           bg={stackBgColor}
           boxShadow={'2xl'}
-          p={5}
+          p={3}
           mb={5}
         >
           <Text fontSize="xl" as="b">
