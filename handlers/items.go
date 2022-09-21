@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
-	. "github.com/gobeam/mongo-go-pagination"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/cache"
@@ -19,6 +19,7 @@ import (
 	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type ItemHandler struct {
@@ -92,6 +93,10 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
+	if page <= 0 {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
 
 	configs, err := h.ConfigsCache.GetConfigs()
 	if err != nil {
@@ -99,29 +104,38 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 		return
 	}
 
-	var items []*models.Item
-	p, err := New(h.Db.Items).
-		Context(ctx).
-		Limit(configs.PageLimit).
-		Page(int64(page)).
-		Sort("institution", 1).
-		Select(bson.D{}).
-		Filter(bson.M{"user_id": userID}).
-		Decode(&items).Find()
+	filter := bson.M{"user_id": userID}
+	findOptions := options.Find().
+		SetSort(bson.D{{Key: "institution", Value: 1}}).
+		SetSkip((int64(page) - 1) * configs.PageLimit).
+		SetLimit(configs.PageLimit)
+
+	total, err := h.Db.Items.CountDocuments(ctx, filter)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	// remove plaid item id and access token - should never expose this info
-	for _, item := range items {
-		item.PlaidItemID = ""
-		item.AccessToken = ""
+	cursor, err := h.Db.Items.Find(ctx, filter, findOptions)
+	defer cursor.Close(ctx)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	var items []*models.Item
+	for cursor.Next(ctx) {
+		var item *models.Item
+		cursor.Decode(&item)
+		items = append(items, item)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"items":     &items,
-		"page_info": p.Pagination,
+		"total":     total,
+		"page":      page,
+		"last_page": math.Ceil(float64(total/configs.PageLimit)) + 1,
+		"next":      page + 1,
 	})
 }
 
