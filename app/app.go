@@ -17,13 +17,10 @@ import (
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/handlers"
 	"github.com/tony-tvu/goexpense/middleware"
-	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/tasks"
 	"github.com/tony-tvu/goexpense/util"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type App struct {
@@ -145,35 +142,14 @@ func (a *App) Start(ctx context.Context) {
 	a.Db.Transactions = mongoclient.Database(dbName).Collection("transactions")
 	a.Db.Users = mongoclient.Database(dbName).Collection("users")
 
-	// Create unique constraints
-	if _, err = a.Db.Users.Indexes().CreateOne(
-		context.Background(),
-		mongo.IndexModel{
-			Keys:    bson.D{{Key: "username", Value: 1}},
-			Options: options.Index().SetUnique(true),
-		},
-	); err != nil {
-		log.Fatal(err)
+	database.CreateUniqueConstraints(ctx, a.Db)
+	username := os.Getenv("ADMIN_USERNAME")
+	email := os.Getenv("ADMIN_EMAIL")
+	pw := os.Getenv("ADMIN_PASSWORD")
+	if util.ContainsEmpty(username, email, pw) {
+		return
 	}
-	if _, err = a.Db.Users.Indexes().CreateOne(
-		context.Background(),
-		mongo.IndexModel{
-			Keys:    bson.D{{Key: "email", Value: 1}},
-			Options: options.Index().SetUnique(true),
-		},
-	); err != nil {
-		log.Fatal(err)
-	}
-	if _, err = a.Db.Transactions.Indexes().CreateOne(
-		context.Background(),
-		mongo.IndexModel{
-			Keys:    bson.D{{Key: "transaction_id", Value: 1}},
-			Options: options.Index().SetUnique(true),
-		},
-	); err != nil {
-		log.Fatal(err)
-	}
-	createInitialAdminUser(ctx, a.Db)
+	database.CreateInitialAdminUser(ctx, a.Db, username, email, pw)
 
 	// Populate cache
 	a.ConfigsCache.InitConfigsCache(ctx, a.Db)
@@ -195,41 +171,6 @@ func (a *App) Start(ctx context.Context) {
 
 	log.Printf("Listening on port %s\n", port)
 	if err := srv.ListenAndServe(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-// Creates initial admin user. Account details can be specified in .env
-func createInitialAdminUser(ctx context.Context, db *database.MongoDb) {
-	username := os.Getenv("ADMIN_USERNAME")
-	email := os.Getenv("ADMIN_EMAIL")
-	pw := os.Getenv("ADMIN_PASSWORD")
-	if util.ContainsEmpty(username, email, pw) {
-		return
-	}
-
-	// check if admin already exists
-	count, err := db.Users.CountDocuments(ctx, bson.D{{Key: "username", Value: username}})
-	if err != nil {
-		log.Fatal(err)
-	}
-	if count == 1 {
-		return
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
-	if err != nil {
-		log.Fatal(err)
-	}
-	doc := &bson.D{
-		{Key: "username", Value: username},
-		{Key: "email", Value: email},
-		{Key: "password", Value: string(hash)},
-		{Key: "type", Value: models.AdminUser},
-		{Key: "created_at", Value: time.Now()},
-		{Key: "updated_at", Value: time.Now()},
-	}
-	if _, err = db.Users.InsertOne(ctx, doc); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -10,8 +10,8 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/app"
+	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/util"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -67,27 +67,7 @@ func TestMain(m *testing.M) {
 	testApp.Db.Users = mongoclient.Database(dbName).Collection("users")
 
 	// Create unique constraints
-	_, err = testApp.Db.Users.Indexes().CreateOne(
-		context.Background(),
-		mongo.IndexModel{
-			Keys:    bson.D{{Key: "username", Value: 1}},
-			Options: options.Index().SetUnique(true),
-		},
-	)
-	_, err = testApp.Db.Users.Indexes().CreateOne(
-		context.Background(),
-		mongo.IndexModel{
-			Keys:    bson.D{{Key: "email", Value: 1}},
-			Options: options.Index().SetUnique(true),
-		},
-	)
-	_, err = testApp.Db.Transactions.Indexes().CreateOne(
-		context.Background(),
-		mongo.IndexModel{
-			Keys:    bson.D{{Key: "transaction_id", Value: 1}},
-			Options: options.Index().SetUnique(true),
-		},
-	)
+	database.CreateUniqueConstraints(ctx, testApp.Db)
 
 	// clear tables
 	testApp.Db.Items.Drop(ctx)
