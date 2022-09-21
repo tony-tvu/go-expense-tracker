@@ -7,7 +7,7 @@ import (
 )
 
 type Config struct {
-	ID primitive.ObjectID `json:"_id" bson:"_id"`
+	ID primitive.ObjectID `json:"id" bson:"_id"`
 
 	AccessTokenExp  int `json:"access_token_exp" bson:"access_token_exp"`
 	RefreshTokenExp int `json:"refresh_token_exp" bson:"refresh_token_exp"`

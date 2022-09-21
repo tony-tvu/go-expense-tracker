@@ -68,9 +68,9 @@ func AuthorizeUser(c *gin.Context, db *database.MongoDb) (*primitive.ObjectID, *
 			return nil, nil, errors.New("internal server error")
 		}
 
-		_, err = db.Users.UpdateOne(
+		_, err = db.Sessions.UpdateOne(
 			ctx,
-			bson.M{"_id": objID},
+			bson.M{"_id": session.ID},
 			bson.D{
 				{Key: "$set", Value: bson.D{
 					{Key: "refresh_token", Value: renewedRefresh.Value},

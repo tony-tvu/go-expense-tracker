@@ -156,7 +156,7 @@ func (h *UserHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	_, err = h.Db.Items.DeleteMany(ctx, bson.M{"user_id": userID})
+	_, err = h.Db.Sessions.DeleteMany(ctx, bson.M{"user_id": userID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

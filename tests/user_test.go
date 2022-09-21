@@ -54,7 +54,7 @@ func TestLoginAndLogout(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// should no longer have user session saved after logging out
-	count, err := testApp.Db.Users.CountDocuments(ctx, bson.D{{Key: "user_id", Value: user.ID}})
+	count, err := testApp.Db.Sessions.CountDocuments(ctx, bson.D{{Key: "user_id", Value: user.ID}})
 	if err != nil {
 		t.FailNow()
 	}

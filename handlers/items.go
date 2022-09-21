@@ -186,7 +186,7 @@ func (h *ItemHandler) DeleteItem(c *gin.Context) {
 	}
 
 	type Input struct {
-		ID string `json:"_id" validate:"required"`
+		ID string `json:"id" validate:"required"`
 	}
 
 	var input Input
@@ -208,7 +208,6 @@ func (h *ItemHandler) DeleteItem(c *gin.Context) {
 		return
 	}
 
-	// TODO: convert _id sent from frontend into an ObjectID
 	objID, err := primitive.ObjectIDFromHex(input.ID)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)

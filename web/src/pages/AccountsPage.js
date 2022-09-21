@@ -30,7 +30,6 @@ export default function Accounts() {
       .then(async (res) => {
         if (!res) return
         const data = await res.json().catch((err) => logger(err))
-
         if (res.status === 200 && data.items) {
           setItems(data.items)
           return
