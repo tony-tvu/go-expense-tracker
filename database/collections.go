@@ -22,8 +22,7 @@ type MongoDb struct {
 
 func CreateUniqueConstraints(ctx context.Context, db *MongoDb) {
 	if _, err := db.Users.Indexes().CreateOne(
-		ctx,
-		mongo.IndexModel{
+		ctx, mongo.IndexModel{
 			Keys:    bson.D{{Key: "username", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
@@ -31,8 +30,7 @@ func CreateUniqueConstraints(ctx context.Context, db *MongoDb) {
 		log.Fatal(err)
 	}
 	if _, err := db.Users.Indexes().CreateOne(
-		context.Background(),
-		mongo.IndexModel{
+		ctx, mongo.IndexModel{
 			Keys:    bson.D{{Key: "email", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
@@ -40,18 +38,8 @@ func CreateUniqueConstraints(ctx context.Context, db *MongoDb) {
 		log.Fatal(err)
 	}
 	if _, err := db.Transactions.Indexes().CreateOne(
-		context.Background(),
-		mongo.IndexModel{
+		ctx, mongo.IndexModel{
 			Keys:    bson.D{{Key: "transaction_id", Value: 1}},
-			Options: options.Index().SetUnique(true),
-		},
-	); err != nil {
-		log.Fatal(err)
-	}
-	if _, err := db.Items.Indexes().CreateOne(
-		context.Background(),
-		mongo.IndexModel{
-			Keys:    bson.D{{Key: "plaid_item_id", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 	); err != nil {
