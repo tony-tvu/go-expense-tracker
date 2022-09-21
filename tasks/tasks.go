@@ -74,13 +74,16 @@ func RefreshTransactions() {
 				doc := &bson.D{
 					{Key: "item_id", Value: item.ID},
 					{Key: "user_id", Value: item.UserID},
-					{Key: "Transaction_id", Value: t.GetTransactionId()},
+					{Key: "transaction_id", Value: t.GetTransactionId()},
 					{Key: "date", Value: date},
 					{Key: "amount", Value: t.Amount},
 					{Key: "created_at", Value: time.Now()},
 					{Key: "updated_at", Value: time.Now()},
 				}
 				if _, err = db.Transactions.InsertOne(ctx, doc); err != nil {
+					log.Printf("error occurred in RefreshTransactionsTask while saving new transaction %+v\n", err)
+
+
 					if !strings.Contains(err.Error(), "duplicate key error") {
 						log.Printf("error occurred in RefreshTransactionsTask while saving new transaction %+v\n", err)
 						isSuccess = false

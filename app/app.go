@@ -76,7 +76,7 @@ func (a *App) Initialize(ctx context.Context) {
 	// Handlers
 	users := &handlers.UserHandler{Db: a.Db}
 	items := &handlers.ItemHandler{Db: a.Db, Client: pc}
-	transactions := &handlers.TransactionHandler{Db: a.Db}
+	transactions := &handlers.TransactionHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 	configs := &handlers.ConfigsHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 
 	// Router
@@ -113,7 +113,7 @@ func (a *App) Initialize(ctx context.Context) {
 		api.DELETE("/items", items.DeleteItem)
 
 		// transactions
-		api.GET("/transactions", transactions.GetTransactions)
+		api.GET("/transactions/:page", transactions.GetTransactions)
 	}
 
 	router.Use(middleware.FrontendCache, static.Serve("/", static.LocalFile("./web/build", true)))
@@ -146,27 +146,33 @@ func (a *App) Start(ctx context.Context) {
 	a.Db.Users = mongoclient.Database(dbName).Collection("users")
 
 	// Create unique constraints
-	_, err = a.Db.Users.Indexes().CreateOne(
+	if _, err = a.Db.Users.Indexes().CreateOne(
 		context.Background(),
 		mongo.IndexModel{
 			Keys:    bson.D{{Key: "username", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
-	)
-	_, err = a.Db.Users.Indexes().CreateOne(
+	); err != nil {
+		log.Fatal(err)
+	}
+	if _, err = a.Db.Users.Indexes().CreateOne(
 		context.Background(),
 		mongo.IndexModel{
 			Keys:    bson.D{{Key: "email", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
-	)
-	_, err = a.Db.Transactions.Indexes().CreateOne(
+	); err != nil {
+		log.Fatal(err)
+	}
+	if _, err = a.Db.Transactions.Indexes().CreateOne(
 		context.Background(),
 		mongo.IndexModel{
 			Keys:    bson.D{{Key: "transaction_id", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
-	)
+	); err != nil {
+		log.Fatal(err)
+	}
 	createInitialAdminUser(ctx, a.Db)
 
 	// Populate cache

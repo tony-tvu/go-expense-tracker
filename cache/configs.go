@@ -54,6 +54,7 @@ func (c *Configs) InitConfigsCache(ctx context.Context, db *database.MongoDb) {
 			{Key: "tasks_enabled", Value: true},
 			{Key: "tasks_interval", Value: 60},
 			{Key: "registration_enabled", Value: false},
+			{Key: "page_limit", Value: int64(100)},
 			{Key: "created_at", Value: time.Now()},
 			{Key: "updated_at", Value: time.Now()},
 		}
