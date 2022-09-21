@@ -21,6 +21,18 @@ type Configs struct {
 	Cache *bigcache.BigCache
 }
 
+var PAGE_LIMIT int64 = 500
+
+type ConfigsInput struct {
+	RegistrationEnabled bool `json:"registration_enabled"`
+	AccessTokenExp      int  `json:"access_token_exp"`
+	RefreshTokenExp     int  `json:"refresh_token_exp"`
+	QuotaEnabled        bool `json:"quota_enabled"`
+	QuotaLimit          int  `json:"quota_limit"`
+	TasksEnabled        bool `json:"tasks_enabled"`
+	TasksInterval       int  `json:"tasks_interval"`
+}
+
 func (c *Configs) InitConfigsCache(ctx context.Context, db *database.MongoDb) {
 	cacheConfig := bigcache.Config{
 		Shards:     16,
@@ -54,7 +66,7 @@ func (c *Configs) InitConfigsCache(ctx context.Context, db *database.MongoDb) {
 			{Key: "tasks_enabled", Value: true},
 			{Key: "tasks_interval", Value: 60},
 			{Key: "registration_enabled", Value: false},
-			{Key: "page_limit", Value: int64(100)},
+			{Key: "page_limit", Value: PAGE_LIMIT},
 			{Key: "created_at", Value: time.Now()},
 			{Key: "updated_at", Value: time.Now()},
 		}
@@ -90,4 +102,46 @@ func (c *Configs) GetConfigs() (*models.Config, error) {
 	}
 
 	return &configs, nil
+}
+
+func (c *Configs) UpdateConfigsCache(ctx context.Context, db *database.MongoDb, input *ConfigsInput) error {
+	var configs *models.Config
+	if err := db.Configs.FindOne(ctx, bson.M{}).Decode(&configs); err != nil {
+		return err
+	}
+	_, err := db.Configs.UpdateOne(
+		ctx,
+		bson.M{"_id": configs.ID},
+		bson.D{
+			{Key: "$set", Value: bson.D{
+				{Key: "access_token_exp", Value: input.AccessTokenExp},
+				{Key: "refresh_token_exp", Value: input.RefreshTokenExp},
+				{Key: "quota_enabled", Value: input.QuotaEnabled},
+				{Key: "quota_limit", Value: input.QuotaLimit},
+				{Key: "tasks_enabled", Value: input.TasksEnabled},
+				{Key: "tasks_interval", Value: input.TasksInterval},
+				{Key: "registration_enabled", Value: input.RegistrationEnabled},
+				{Key: "updated_at", Value: time.Now()},
+			}},
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	var updatedConfigs *models.Config
+	if err := db.Configs.FindOne(ctx, bson.M{}).Decode(&updatedConfigs); err != nil {
+		return err
+	}
+
+	b, err := json.Marshal(updatedConfigs)
+	if err != nil {
+		return err
+	}
+
+	err = c.Cache.Set("configs", b)
+	if err != nil {
+		return err
+	}
+	return nil
 }

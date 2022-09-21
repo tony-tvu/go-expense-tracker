@@ -95,6 +95,7 @@ func (a *App) Initialize(ctx context.Context) {
 		// configs
 		api.GET("/registration_enabled", configs.RegistrationEnabled)
 		api.GET("/configs", configs.GetConfigs)
+		api.PUT("/configs", configs.UpdateConfigs)
 
 		// users
 		api.POST("/logout", users.Logout)

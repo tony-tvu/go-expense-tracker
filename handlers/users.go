@@ -75,7 +75,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 		Password string `json:"password" validate:"required"`
 	}
 
-	var input Input
+	var input *Input
 	bodyBytes, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
