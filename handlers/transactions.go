@@ -7,13 +7,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/entity"
-	"github.com/tony-tvu/goexpense/util"
-	"gorm.io/gorm"
+	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/models"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type TransactionHandler struct {
-	Db *gorm.DB
+	Db    *database.MongoDb
 }
 
 type PageInfoInput struct {
@@ -23,12 +23,15 @@ type PageInfoInput struct {
 var PAGE_LIMIT = 50
 
 func (h *TransactionHandler) GetTransactions(c *gin.Context) {
+	ctx := c.Request.Context()
+	
 	userID, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
+	// TODO: get page from url instead of body
 	var input PageInfoInput
 	bodyBytes, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -48,17 +51,21 @@ func (h *TransactionHandler) GetTransactions(c *gin.Context) {
 		return
 	}
 
-	pagination := util.Pagination{
-		Limit: PAGE_LIMIT,
-		Page:  input.Page,
-		Sort:  "date desc",
-	}
+	// TODO: add pagination
 
-	var transactions []*entity.Transaction
-	h.Db.Scopes(util.Paginate(transactions, &pagination, h.Db)).Where("user_id = ?", userID).Find(&transactions)
+	var transactions []*models.Transaction
+	cursor, err := h.Db.Transactions.Find(ctx, bson.M{"user_id": userID})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if err = cursor.All(ctx, &transactions); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"transactions": transactions,
-		"page_info":    pagination,
+		"page_info":    "pagination",
 	})
 }

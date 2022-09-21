@@ -2,7 +2,6 @@ package tests
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http/httptest"
 	"os"
@@ -11,11 +10,10 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/app"
-	"github.com/tony-tvu/goexpense/entity"
 	"github.com/tony-tvu/goexpense/util"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var (
@@ -45,35 +43,57 @@ func TestMain(m *testing.M) {
 	}
 	accessTokenExp = accessExp
 
-	dbUser := os.Getenv("DB_USER")
-	dbPwd := os.Getenv("DB_PASS")
-	dbHost := os.Getenv("DB_HOST")
-	dbName := os.Getenv("DB_NAME")
-	dbPort := os.Getenv("DB_PORT")
-	if util.ContainsEmpty(dbUser, dbPwd, dbHost, dbName, dbPort) {
-		log.Fatal("test postgres config envs are missing")
-	}
-
-	dbURI := fmt.Sprintf("user=%s password=%s database=%s host=%s port=%s",
-		dbUser, dbPwd, dbName, dbHost, dbPort)
-	db, err := gorm.Open(postgres.Open(dbURI), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-	if err != nil {
-		log.Fatalln(err)
-	}
-	db.AutoMigrate(&entity.Session{})
-	db.AutoMigrate(&entity.User{})
-	db.AutoMigrate(&entity.Item{})
-	db.AutoMigrate(&entity.Transaction{})
-
 	testApp = &app.App{}
 	testApp.Initialize(ctx)
-	testApp.Db = db
+
+	mongoURI := os.Getenv("MONGODB_URI")
+	dbName := os.Getenv("DB_NAME")
+	if util.ContainsEmpty(mongoURI, dbName) {
+		log.Fatal("test db configs are missing")
+	}
+	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err := mongoclient.Disconnect(ctx); err != nil {
+			log.Println("mongo has been disconnected: ", err)
+		}
+	}()
+	testApp.Db.Configs = mongoclient.Database(dbName).Collection("configs")
+	testApp.Db.Items = mongoclient.Database(dbName).Collection("items")
+	testApp.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
+	testApp.Db.Transactions = mongoclient.Database(dbName).Collection("transactions")
+	testApp.Db.Users = mongoclient.Database(dbName).Collection("users")
+
+	// Create unique constraints
+	_, err = testApp.Db.Users.Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "username", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	)
+	_, err = testApp.Db.Users.Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "email", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	)
+	_, err = testApp.Db.Transactions.Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "transaction_id", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	)
 
 	// clear tables
-	db.Exec("delete from users;")
-	db.Exec("delete from sessions;")
+	testApp.Db.Items.Drop(ctx)
+	testApp.Db.Sessions.Drop(ctx)
+	testApp.Db.Transactions.Drop(ctx)
+	testApp.Db.Users.Drop(ctx)
 
 	// start test server
 	srv = httptest.NewServer(testApp.Router)

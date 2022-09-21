@@ -2,19 +2,23 @@ package auth
 
 import (
 	"errors"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/util"
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Function verifies if user is logged in and tokens are valid
 // Refreshes access token if it has expired and extends sessions
 // Returns user ID and type
-func AuthorizeUser(c *gin.Context, db *gorm.DB) (*uint, *string, error) {
-	var userID uint
-	var userType string
+func AuthorizeUser(c *gin.Context, db *database.MongoDb) (*primitive.ObjectID, *models.Type, error) {
+	ctx := c.Request.Context()
+	var userIDHex string
+	var userTypeStr string
 
 	// no refresh cookie means session has expired or user is not logged in
 	refreshCookie, err := c.Request.Cookie("goexpense_refresh")
@@ -28,16 +32,20 @@ func AuthorizeUser(c *gin.Context, db *gorm.DB) (*uint, *string, error) {
 		return nil, nil, errors.New("not authorized")
 	}
 
-	userID = refreshClaims.UserID
-	userType = refreshClaims.UserType
+	userIDHex = refreshClaims.UserID
+	userTypeStr = refreshClaims.UserType
+	objID, err := primitive.ObjectIDFromHex(userIDHex)
+	if err != nil {
+		return nil, nil, errors.New("internal server error")
+	}
 
 	// handle expired or missing access_token
 	_, err = c.Request.Cookie("goexpense_access")
 	if err != nil {
 
 		// find existing session
-		var session *entity.Session
-		if result := db.Where("user_id = ?", userID).First(&session); result.Error != nil {
+		var session *models.Session
+		if err = db.Sessions.FindOne(ctx, bson.D{{Key: "user_id", Value: objID}}).Decode(&session); err != nil {
 			return nil, nil, errors.New("not authorized")
 		}
 
@@ -48,23 +56,36 @@ func AuthorizeUser(c *gin.Context, db *gorm.DB) (*uint, *string, error) {
 		}
 
 		// renew access_token
-		renewedAccess, err := GetEncryptedToken(AccessToken, userID, userType)
+		renewedAccess, err := GetEncryptedToken(AccessToken, userIDHex, userTypeStr)
 		if err != nil {
 			return nil, nil, errors.New("internal server error")
 		}
 		util.SetCookie(c.Writer, "goexpense_access", renewedAccess.Value, renewedAccess.ExpiresAt)
 
 		// extend user session
-		renewedRefresh, err := GetEncryptedToken(RefreshToken, userID, userType)
+		renewedRefresh, err := GetEncryptedToken(RefreshToken, userIDHex, userTypeStr)
 		if err != nil {
 			return nil, nil, errors.New("internal server error")
 		}
-		session.RefreshToken = renewedRefresh.Value
-		session.ExpiresAt = renewedRefresh.ExpiresAt
-		db.Save(&session)
 
+		_, err = db.Users.UpdateOne(
+			ctx,
+			bson.M{"_id": objID},
+			bson.D{
+				{Key: "$set", Value: bson.D{
+					{Key: "refresh_token", Value: renewedRefresh.Value},
+					{Key: "expires_at", Value: renewedRefresh.ExpiresAt},
+					{Key: "updated_at", Value: time.Now()},
+				}},
+			},
+		)
+		if err != nil {
+			return nil, nil, errors.New("internal server error")
+		}
+		
 		util.SetCookie(c.Writer, "goexpense_refresh", renewedRefresh.Value, renewedRefresh.ExpiresAt)
 	}
 
-	return &userID, &userType, nil
+	userType := models.GetUserType(userTypeStr)
+	return &objID, &userType, nil
 }

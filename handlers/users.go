@@ -10,14 +10,15 @@ import (
 	"github.com/go-playground/validator"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/cache"
-	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/util"
+	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type UserHandler struct {
-	Db    *gorm.DB
+	Db    *database.MongoDb
 	Cache *cache.Configs
 }
 
@@ -35,7 +36,7 @@ func (h *UserHandler) IsLoggedIn(c *gin.Context) {
 			"is_admin":  false,
 		})
 	} else {
-		isAdmin := *userType == string(entity.AdminUser)
+		isAdmin := *userType == models.AdminUser
 		c.JSON(http.StatusOK, gin.H{
 			"logged_in": true,
 			"is_admin":  isAdmin,
@@ -44,18 +45,29 @@ func (h *UserHandler) IsLoggedIn(c *gin.Context) {
 }
 
 func (h *UserHandler) GetUsers(c *gin.Context) {
-	if _, uType, err := auth.AuthorizeUser(c, h.Db); err != nil || *uType != string(entity.AdminUser) {
+	ctx := c.Request.Context()
+
+	if _, uType, err := auth.AuthorizeUser(c, h.Db); err != nil || *uType != models.AdminUser {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
-	var users []*entity.User
-	h.Db.Raw("SELECT * FROM users").Scan(&users)
+	var users []*models.User
+	cursor, err := h.Db.Users.Find(ctx, bson.M{})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if err = cursor.All(ctx, &users); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 
 	c.JSON(http.StatusOK, users)
 }
 
 func (h *UserHandler) Login(c *gin.Context) {
+	ctx := c.Request.Context()
 	defer c.Request.Body.Close()
 
 	type Input struct {
@@ -83,9 +95,8 @@ func (h *UserHandler) Login(c *gin.Context) {
 	}
 
 	// find existing user account
-	var u *entity.User
-	result := h.Db.Where("username = ?", input.Username).First(&u)
-	if result.Error != nil {
+	var u *models.User
+	if err = h.Db.Users.FindOne(ctx, bson.D{{Key: "username", Value: input.Username}}).Decode(&u); err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
@@ -98,30 +109,35 @@ func (h *UserHandler) Login(c *gin.Context) {
 	}
 
 	// create refresh token
-	refreshToken, err := auth.GetEncryptedToken(auth.RefreshToken, u.ID, string(u.Type))
+	refreshToken, err := auth.GetEncryptedToken(auth.RefreshToken, u.ID.Hex(), string(u.Type))
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
 	// delete existing sessions
-	if result := h.Db.Exec("DELETE FROM sessions WHERE user_id = ?", u.ID); result.Error != nil {
+	_, err = h.Db.Sessions.DeleteMany(ctx, bson.M{"user_id": u.ID})
+	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	// save new session
-	if result := h.Db.Create(&entity.Session{
-		UserID:       u.ID,
-		RefreshToken: refreshToken.Value,
-		ExpiresAt:    refreshToken.ExpiresAt,
-	}); result.Error != nil {
+	doc := bson.D{
+		{Key: "user_id", Value: u.ID},
+		{Key: "refresh_token", Value: refreshToken.Value},
+		{Key: "expires_at", Value: refreshToken.ExpiresAt},
+		{Key: "created_at", Value: time.Now()},
+		{Key: "updated_at", Value: time.Now()},
+	}
+	_, err = h.Db.Sessions.InsertOne(ctx, doc)
+	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	// create access token
-	accessToken, err := auth.GetEncryptedToken(auth.AccessToken, u.ID, string(u.Type))
+	accessToken, err := auth.GetEncryptedToken(auth.AccessToken, u.ID.Hex(), string(u.Type))
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -132,13 +148,16 @@ func (h *UserHandler) Login(c *gin.Context) {
 }
 
 func (h *UserHandler) Logout(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	userID, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
-	if result := h.Db.Exec("DELETE FROM sessions WHERE user_id = ?", userID); result.Error != nil {
+	_, err = h.Db.Items.DeleteMany(ctx, bson.M{"user_id": userID})
+	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -148,14 +167,16 @@ func (h *UserHandler) Logout(c *gin.Context) {
 }
 
 func (h *UserHandler) GetUserInfo(c *gin.Context) {
-	id, _, err := auth.AuthorizeUser(c, h.Db)
+	ctx := c.Request.Context()
+
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
-	var u *entity.User
-	if result := h.Db.Where("id = ?", id).First(&u); result.Error != nil {
+	var u *models.User
+	if err = h.Db.Users.FindOne(ctx, bson.D{{Key: "_id", Value: userID}}).Decode(&u); err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
@@ -168,12 +189,23 @@ func (h *UserHandler) GetUserInfo(c *gin.Context) {
 }
 
 func (h *UserHandler) GetSessions(c *gin.Context) {
-	if _, uType, err := auth.AuthorizeUser(c, h.Db); err != nil || *uType != string(entity.AdminUser) {
+	ctx := c.Request.Context()
+
+	if _, uType, err := auth.AuthorizeUser(c, h.Db); err != nil || *uType != models.AdminUser {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-	var sessions []*entity.Session
-	h.Db.Raw("SELECT * FROM sessions").Scan(&sessions)
+
+	var sessions []*models.Session
+	cursor, err := h.Db.Sessions.Find(ctx, bson.M{})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if err = cursor.All(ctx, &sessions); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 
 	c.JSON(http.StatusOK, sessions)
 }

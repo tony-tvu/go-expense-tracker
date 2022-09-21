@@ -10,5 +10,5 @@ func main() {
 	ctx := context.Background()
 	app := &app.App{}
 	app.Initialize(ctx)
-	app.Serve()
+	app.Start(ctx)
 }

@@ -12,13 +12,14 @@ import (
 	"github.com/go-playground/validator"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/entity"
-	"github.com/tony-tvu/goexpense/util"
-	"gorm.io/gorm"
+	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/models"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ItemHandler struct {
-	Db     *gorm.DB
+	Db     *database.MongoDb
 	Client *plaid.APIClient
 }
 
@@ -74,21 +75,27 @@ func (h *ItemHandler) GetLinkToken(c *gin.Context) {
 }
 
 func (h *ItemHandler) GetItems(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	userID, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
-	// TODO: make limit a cached config and have UI iterate through each page until all acounts returned
-	pagination := util.Pagination{
-		Limit: 500,
-		Page:  1,
-		Sort:  "institution asc",
-	}
+	// TODO: make limit a cached config and have UI iterate through each page until all items returned
 
-	var items []*entity.Item
-	h.Db.Scopes(util.Paginate(items, &pagination, h.Db)).Where("user_id = ?", userID).Find(&items)
+
+	var items []*models.Item
+	cursor, err := h.Db.Items.Find(ctx, bson.M{"user_id": userID})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if err = cursor.All(ctx, &items); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 
 	// remove plaid item id and access token - should never expose this info
 	for _, item := range items {
@@ -98,7 +105,7 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"items":     items,
-		"page_info": pagination,
+		"page_info": "pageinfo",
 	})
 }
 
@@ -155,26 +162,31 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 	}
 
 	// save new Item
-	if result := h.Db.Create(&entity.Item{
-		Institution: *institution,
-		UserID:      *userID,
-		PlaidItemID: plaidItemID,
-		AccessToken: accessToken,
-	}); result.Error != nil {
+	doc := &bson.D{
+		{Key: "institution", Value: *institution},
+		{Key: "user_id", Value: *userID},
+		{Key: "plaid_item_id", Value: plaidItemID},
+		{Key: "access_token", Value: accessToken},
+		{Key: "created_at", Value: time.Now()},
+		{Key: "updated_at", Value: time.Now()},
+	}
+	if _, err = h.Db.Items.InsertOne(ctx, doc); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 }
 
 func (h *ItemHandler) DeleteItem(c *gin.Context) {
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	ctx := c.Request.Context()
+
+	_, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
 	type Input struct {
-		ID uint `json:"id" validate:"required"`
+		ID string `json:"_id" validate:"required"`
 	}
 
 	var input Input
@@ -196,7 +208,14 @@ func (h *ItemHandler) DeleteItem(c *gin.Context) {
 		return
 	}
 
-	if result := h.Db.Exec("DELETE FROM items WHERE user_id = ? AND id = ?", userID, input.ID); result.Error != nil {
+	// TODO: convert _id sent from frontend into an ObjectID
+	objID, err := primitive.ObjectIDFromHex(input.ID)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	_, err = h.Db.Items.DeleteOne(ctx, bson.M{"_id": objID})
+	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}

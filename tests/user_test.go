@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tony-tvu/goexpense/entity"
-	"gorm.io/gorm"
+	"github.com/tony-tvu/goexpense/models"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Login and Logout handlers work correctly
@@ -39,9 +40,10 @@ func TestLoginAndLogout(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// should have user session saved in db
-	var s entity.Session
-	result := testApp.Db.Where("user_id = ?", user.ID).First(&s)
-	assert.Nil(t, result.Error)
+	var s *models.Session
+	if err := testApp.Db.Sessions.FindOne(ctx, bson.D{{Key: "user_id", Value: user.ID}}).Decode(&s); err != nil {
+		t.FailNow()
+	}
 	assert.Equal(t, user.ID, s.UserID)
 
 	// logout
@@ -52,8 +54,11 @@ func TestLoginAndLogout(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// should no longer have user session saved after logging out
-	result = testApp.Db.Where("user_id = ?", user.ID).First(&s)
-	assert.Equal(t, gorm.ErrRecordNotFound, result.Error)
+	count, err := testApp.Db.Users.CountDocuments(ctx, bson.D{{Key: "user_id", Value: user.ID}})
+	if err != nil {
+		t.FailNow()
+	}
+	assert.Equal(t, int64(0), count)
 }
 
 // UserInfo resolver returns correct information
@@ -71,48 +76,73 @@ func TestUserInfo(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// should have correct user info returned
-	var u *entity.User
+	var u *models.User
 	json.NewDecoder(res.Body).Decode(&u)
 	assert.Equal(t, user.Username, u.Username)
 	assert.Equal(t, user.Email, u.Email)
 	assert.Equal(t, "", u.Password)
-	assert.Equal(t, entity.RegularUser, u.Type)
+	assert.Equal(t, models.RegularUser, u.Type)
 }
 
-// IsAdmin route should return 200 for admin accounts only
+// IsLoggedIn route should return correct values
 func TestIsAdminRoute(t *testing.T) {
 	t.Parallel()
 
-	// make request to is_admin route as a guest user
-	res := makeRequest(t, "GET", "/api/is_admin", nil, nil)
+	type LoggedInResponse struct {
+		IsLoggedIn bool `json:"logged_in"`
+		IsAdmin    bool `json:"is_admin"`
+	}
 
-	// should return 401
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	// make request to logged_in route as a guest user
+	res := makeRequest(t, "GET", "/api/logged_in", nil, nil)
+
+	// should return 200, logged_in: false, is_admin:false
+	var resBody *LoggedInResponse
+	json.NewDecoder(res.Body).Decode(&resBody)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.False(t, resBody.IsLoggedIn)
+	assert.False(t, resBody.IsAdmin)
 
 	// create regular user and login
 	user, cleanup := createTestUser(t)
 	defer cleanup()
 	accessToken, refreshToken, _ := logUserIn(t, user.Username, user.Password)
 
-	// make request to is_admin route as regular user
-	res = makeRequest(t, "GET", "/api/is_admin", &refreshToken, &accessToken)
+	// make request to logged_in route as regular user
+	res = makeRequest(t, "GET", "/api/logged_in", &refreshToken, &accessToken)
 
-	// should return 401
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	// should return 200, logged_in: true, is_admin:false
+	json.NewDecoder(res.Body).Decode(&resBody)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.True(t, resBody.IsLoggedIn)
+	assert.False(t, resBody.IsAdmin)
 
 	// logout user
 	res = makeRequest(t, "POST", "/api/logout", &accessToken, &refreshToken)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// make user an admin and login
-	if result := testApp.Db.Model(&entity.User{}).Where("username = ?", user.Username).Update("type", entity.AdminUser); result.Error != nil {
+	_, err := testApp.Db.Users.UpdateOne(
+		ctx,
+		bson.M{"username": user.Username},
+		bson.D{
+			{Key: "$set", Value: bson.D{
+				{Key: "type", Value: models.AdminUser},
+				{Key: "updated_at", Value: time.Now()},
+			}},
+		},
+	)
+	if err != nil {
 		t.FailNow()
 	}
 	accessToken, refreshToken, _ = logUserIn(t, user.Username, user.Password)
 
-	// make request to is_admin endpoint as admin
-	res = makeRequest(t, "GET", "/api/sessions", &accessToken, &refreshToken)
+	// make request to logged_in endpoint as admin
+	res = makeRequest(t, "GET", "/api/logged_in", &accessToken, &refreshToken)
 
-	// should return 200
+	// should return 200, logged_in: true, is_admin: true
+	json.NewDecoder(res.Body).Decode(&resBody)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.True(t, resBody.IsLoggedIn)
+	assert.True(t, resBody.IsAdmin)
 }
