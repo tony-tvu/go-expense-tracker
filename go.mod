@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/joho/godotenv v1.4.0
 	github.com/stretchr/testify v1.8.0
+	go.mongodb.org/mongo-driver v1.10.1
 )
 
 require (
@@ -17,7 +18,6 @@ require (
 	github.com/goccy/go-json v0.9.11 // indirect
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/klauspost/compress v1.15.10 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/montanaflynn/stats v0.6.6 // indirect
@@ -25,7 +25,6 @@ require (
 	github.com/plaid/plaid-go v1.10.0
 	github.com/ulule/limiter/v3 v3.10.0
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
-	go.mongodb.org/mongo-driver v1.10.1
 	golang.org/x/crypto v0.0.0-20220919173607-35f4265a4bc0
 	golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b // indirect
 	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094 // indirect
