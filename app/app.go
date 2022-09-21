@@ -110,7 +110,7 @@ func (a *App) Initialize(ctx context.Context) {
 		api.GET("/link_token", items.GetLinkToken)
 		api.GET("/items", items.GetItems)
 		api.POST("/items", items.CreateItem)
-		api.DELETE("/items", items.DeleteItem)
+		api.DELETE("/items/:id", items.DeleteItem)
 
 		// transactions
 		api.GET("/transactions/:page", transactions.GetTransactions)

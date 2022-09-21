@@ -18,10 +18,6 @@ type TransactionHandler struct {
 	ConfigsCache *cache.Configs
 }
 
-type PageInfoInput struct {
-	Page int `json:"page" validate:"required,gte=1"`
-}
-
 func (h *TransactionHandler) GetTransactions(c *gin.Context) {
 	ctx := c.Request.Context()
 

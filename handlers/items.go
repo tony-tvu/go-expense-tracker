@@ -85,7 +85,6 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 
 	// TODO: make limit a cached config and have UI iterate through each page until all items returned
 
-
 	var items []*models.Item
 	cursor, err := h.Db.Items.Find(ctx, bson.M{"user_id": userID})
 	if err != nil {
@@ -179,41 +178,40 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 func (h *ItemHandler) DeleteItem(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	_, _, err := auth.AuthorizeUser(c, h.Db)
+	userObjID, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
-	type Input struct {
-		ID string `json:"id" validate:"required"`
-	}
-
-	var input Input
-	bodyBytes, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-
-	err = json.Unmarshal(bodyBytes, &input)
-	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-
-	err = v.Struct(input)
-	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-
-	objID, err := primitive.ObjectIDFromHex(input.ID)
+	// verify item belongs to user
+	itemObjID, err := primitive.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	_, err = h.Db.Items.DeleteOne(ctx, bson.M{"_id": objID})
+	count, err := h.Db.Items.CountDocuments(ctx, bson.D{
+		{Key: "_id", Value: itemObjID},
+		{Key: "user_id", Value: userObjID},
+	})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if count == 0 {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	// delete item
+	_, err = h.Db.Items.DeleteOne(ctx, bson.M{"_id": itemObjID})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// delete transactions belonging to item
+	_, err = h.Db.Transactions.DeleteMany(ctx, bson.M{"item_id": itemObjID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
