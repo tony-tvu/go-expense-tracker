@@ -5,7 +5,7 @@ import { BsPlus } from 'react-icons/bs'
 import { Button } from '@chakra-ui/react'
 import { colors } from '../theme'
 
-export default function AddAccountBtn() {
+export default function AddAccountBtn({ onSuccess }) {
   const [linkToken, setLinkToken] = useState(null)
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export default function AddAccountBtn() {
       body: JSON.stringify({ public_token: public_token }),
     })
       .then((res) => {
-        if (res.status === 200) window.location.reload();
+        if (res.status === 200) onSuccess()
       })
       .catch((e) => {
         logger('error setting access token', e)

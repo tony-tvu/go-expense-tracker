@@ -48,8 +48,14 @@ export default function Accounts() {
     }
   }, [page, loading])
 
+  function onSuccess() {
+    setPage(1)
+    setItems([])
+    setLoading(true)
+  }
+
   function renderItems() {
-    if (items.length === 0) {
+    if (items.length === 0 && !loading) {
       return (
         <Text fontSize="l" pl={1}>
           You have not linked any accounts.
@@ -60,8 +66,8 @@ export default function Accounts() {
     return items.map((item) => {
       return (
         <HStack
-          width={'100%'}
           key={item.id}
+          width={'100%'}
           borderWidth="1px"
           borderRadius="lg"
           bg={stackBgColor}
@@ -73,7 +79,7 @@ export default function Accounts() {
             {item.institution}
           </Text>
           <Spacer />
-          <EditAccountBtn item={item} />
+          <EditAccountBtn item={item} onSuccess={onSuccess} />
         </HStack>
       )
     })
@@ -87,10 +93,10 @@ export default function Accounts() {
             Accounts
           </Text>
           <Spacer />
-          <AddAccountBtn />
+          <AddAccountBtn onSuccess={onSuccess} />
         </HStack>
 
-        {!items ? (
+        {loading ? (
           <Center pt={10}>
             <Spinner
               thickness="4px"

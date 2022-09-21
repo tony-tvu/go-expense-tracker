@@ -19,19 +19,19 @@ import { BsPencil, BsTrash } from 'react-icons/bs'
 import React from 'react'
 import logger from '../logger'
 
-export default function EditAccountBtn(props) {
+export default function EditAccountBtn({item, onSuccess}) {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const cancelRef = React.useRef()
 
   async function deleteAccount() {
-    await fetch(`${process.env.REACT_APP_API_URL}/items/${props.item.id}`, {
+    await fetch(`${process.env.REACT_APP_API_URL}/items/${item.id}`, {
       method: 'DELETE',
       credentials: 'include',
     })
       .then((res) => {
         if (res.status === 200) {
+          onSuccess()
           onClose()
-          window.location.reload();
         }
       })
       .catch((e) => {
@@ -84,7 +84,7 @@ export default function EditAccountBtn(props) {
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Are you sure you want to remove {props.item.institution}?
+              Are you sure you want to remove {item.institution}?
             </AlertDialogBody>
 
             <AlertDialogFooter>
