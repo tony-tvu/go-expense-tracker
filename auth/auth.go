@@ -68,7 +68,7 @@ func AuthorizeUser(c *gin.Context, db *database.MongoDb) (*primitive.ObjectID, *
 			return nil, nil, errors.New("internal server error")
 		}
 
-		db.Users.UpdateOne(
+		_, err = db.Users.UpdateOne(
 			ctx,
 			bson.M{"_id": objID},
 			bson.D{
@@ -79,7 +79,10 @@ func AuthorizeUser(c *gin.Context, db *database.MongoDb) (*primitive.ObjectID, *
 				}},
 			},
 		)
-
+		if err != nil {
+			return nil, nil, errors.New("internal server error")
+		}
+		
 		util.SetCookie(c.Writer, "goexpense_refresh", renewedRefresh.Value, renewedRefresh.ExpiresAt)
 	}
 

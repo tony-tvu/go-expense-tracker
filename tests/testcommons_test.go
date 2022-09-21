@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/models"
+	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -49,28 +50,35 @@ func logUserIn(t *testing.T, username, password string) (string, string, int) {
 }
 
 // Save a new user to db
-func createTestUser(t *testing.T) (*entity.User, func()) {
+func createTestUser(t *testing.T) (*models.User, func()) {
 	t.Helper()
 
 	username := fmt.Sprint(time.Now().UnixNano())
 	password := "password123!"
-	
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	require.NoError(t, err)
 
-	user := &entity.User{
+	user := &models.User{
 		Username: username,
 		Email:    fmt.Sprintf("%v@email.com", username),
 		Password: string(hash),
-		Type:     entity.RegularUser,
+		Type:     models.RegularUser,
 	}
 
-	if result := testApp.Db.Create(&user); result.Error != nil {
+	doc := &bson.D{
+		{Key: "username", Value: username},
+		{Key: "email", Value: fmt.Sprintf("%v@email.com", username)},
+		{Key: "password", Value: string(hash)},
+		{Key: "type", Value: models.RegularUser},
+		{Key: "created_at", Value: time.Now()},
+		{Key: "updated_at", Value: time.Now()},
+	}
+	if _, err = testApp.Db.Users.InsertOne(ctx, doc); err != nil {
 		t.FailNow()
 	}
 
 	user.Password = password
-
 	return user, func() {
 		deleteUser(t, username)
 	}
@@ -79,7 +87,9 @@ func createTestUser(t *testing.T) (*entity.User, func()) {
 func deleteUser(t *testing.T, username string) {
 	t.Helper()
 
-	if result := testApp.Db.Exec("DELETE FROM users WHERE username = ?", username); result.Error != nil {
+
+	_, err := testApp.Db.Users.DeleteOne(ctx, bson.M{"username": username})
+	if err != nil {
 		t.FailNow()
 	}
 }
@@ -96,7 +106,7 @@ func getCookies(t *testing.T, cookies_res []*http.Cookie) map[string]string {
 }
 func makeRequest(t *testing.T, method string, url string, accessToken *string, refreshToken *string, body ...map[string]string) (res *http.Response) {
 	t.Helper()
-	
+
 	var req *http.Request
 
 	if len(body) > 0 {

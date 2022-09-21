@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/allegro/bigcache"
 	"github.com/tony-tvu/goexpense/database"
@@ -44,7 +45,21 @@ func (c *Configs) InitConfigsCache(ctx context.Context, db *database.MongoDb) {
 		log.Fatal(err)
 	}
 	if count == 0 {
-		initDefaultConfigs(db)
+		// init default configs
+		doc := &bson.D{
+			{Key: "access_token_exp", Value: 900},
+			{Key: "refresh_token_exp", Value: 3600},
+			{Key: "quota_enabled", Value: true},
+			{Key: "quota_limit", Value: 10},
+			{Key: "tasks_enabled", Value: true},
+			{Key: "tasks_interval", Value: 60},
+			{Key: "registration_enabled", Value: false},
+			{Key: "created_at", Value: time.Now()},
+			{Key: "updated_at", Value: time.Now()},
+		}
+		if _, err := db.Configs.InsertOne(ctx, doc); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	var configs *models.Config
@@ -59,11 +74,6 @@ func (c *Configs) InitConfigsCache(ctx context.Context, db *database.MongoDb) {
 
 	cache.Set("configs", b)
 	c.Cache = cache
-}
-
-func initDefaultConfigs(db *database.MongoDb) error {
-
-	return nil
 }
 
 func (c *Configs) GetConfigs() (*models.Config, error) {

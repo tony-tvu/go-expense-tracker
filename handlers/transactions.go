@@ -9,7 +9,6 @@ import (
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
-	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -52,11 +51,7 @@ func (h *TransactionHandler) GetTransactions(c *gin.Context) {
 		return
 	}
 
-	pagination := util.Pagination{
-		Limit: PAGE_LIMIT,
-		Page:  input.Page,
-		Sort:  "date desc",
-	}
+	// TODO: add pagination
 
 	var transactions []*models.Transaction
 	cursor, err := h.Db.Transactions.Find(ctx, bson.M{"user_id": userID})
@@ -71,6 +66,6 @@ func (h *TransactionHandler) GetTransactions(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"transactions": transactions,
-		"page_info":    pagination,
+		"page_info":    "pagination",
 	})
 }

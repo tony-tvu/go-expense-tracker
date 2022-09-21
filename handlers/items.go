@@ -14,7 +14,6 @@ import (
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
-	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -85,11 +84,7 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 	}
 
 	// TODO: make limit a cached config and have UI iterate through each page until all items returned
-	pagination := util.Pagination{
-		Limit: 500,
-		Page:  1,
-		Sort:  "institution asc",
-	}
+
 
 	var items []*models.Item
 	cursor, err := h.Db.Items.Find(ctx, bson.M{"user_id": userID})
@@ -110,7 +105,7 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"items":     items,
-		"page_info": pagination,
+		"page_info": "pageinfo",
 	})
 }
 

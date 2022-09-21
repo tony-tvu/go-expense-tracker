@@ -167,7 +167,6 @@ func (a *App) Start(ctx context.Context) {
 			Options: options.Index().SetUnique(true),
 		},
 	)
-
 	createInitialAdminUser(ctx, a.Db)
 
 	// Populate cache
@@ -204,7 +203,7 @@ func createInitialAdminUser(ctx context.Context, db *database.MongoDb) {
 	}
 
 	// check if admin already exists
-	count, err := db.Users.CountDocuments(ctx, bson.D{{Key: "email", Value: email}})
+	count, err := db.Users.CountDocuments(ctx, bson.D{{Key: "username", Value: username}})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -218,9 +217,11 @@ func createInitialAdminUser(ctx context.Context, db *database.MongoDb) {
 	}
 	doc := &bson.D{
 		{Key: "username", Value: username},
+		{Key: "email", Value: email},
 		{Key: "password", Value: string(hash)},
 		{Key: "type", Value: models.AdminUser},
 		{Key: "created_at", Value: time.Now()},
+		{Key: "updated_at", Value: time.Now()},
 	}
 	if _, err = db.Users.InsertOne(ctx, doc); err != nil {
 		log.Fatal(err)

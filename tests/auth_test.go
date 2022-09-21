@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/models"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // AuthorizeUser should issue access tokens correctly
@@ -52,7 +53,8 @@ func TestAuthRevokeTokens(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// revoke token
-	if result := testApp.Db.Exec("DELETE FROM sessions WHERE user_id = ?", user.ID); result.Error != nil {
+	_, err := testApp.Db.Sessions.DeleteMany(ctx, bson.M{"user_id": user.ID})
+	if err != nil {
 		t.FailNow()
 	}
 
@@ -117,7 +119,16 @@ func TestAuthAdminRestricted(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// make user an admin and login
-	if result := testApp.Db.Model(&entity.User{}).Where("username = ?", user.Username).Update("type", entity.AdminUser); result.Error != nil {
+	_, err := testApp.Db.Users.UpdateOne(
+		ctx,
+		bson.M{"username": user.Username},
+		bson.D{
+			{Key: "$set", Value: bson.D{
+				{Key: "type", Value: models.AdminUser},
+			}},
+		},
+	)
+	if err != nil {
 		t.FailNow()
 	}
 
