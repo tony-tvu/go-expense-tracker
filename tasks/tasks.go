@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -49,7 +50,7 @@ func RefreshTransactions() {
 		log.Println("Running scheduled task: RefreshTransactions")
 
 		var items []models.Item
-		cursor, err := db.Users.Find(ctx, bson.M{})
+		cursor, err := db.Items.Find(ctx, bson.M{})
 		if err != nil {
 			log.Printf("error occurred during refreshTransactions task: %+v\n", err)
 		}
@@ -80,9 +81,10 @@ func RefreshTransactions() {
 					{Key: "updated_at", Value: time.Now()},
 				}
 				if _, err = db.Transactions.InsertOne(ctx, doc); err != nil {
-					// TODO: check if error is NOT duplicate contraint error, then set isSuccess = false
-					log.Printf("error occurred in RefreshTransactionsTask while saving new transaction %+v\n", err)
-					isSuccess = false
+					if !strings.Contains(err.Error(), "duplicate key error") {
+						log.Printf("error occurred in RefreshTransactionsTask while saving new transaction %+v\n", err)
+						isSuccess = false
+					}				
 				}
 			}
 
