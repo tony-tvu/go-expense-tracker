@@ -6,8 +6,6 @@ services:
     container_name: mongo
     restart: always
     environment:
-      # MONGO_INITDB_ROOT_USERNAME: mongouser
-      # MONGO_INITDB_ROOT_PASSWORD: mongopassword
       MONGO_INITDB_DATABASE: goexpense
     ports:
       - 27017:27017
