@@ -61,7 +61,7 @@ func TestAuthRevokeTokens(t *testing.T) {
 	// make request to authRequired endpoint with expired accessToken
 	res = makeRequest(t, "GET", "/api/user_info", nil, &refreshToken)
 
-	// 	// should return 401
+	// should return 401
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 }
 

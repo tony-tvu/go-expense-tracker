@@ -97,7 +97,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 	// find existing user account
 	var u *models.User
 	if err = h.Db.Users.FindOne(ctx, bson.D{{Key: "username", Value: input.Username}}).Decode(&u); err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 
@@ -176,7 +176,7 @@ func (h *UserHandler) GetUserInfo(c *gin.Context) {
 	}
 
 	var u *models.User
-	if err = h.Db.Users.FindOne(ctx, bson.D{{Key: "user_id", Value: userID}}).Decode(&u); err != nil {
+	if err = h.Db.Users.FindOne(ctx, bson.D{{Key: "_id", Value: userID}}).Decode(&u); err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}

@@ -17,7 +17,7 @@ import (
 // Returns user ID and type
 func AuthorizeUser(c *gin.Context, db *database.MongoDb) (*primitive.ObjectID, *models.Type, error) {
 	ctx := c.Request.Context()
-	var userID string
+	var userIDHex string
 	var userTypeStr string
 
 	// no refresh cookie means session has expired or user is not logged in
@@ -32,9 +32,9 @@ func AuthorizeUser(c *gin.Context, db *database.MongoDb) (*primitive.ObjectID, *
 		return nil, nil, errors.New("not authorized")
 	}
 
-	userID = refreshClaims.UserID
+	userIDHex = refreshClaims.UserID
 	userTypeStr = refreshClaims.UserType
-	objID, err := primitive.ObjectIDFromHex(userID)
+	objID, err := primitive.ObjectIDFromHex(userIDHex)
 	if err != nil {
 		return nil, nil, errors.New("internal server error")
 	}
@@ -45,7 +45,7 @@ func AuthorizeUser(c *gin.Context, db *database.MongoDb) (*primitive.ObjectID, *
 
 		// find existing session
 		var session *models.Session
-		if err = db.Sessions.FindOne(ctx, bson.D{{Key: "user_id", Value: userID}}).Decode(&session); err != nil {
+		if err = db.Sessions.FindOne(ctx, bson.D{{Key: "user_id", Value: objID}}).Decode(&session); err != nil {
 			return nil, nil, errors.New("not authorized")
 		}
 
@@ -56,14 +56,14 @@ func AuthorizeUser(c *gin.Context, db *database.MongoDb) (*primitive.ObjectID, *
 		}
 
 		// renew access_token
-		renewedAccess, err := GetEncryptedToken(AccessToken, userID, userTypeStr)
+		renewedAccess, err := GetEncryptedToken(AccessToken, userIDHex, userTypeStr)
 		if err != nil {
 			return nil, nil, errors.New("internal server error")
 		}
 		util.SetCookie(c.Writer, "goexpense_access", renewedAccess.Value, renewedAccess.ExpiresAt)
 
 		// extend user session
-		renewedRefresh, err := GetEncryptedToken(RefreshToken, userID, userTypeStr)
+		renewedRefresh, err := GetEncryptedToken(RefreshToken, userIDHex, userTypeStr)
 		if err != nil {
 			return nil, nil, errors.New("internal server error")
 		}

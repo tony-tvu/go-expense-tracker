@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -74,10 +75,12 @@ func createTestUser(t *testing.T) (*models.User, func()) {
 		{Key: "created_at", Value: time.Now()},
 		{Key: "updated_at", Value: time.Now()},
 	}
-	if _, err = testApp.Db.Users.InsertOne(ctx, doc); err != nil {
+	res, err := testApp.Db.Users.InsertOne(ctx, doc)
+	if err != nil {
 		t.FailNow()
 	}
 
+	user.ID = res.InsertedID.(primitive.ObjectID)
 	user.Password = password
 	return user, func() {
 		deleteUser(t, username)
