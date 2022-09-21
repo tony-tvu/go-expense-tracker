@@ -35,8 +35,8 @@ export default function Accounts() {
           const data = await res.json().catch((err) => logger(err))
           if (res.status === 200 && data.items) {
             setItems((curr) => [...curr, ...data.items])
-            if (page !== Number(data.last_page)) {
-              setPage(data.next)
+            if (page !== Number(data.page_info.totalPage)) {
+              setPage(data.page_info.next)
             } else {
               setLoading(false)
             }
