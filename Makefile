@@ -1,6 +1,4 @@
 install:
-	go install github.com/cosmtrek/air@latest
-	go mod tidy
 	go mod download
 	cd web && npm install
 

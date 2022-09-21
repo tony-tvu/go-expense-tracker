@@ -14,26 +14,31 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/cache"
-	"github.com/tony-tvu/goexpense/entity"
+	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/handlers"
 	"github.com/tony-tvu/goexpense/middleware"
+	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/tasks"
 	"github.com/tony-tvu/goexpense/util"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 type App struct {
-	Db          *gorm.DB
-	Router      *gin.Engine
-	PlaidClient *plaid.APIClient
+	Db           *database.MongoDb
+	ConfigsCache *cache.Configs
+	Router       *gin.Engine
+	PlaidClient  *plaid.APIClient
 }
 
 const (
 	Production  = "production"
 	Development = "development"
 )
+
+var env string
 
 func init() {
 	if err := godotenv.Load(".env"); err != nil {
@@ -42,49 +47,12 @@ func init() {
 }
 
 func (a *App) Initialize(ctx context.Context) {
-	env := os.Getenv("ENV")
+	env = os.Getenv("ENV")
 	if env == "" {
 		log.Fatal("ENV is not set")
 	}
-
-	// Database
-	dbUser := os.Getenv("DB_USER")
-	dbPwd := os.Getenv("DB_PASS")
-	dbHost := os.Getenv("DB_HOST")
-	dbName := os.Getenv("DB_NAME")
-	dbPort := os.Getenv("DB_PORT")
-	if util.ContainsEmpty(dbUser, dbPwd, dbHost, dbName) {
-		log.Fatal("postgres config envs are missing")
-	}
-
-	var dbURI string
-	if dbPort == "" {
-		dbURI = fmt.Sprintf("user=%s password=%s database=%s host=%s",
-			dbUser, dbPwd, dbName, dbHost)
-	} else {
-		dbURI = fmt.Sprintf("user=%s password=%s database=%s host=%s port=%s",
-			dbUser, dbPwd, dbName, dbHost, dbPort)
-	}
-
-	db, err := gorm.Open(postgres.Open(dbURI), &gorm.Config{})
-	if err != nil {
-		log.Fatalln(err)
-	}
-	db.AutoMigrate(&entity.Session{})
-	db.AutoMigrate(&entity.User{})
-	db.AutoMigrate(&entity.Item{})
-	db.AutoMigrate(&entity.Transaction{})
-	db.AutoMigrate(&entity.Config{})
-
-	createInitialAdminUser(ctx, db)
-	if env == Development {
-		createDummyUser(ctx, db)
-	}
-	a.Db = db
-
-	// Caches
-	cachedConf := &cache.Configs{}
-	cachedConf.InitConfigsCache(db)
+	a.Db = &database.MongoDb{}
+	a.ConfigsCache = &cache.Configs{}
 
 	// Plaid
 	var plaidEnvs = map[string]plaid.Environment{
@@ -106,10 +74,10 @@ func (a *App) Initialize(ctx context.Context) {
 	a.PlaidClient = pc
 
 	// Handlers
-	users := &handlers.UserHandler{Db: db}
-	items := &handlers.ItemHandler{Db: db, Client: pc}
-	transactions := &handlers.TransactionHandler{Db: db}
-	configs := &handlers.ConfigsHandler{Db: db, Cache: cachedConf}
+	users := &handlers.UserHandler{Db: a.Db}
+	items := &handlers.ItemHandler{Db: a.Db, Client: pc}
+	transactions := &handlers.TransactionHandler{Db: a.Db}
+	configs := &handlers.ConfigsHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 
 	// Router
 	if env == Production {
@@ -155,7 +123,56 @@ func (a *App) Initialize(ctx context.Context) {
 	a.Router = router
 }
 
-func (a *App) Serve() {
+func (a *App) Start(ctx context.Context) {
+	// Start mongodb
+	mongoURI := os.Getenv("MONGODB_URI")
+	dbName := os.Getenv("DB_NAME")
+	if util.ContainsEmpty(mongoURI, dbName) {
+		log.Fatal("env variables are missing")
+	}
+	mongoclient, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err := mongoclient.Disconnect(ctx); err != nil {
+			log.Println("mongo has been disconnected: ", err)
+		}
+	}()
+	a.Db.Configs = mongoclient.Database(dbName).Collection("configs")
+	a.Db.Items = mongoclient.Database(dbName).Collection("items")
+	a.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
+	a.Db.Transactions = mongoclient.Database(dbName).Collection("transactions")
+	a.Db.Users = mongoclient.Database(dbName).Collection("users")
+
+	// Create unique constraints
+	_, err = a.Db.Users.Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "username", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	)
+	_, err = a.Db.Users.Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "email", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	)
+	_, err = a.Db.Transactions.Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "transaction_id", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	)
+
+	createInitialAdminUser(ctx, a.Db)
+
+	// Populate cache
+	a.ConfigsCache.InitConfigsCache(ctx, a.Db)
+
 	// Start scheduled tasks
 	tasks.Start(a.Db, a.PlaidClient)
 
@@ -178,7 +195,7 @@ func (a *App) Serve() {
 }
 
 // Creates initial admin user. Account details can be specified in .env
-func createInitialAdminUser(ctx context.Context, db *gorm.DB) {
+func createInitialAdminUser(ctx context.Context, db *database.MongoDb) {
 	username := os.Getenv("ADMIN_USERNAME")
 	email := os.Getenv("ADMIN_EMAIL")
 	pw := os.Getenv("ADMIN_PASSWORD")
@@ -186,41 +203,27 @@ func createInitialAdminUser(ctx context.Context, db *gorm.DB) {
 		return
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
+	// check if admin already exists
+	count, err := db.Users.CountDocuments(ctx, bson.D{{Key: "email", Value: email}})
 	if err != nil {
 		log.Fatal(err)
 	}
-	var exists bool
-	db.Raw("SELECT EXISTS(SELECT 1 FROM users WHERE username = ?) AS found", username).Scan(&exists)
-	if !exists {
-		db.Create(&entity.User{
-			Username: username,
-			Email:    email,
-			Password: string(hash),
-			Type:     entity.AdminUser,
-		})
+	if count == 1 {
+		return
 	}
-}
-
-// Creates a regular user when in development 
-func createDummyUser(ctx context.Context, db *gorm.DB) {
-	username := "regularuser"
-	email := "regularuser@notAnEmail.com"
-	pw := "password"
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
 	if err != nil {
 		log.Fatal(err)
 	}
-	var exists bool
-	db.Raw("SELECT EXISTS(SELECT 1 FROM users WHERE username = ?) AS found", username).Scan(&exists)
-	if !exists {
-		db.Create(&entity.User{
-			Username: username,
-			Email:    email,
-			Password: string(hash),
-			Type:     entity.RegularUser,
-		})
+	doc := &bson.D{
+		{Key: "username", Value: username},
+		{Key: "password", Value: string(hash)},
+		{Key: "type", Value: models.AdminUser},
+		{Key: "created_at", Value: time.Now()},
+	}
+	if _, err = db.Users.InsertOne(ctx, doc); err != nil {
+		log.Fatal(err)
 	}
 }
 

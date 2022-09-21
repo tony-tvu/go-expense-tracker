@@ -1,21 +1,15 @@
-version: '1'
+version: '3'
 
 services:
-  db:
-    container_name: postgres
-    image: postgres:13
-    ports:
-      - "5432:5432"
+  mongodb:
+    image: mongo:latest
+    container_name: goexpense
+    restart: always
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=goexpense_local
-  db-test:
-    container_name: postgres_test
-    image: postgres:13
+      - MONGO_INITDB_ROOT_USERNAME=mongouser
+      - MONGO_INITDB_ROOT_PASSWORD=mongopassword
     ports:
-      - "5435:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=goexpense_test
+      - 27017:27017
+    volumes:
+      - ./mongodb:/data/db
+      

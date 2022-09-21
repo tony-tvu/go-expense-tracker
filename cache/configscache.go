@@ -1,12 +1,14 @@
 package cache
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 
 	"github.com/allegro/bigcache"
-	"github.com/tony-tvu/goexpense/entity"
-	"gorm.io/gorm"
+	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/models"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // These configuration values are accessed regularly in numerous locations.
@@ -18,7 +20,7 @@ type Configs struct {
 	Cache *bigcache.BigCache
 }
 
-func (c *Configs) InitConfigsCache(db *gorm.DB) {
+func (c *Configs) InitConfigsCache(ctx context.Context, db *database.MongoDb) {
 	cacheConfig := bigcache.Config{
 		Shards:     16,
 		LifeWindow: 0,
@@ -37,18 +39,20 @@ func (c *Configs) InitConfigsCache(db *gorm.DB) {
 		log.Fatal(err)
 	}
 
-	var exists bool
-	db.Raw("SELECT EXISTS(SELECT 1 FROM configs) AS found").Scan(&exists)
-	if !exists {
-		db.Create(&entity.Config{})
+	count, err := db.Configs.CountDocuments(ctx, bson.D{{}})
+	if err != nil {
+		log.Fatal(err)
+	}
+	if count == 0 {
+		initDefaultConfigs(db)
 	}
 
-	var conf *entity.Config
-	if result := db.Exec("SELECT * FROM configs LIMIT 1;").First(&conf); result.Error != nil {
+	var configs *models.Config
+	if err = db.Configs.FindOne(ctx, bson.M{}).Decode(&configs); err != nil {
 		log.Fatal(err)
 	}
 
-	b, err := json.Marshal(conf)
+	b, err := json.Marshal(configs)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -57,17 +61,22 @@ func (c *Configs) InitConfigsCache(db *gorm.DB) {
 	c.Cache = cache
 }
 
-func (c *Configs) GetConfigs() (*entity.Config, error) {
-	var conf entity.Config
+func initDefaultConfigs(db *database.MongoDb) error {
+
+	return nil
+}
+
+func (c *Configs) GetConfigs() (*models.Config, error) {
+	var configs models.Config
 	b, err := c.Cache.Get("configs")
 	if err != nil {
 		return nil, err
 	}
 
-	err = json.Unmarshal(b, &conf)
+	err = json.Unmarshal(b, &configs)
 	if err != nil {
 		return nil, err
 	}
 
-	return &conf, nil
+	return &configs, nil
 }

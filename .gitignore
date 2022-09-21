@@ -45,6 +45,8 @@ sketch
 .env.development
 .env.production
 
+### database ###
+mongodb
 
 # Misc
 commands.txt

@@ -10,17 +10,12 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
-	"github.com/tony-tvu/goexpense/entity"
-	"gorm.io/gorm"
+	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/models"
 )
 
-type Tasks struct {
-	Db          *gorm.DB
-	PlaidClient *plaid.APIClient
-}
-
 var taskInterval int
-var db *gorm.DB
+var db *database.MongoDb
 var client *plaid.APIClient
 
 func init() {
@@ -33,7 +28,7 @@ func init() {
 	}
 }
 
-func Start(gDb *gorm.DB, pc *plaid.APIClient) {
+func Start(gDb *database.MongoDb, pc *plaid.APIClient) {
 	db = gDb
 	client = pc
 	enabled, err := strconv.ParseBool(os.Getenv("TASKS_ENABLED"))
@@ -51,7 +46,7 @@ func RefreshTransactions() {
 	for {
 		log.Println("Running scheduled task: RefreshTransactions")
 
-		var items []entity.Item
+		var items []models.Item
 		if result := db.Raw("SELECT * FROM items").Scan(&items); result.Error != nil {
 			log.Printf("error occurred during refreshTransactions task: %+v\n", result.Error)
 		}
@@ -68,7 +63,7 @@ func RefreshTransactions() {
 			// save new transactions
 			for _, t := range transactions {
 				date, _ := time.Parse("2006-01-02", t.Date)
-				if result := db.Create(&entity.Transaction{
+				if result := db.Create(&models.Transaction{
 					ItemID:        item.ID,
 					UserID:        item.UserID,
 					TransactionID: t.GetTransactionId(),
@@ -102,7 +97,7 @@ func RefreshTransactions() {
 	}
 }
 
-func getTransactions(item entity.Item) ([]plaid.Transaction, []plaid.Transaction, []plaid.RemovedTransaction, string, error) {
+func getTransactions(item models.Item) ([]plaid.Transaction, []plaid.Transaction, []plaid.RemovedTransaction, string, error) {
 	ctx := context.Background()
 
 	// New transaction updates since "cursor"

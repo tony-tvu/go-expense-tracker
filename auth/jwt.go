@@ -12,7 +12,7 @@ import (
 )
 
 type Claims struct {
-	UserID   uint
+	UserID   string
 	UserType string
 	jwt.RegisteredClaims
 }
@@ -70,7 +70,7 @@ new session/refresh_token.
 
 Default expiration time: 15m
 */
-func GetEncryptedToken(tokenType TokenType, userID uint, userType string) (Token, error) {
+func GetEncryptedToken(tokenType TokenType, userID string, userType string) (Token, error) {
 	var exp time.Time
 	if tokenType == RefreshToken {
 		exp = time.Now().Add(time.Duration(refreshTokenExp) * time.Second)
@@ -118,7 +118,7 @@ func ValidateTokenAndGetClaims(encryptedTkn string) (*Claims, error) {
 
 	// return error if claims are missing
 	claims := token.Claims.(*Claims)
-	if claims.UserID == 0 || claims.UserType == "" {
+	if claims.UserID == "" || claims.UserType == "" {
 		return nil, errors.New("token is missing claims")
 	}
 
