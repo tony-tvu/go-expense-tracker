@@ -6,6 +6,8 @@
 *.so
 *.dylib
 bin
+tmp/
+tmp 
 
 # Test binary, built with `go test -c`
 *.test
@@ -54,3 +56,4 @@ commands.txt
 gin-bin
 db
 app.yaml
+tmp/main

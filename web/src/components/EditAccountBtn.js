@@ -15,7 +15,6 @@ import {
   AlertDialogBody,
   AlertDialogFooter,
 } from '@chakra-ui/react'
-
 import { BsPencil, BsTrash } from 'react-icons/bs'
 import React from 'react'
 import logger from '../logger'
@@ -31,8 +30,8 @@ export default function EditAccountBtn(props) {
     })
       .then((res) => {
         if (res.status === 200) {
-          props.onSuccess()
           onClose()
+          window.location.reload();
         }
       })
       .catch((e) => {

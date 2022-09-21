@@ -55,6 +55,6 @@ func (h *TransactionHandler) GetTransactions(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"transactions": &transactions,
-		"info":         p.Pagination,
+		"page_info":    p.Pagination,
 	})
 }

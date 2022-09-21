@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 import {
   Text,
@@ -15,35 +15,38 @@ import AddAccountBtn from '../components/AddAccountBtn'
 import logger from '../logger'
 
 export default function Accounts() {
-  const [items, setItems] = useState(null)
+  const [items, setItems] = useState([])
+  const [page, setPage] = useState(1)
+  const [loading, setLoading] = useState(true)
 
   const stackBgColor = useColorModeValue('white', 'gray.900')
 
-  const getItems = useCallback(async () => {
-    await fetch(`${process.env.REACT_APP_API_URL}/items`, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then(async (res) => {
-        if (!res) return
-        const data = await res.json().catch((err) => logger(err))
-        if (res.status === 200 && data.items) {
-          setItems(data.items)
-          return
-        }
-        setItems([])
-      })
-      .catch((err) => {
-        logger('error getting items', err)
-      })
-  }, [])
-
   useEffect(() => {
-    getItems()
-  }, [getItems])
+    if (loading) {
+      fetch(`${process.env.REACT_APP_API_URL}/items/${page}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+        .then(async (res) => {
+          if (!res) return
+          const data = await res.json().catch((err) => logger(err))
+          if (res.status === 200 && data.items) {
+            setItems((curr) => [...curr, ...data.items])
+            if (page !== Number(data.page_info.totalPage)) {
+              setPage(data.page_info.next)
+            } else {
+              setLoading(false)
+            }
+          }
+        })
+        .catch((err) => {
+          logger('error getting items', err)
+        })
+    }
+  }, [page, loading])
 
   function renderItems() {
     if (items.length === 0) {
@@ -70,7 +73,7 @@ export default function Accounts() {
             {item.institution}
           </Text>
           <Spacer />
-          <EditAccountBtn item={item} onSuccess={getItems} />
+          <EditAccountBtn item={item} />
         </HStack>
       )
     })
@@ -84,7 +87,7 @@ export default function Accounts() {
             Accounts
           </Text>
           <Spacer />
-          <AddAccountBtn onSuccess={getItems} />
+          <AddAccountBtn />
         </HStack>
 
         {!items ? (

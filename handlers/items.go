@@ -5,13 +5,16 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
+	. "github.com/gobeam/mongo-go-pagination"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/auth"
+	"github.com/tony-tvu/goexpense/cache"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,8 +22,9 @@ import (
 )
 
 type ItemHandler struct {
-	Db     *database.MongoDb
-	Client *plaid.APIClient
+	Db           *database.MongoDb
+	ConfigsCache *cache.Configs
+	Client       *plaid.APIClient
 }
 
 func init() {
@@ -83,15 +87,28 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 		return
 	}
 
-	// TODO: make limit a cached config and have UI iterate through each page until all items returned
+	page, err := strconv.Atoi(c.Param("page"))
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
 
-	var items []*models.Item
-	cursor, err := h.Db.Items.Find(ctx, bson.M{"user_id": userID})
+	configs, err := h.ConfigsCache.GetConfigs()
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	if err = cursor.All(ctx, &items); err != nil {
+
+	var items []*models.Item
+	p, err := New(h.Db.Items).
+		Context(ctx).
+		Limit(configs.PageLimit).
+		Page(int64(page)).
+		Sort("institution", 1).
+		Select(bson.D{}).
+		Filter(bson.M{"user_id": userID}).
+		Decode(&items).Find()
+	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -103,8 +120,8 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"items":     items,
-		"page_info": "pageinfo",
+		"items":     &items,
+		"page_info": p.Pagination,
 	})
 }
 

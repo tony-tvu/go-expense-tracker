@@ -75,7 +75,7 @@ func (a *App) Initialize(ctx context.Context) {
 
 	// Handlers
 	users := &handlers.UserHandler{Db: a.Db}
-	items := &handlers.ItemHandler{Db: a.Db, Client: pc}
+	items := &handlers.ItemHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, Client: pc}
 	transactions := &handlers.TransactionHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 	configs := &handlers.ConfigsHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 
@@ -108,7 +108,7 @@ func (a *App) Initialize(ctx context.Context) {
 
 		// items
 		api.GET("/link_token", items.GetLinkToken)
-		api.GET("/items", items.GetItems)
+		api.GET("/items/:page", items.GetItems)
 		api.POST("/items", items.CreateItem)
 		api.DELETE("/items/:id", items.DeleteItem)
 
