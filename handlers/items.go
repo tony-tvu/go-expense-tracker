@@ -78,6 +78,7 @@ func (h *ItemHandler) GetLinkToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"link_token": linkToken})
 }
 
+// Returns all items associated with userID
 func (h *ItemHandler) GetItems(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -125,6 +126,7 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 	})
 }
 
+// Adds a new item to user's items collection
 func (h *ItemHandler) CreateItem(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -192,6 +194,7 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 	}
 }
 
+// Remove item from user's collection
 func (h *ItemHandler) DeleteItem(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -217,6 +220,16 @@ func (h *ItemHandler) DeleteItem(c *gin.Context) {
 	}
 	if count == 0 {
 		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	// delete accounts associated with item
+	_, err = h.Db.Accounts.DeleteMany(ctx, bson.D{
+		{Key: "user_id", Value: userObjID},
+		{Key: "item_id", Value: itemObjID},
+	})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 

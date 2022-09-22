@@ -13,11 +13,25 @@ import (
 )
 
 type MongoDb struct {
+	Accounts     *mongo.Collection
 	Configs      *mongo.Collection
 	Items        *mongo.Collection
 	Sessions     *mongo.Collection
 	Transactions *mongo.Collection
 	Users        *mongo.Collection
+}
+
+func GetItems(ctx context.Context, db *MongoDb) ([]*models.Item, error) {
+	cursor, err := db.Items.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	var items []*models.Item
+	if err = cursor.All(ctx, &items); err != nil {
+		return nil, err
+	}
+
+	return items, nil
 }
 
 func CreateUniqueConstraints(ctx context.Context, db *MongoDb) {

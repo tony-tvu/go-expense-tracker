@@ -60,6 +60,7 @@ func TestMain(m *testing.M) {
 			log.Println("mongo has been disconnected: ", err)
 		}
 	}()
+	testApp.Db.Accounts = mongoclient.Database(dbName).Collection("accounts")
 	testApp.Db.Configs = mongoclient.Database(dbName).Collection("configs")
 	testApp.Db.Items = mongoclient.Database(dbName).Collection("items")
 	testApp.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")

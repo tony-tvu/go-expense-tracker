@@ -149,6 +149,7 @@ func (a *App) Start(ctx context.Context) {
 			log.Println("mongo has been disconnected: ", err)
 		}
 	}()
+	a.Db.Accounts = mongoclient.Database(dbName).Collection("accounts")
 	a.Db.Configs = mongoclient.Database(dbName).Collection("configs")
 	a.Db.Items = mongoclient.Database(dbName).Collection("items")
 	a.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
@@ -168,7 +169,7 @@ func (a *App) Start(ctx context.Context) {
 	a.ConfigsCache.InitConfigsCache(ctx, a.Db)
 
 	// Start scheduled tasks
-	tasks.Start(a.Db, a.PlaidClient)
+	tasks.Start(ctx, a.Db, a.PlaidClient)
 
 	// Start server
 	port := os.Getenv("PORT")
