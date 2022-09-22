@@ -27,12 +27,8 @@ const CFInfoCircle = chakra(FaInfoCircle)
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true)
-  const [accessTokenExp, setAccessTokenExp] = useState(0)
-  const [refreshTokenExp, setRefreshTokenExp] = useState(0)
   const [quotaEnabled, setQuoteEnabled] = useState(true)
   const [quotaLimit, setQuotaLimit] = useState(0)
-  const [tasksEnabled, setTasksEnabled] = useState(true)
-  const [tasksInterval, setTasksInterval] = useState(0)
   const [registrationEnabled, setRegistrationEnabled] = useState(false)
 
   const stackBgColor = useColorModeValue('white', 'gray.900')
@@ -51,12 +47,8 @@ export default function AdminPage() {
         .then(async (res) => {
           if (!res) return
           const data = await res.json().catch((err) => logger(err))
-          setAccessTokenExp(data.access_token_exp)
-          setRefreshTokenExp(data.refresh_token_exp)
           setQuoteEnabled(data.quota_enabled)
           setQuotaLimit(data.quota_limit)
-          setTasksEnabled(data.tasks_enabled)
-          setTasksInterval(data.tasks_interval)
           setRegistrationEnabled(data.registration_enabled)
           setLoading(false)
         })
@@ -88,12 +80,8 @@ export default function AdminPage() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        "access_token_exp": Number(accessTokenExp),
-        "refresh_token_exp": Number(refreshTokenExp),
         "quota_enabled": String(quotaEnabled) === "true" ? true : false,
         "quota_limit": Number(quotaLimit),
-        "tasks_enabled": String(tasksEnabled) === "true" ? true : false,
-        "tasks_interval": Number(tasksInterval),
         "registration_enabled": String(registrationEnabled) === "true" ? true : false,
       }),
     })
@@ -113,39 +101,6 @@ export default function AdminPage() {
         <FormControl bg={stackBgColor} p={5}>
           <FormLabel fontSize="xl">App configuration</FormLabel>
           <Divider mb={5} />
-          <FormLabel mt={5}>Access Token Expiration</FormLabel>
-          <FormLabel fontSize={'xs'} color={'gray.500'}>
-            Default: 900 seconds
-          </FormLabel>
-          <NumberInput
-            value={accessTokenExp}
-            min={1}
-            max={2592000}
-            onChange={(value) => setAccessTokenExp(value)}
-          >
-            <NumberInputField />
-            <NumberInputStepper>
-              <NumberIncrementStepper />
-              <NumberDecrementStepper />
-            </NumberInputStepper>
-          </NumberInput>
-
-          <FormLabel mt={5}>Refresh Token Expiration</FormLabel>
-          <FormLabel fontSize={'xs'} color={'gray.500'}>
-            Default: 3600 seconds
-          </FormLabel>
-          <NumberInput
-            value={refreshTokenExp}
-            min={1}
-            max={2592000}
-            onChange={(value) => setRefreshTokenExp(value)}
-          >
-            <NumberInputField />
-            <NumberInputStepper>
-              <NumberIncrementStepper />
-              <NumberDecrementStepper />
-            </NumberInputStepper>
-          </NumberInput>
 
           <FormLabel mt={5}>
             <HStack>
@@ -181,50 +136,6 @@ export default function AdminPage() {
             min={1}
             max={2592000}
             onChange={(value) => setQuotaLimit(value)}
-          >
-            <NumberInputField />
-            <NumberInputStepper>
-              <NumberIncrementStepper />
-              <NumberDecrementStepper />
-            </NumberInputStepper>
-          </NumberInput>
-
-          <FormLabel mt={5}>
-            <HStack>
-              <Text>Scheduled Tasks</Text>
-              <Tooltip
-                label="Tasks must be enabled to refresh transactions and account values"
-                fontSize="md"
-                bg={tooltipBg}
-                color={tooltipColor}
-                borderWidth="1px"
-                boxShadow={'2xl'}
-                borderRadius="lg"
-                p={5}
-              >
-                <span>
-                  <CFInfoCircle />
-                </span>
-              </Tooltip>
-            </HStack>
-          </FormLabel>
-          <Select
-            value={tasksEnabled}
-            onChange={(event) => setTasksEnabled(event.target.value)}
-          >
-            <option value={true}>Enabled</option>
-            <option value={false}>Disabled</option>
-          </Select>
-
-          <FormLabel mt={5}>Scheduled Tasks Interval</FormLabel>
-          <FormLabel fontSize={'xs'} color={'gray.500'}>
-            Default: 60 seconds
-          </FormLabel>
-          <NumberInput
-            value={tasksInterval}
-            min={1}
-            max={2592000}
-            onChange={(value) => setTasksInterval(value)}
           >
             <NumberInputField />
             <NumberInputStepper>

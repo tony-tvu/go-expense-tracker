@@ -25,12 +25,8 @@ var PAGE_LIMIT int64 = 500
 
 type ConfigsInput struct {
 	RegistrationEnabled bool `json:"registration_enabled"`
-	AccessTokenExp      int  `json:"access_token_exp"`
-	RefreshTokenExp     int  `json:"refresh_token_exp"`
 	QuotaEnabled        bool `json:"quota_enabled"`
 	QuotaLimit          int  `json:"quota_limit"`
-	TasksEnabled        bool `json:"tasks_enabled"`
-	TasksInterval       int  `json:"tasks_interval"`
 }
 
 func (c *Configs) InitConfigsCache(ctx context.Context, db *database.MongoDb) {
@@ -59,12 +55,8 @@ func (c *Configs) InitConfigsCache(ctx context.Context, db *database.MongoDb) {
 	if count == 0 {
 		// init default configs
 		doc := &bson.D{
-			{Key: "access_token_exp", Value: 900},
-			{Key: "refresh_token_exp", Value: 3600},
 			{Key: "quota_enabled", Value: true},
 			{Key: "quota_limit", Value: 10},
-			{Key: "tasks_enabled", Value: true},
-			{Key: "tasks_interval", Value: 60},
 			{Key: "registration_enabled", Value: false},
 			{Key: "page_limit", Value: PAGE_LIMIT},
 			{Key: "created_at", Value: time.Now()},
@@ -114,12 +106,8 @@ func (c *Configs) UpdateConfigsCache(ctx context.Context, db *database.MongoDb, 
 		bson.M{"_id": configs.ID},
 		bson.D{
 			{Key: "$set", Value: bson.D{
-				{Key: "access_token_exp", Value: input.AccessTokenExp},
-				{Key: "refresh_token_exp", Value: input.RefreshTokenExp},
 				{Key: "quota_enabled", Value: input.QuotaEnabled},
 				{Key: "quota_limit", Value: input.QuotaLimit},
-				{Key: "tasks_enabled", Value: input.TasksEnabled},
-				{Key: "tasks_interval", Value: input.TasksInterval},
 				{Key: "registration_enabled", Value: input.RegistrationEnabled},
 				{Key: "updated_at", Value: time.Now()},
 			}},
