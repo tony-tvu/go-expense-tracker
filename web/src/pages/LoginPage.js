@@ -94,13 +94,13 @@ export default function LoginPage() {
       <Flex
         flexDirection="column"
         width="100wh"
-        height="95vh"
+        height="94vh"
         backgroundColor={bgColor}
         alignItems="center"
       >
         <Stack
           flexDir="column"
-          mt="25vh"
+          mt="20vh"
           justifyContent="center"
           alignItems="center"
         >
@@ -187,7 +187,6 @@ export default function LoginPage() {
                   </FormHelperText>
                 </FormControl>
                 <Button
-                  borderRadius={0}
                   type="submit"
                   variant="solid"
                   bg={colors.primary}

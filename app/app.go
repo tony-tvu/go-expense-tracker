@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -169,7 +170,20 @@ func (a *App) Start(ctx context.Context) {
 	a.ConfigsCache.InitConfigsCache(ctx, a.Db)
 
 	// Start scheduled tasks
-	tasks.Start(ctx, a.Db, a.PlaidClient)
+	tasks := tasks.Tasks{Db: a.Db, Client: a.PlaidClient}
+	taskInterval, err := strconv.Atoi(os.Getenv("TASK_INTERVAL"))
+	if err != nil {
+		tasks.TaskInterval = 3600
+	} else {
+		tasks.TaskInterval = taskInterval
+	}
+	tasksEnabled, err := strconv.ParseBool(os.Getenv("TASKS_ENABLED"))
+	if err != nil {
+		tasks.TasksEnabled = false
+	} else {
+		tasks.TasksEnabled = tasksEnabled
+	}
+	tasks.Start(ctx)
 
 	// Start server
 	port := os.Getenv("PORT")

@@ -51,7 +51,7 @@ export default function Navbar({isLoggedIn, registrationEnabled, isAdmin}) {
       <Box>
         <Flex
           bg={'gray.800'}
-          h={isLoggedIn ? '50px' : '5vh'}
+          h={isLoggedIn ? '50px' : '6vh'}
           pl={'2vw'}
           pr={'2vw'}
           alignItems={'center'}
