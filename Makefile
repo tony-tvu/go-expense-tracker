@@ -12,9 +12,9 @@ build:
 	cd web && npm run build
 	go build -o ./bin/main main.go
 
-# requires gin installed globally: `go install github.com/codegangsta/gin@latest`
+# requires gow installed globally: ` go install github.com/mitranim/gow@latest`
 api:
-	gin --port 8080 run main.go
+	gow run main.go
 
 client:
 	cd web && npm run start	
