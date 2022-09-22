@@ -83,7 +83,19 @@ func (a *App) Initialize(ctx context.Context) {
 	router := gin.New()
 	router.ForwardedByClientIP = true
 	if env == Development {
-		allowCrossOrigin(router)
+		router.Use(func(c *gin.Context) {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Plaid-Public-Token")
+			c.Next()
+		})
+	
+		router.Use(cors.New(cors.Config{
+			AllowOrigins:     []string{"http://localhost:3000"},
+			AllowMethods:     []string{"GET", "PUT", "PATCH", "POST", "DELETE"},
+			AllowCredentials: true,
+			MaxAge:           5 * time.Minute,
+		}))
 	}
 
 	// middleware
@@ -174,21 +186,4 @@ func (a *App) Start(ctx context.Context) {
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
-}
-
-// Allows cross origin requests from frontend server when in development
-func allowCrossOrigin(r *gin.Engine) {
-	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Plaid-Public-Token")
-		c.Next()
-	})
-
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
-		AllowMethods:     []string{"GET", "PUT", "PATCH", "POST", "DELETE"},
-		AllowCredentials: true,
-		MaxAge:           5 * time.Minute,
-	}))
 }
