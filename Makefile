@@ -12,15 +12,9 @@ build:
 	cd web && npm run build
 	go build -o ./bin/main main.go
 
-graphql:
-	cd graph && go run github.com/99designs/gqlgen generate
-
-reset_docker:
-	docker compose down
-	docker compose up
-
+# requires gin installed globally: `go install github.com/codegangsta/gin@latest`
 api:
-	go run main.go
+	gin --port 8080 run main.go
 
 client:
 	cd web && npm run start	
@@ -28,11 +22,8 @@ client:
 watch: 
 	cd web && npm run dev
 
-air:
-	air
-
 start: 
-	make -j 2 air watch
+	make -j 2 api watch
 
 test:
 	go clean -testcache
