@@ -29,6 +29,7 @@ type App struct {
 	ConfigsCache *cache.Configs
 	Router       *gin.Engine
 	PlaidClient  *plaid.APIClient
+	Tasks        *tasks.Tasks
 }
 
 const (
@@ -71,9 +72,25 @@ func (a *App) Initialize(ctx context.Context) {
 	pc := plaid.NewAPIClient(plaidCfg)
 	a.PlaidClient = pc
 
+	// Tasks
+	tasks := &tasks.Tasks{Db: a.Db, Client: a.PlaidClient}
+	taskInterval, err := strconv.Atoi(os.Getenv("TASK_INTERVAL"))
+	if err != nil {
+		tasks.TaskInterval = 3600
+	} else {
+		tasks.TaskInterval = taskInterval
+	}
+	tasksEnabled, err := strconv.ParseBool(os.Getenv("TASKS_ENABLED"))
+	if err != nil {
+		tasks.TasksEnabled = false
+	} else {
+		tasks.TasksEnabled = tasksEnabled
+	}
+	a.Tasks = tasks
+
 	// Handlers
 	users := &handlers.UserHandler{Db: a.Db}
-	items := &handlers.ItemHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, Client: pc}
+	items := &handlers.ItemHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, Client: pc, Tasks: tasks}
 	transactions := &handlers.TransactionHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 	configs := &handlers.ConfigsHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 
@@ -90,7 +107,7 @@ func (a *App) Initialize(ctx context.Context) {
 			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Plaid-Public-Token")
 			c.Next()
 		})
-	
+
 		router.Use(cors.New(cors.Config{
 			AllowOrigins:     []string{"http://localhost:3000"},
 			AllowMethods:     []string{"GET", "PUT", "PATCH", "POST", "DELETE"},
@@ -170,20 +187,7 @@ func (a *App) Start(ctx context.Context) {
 	a.ConfigsCache.InitConfigsCache(ctx, a.Db)
 
 	// Start scheduled tasks
-	tasks := tasks.Tasks{Db: a.Db, Client: a.PlaidClient}
-	taskInterval, err := strconv.Atoi(os.Getenv("TASK_INTERVAL"))
-	if err != nil {
-		tasks.TaskInterval = 3600
-	} else {
-		tasks.TaskInterval = taskInterval
-	}
-	tasksEnabled, err := strconv.ParseBool(os.Getenv("TASKS_ENABLED"))
-	if err != nil {
-		tasks.TasksEnabled = false
-	} else {
-		tasks.TasksEnabled = tasksEnabled
-	}
-	tasks.Start(ctx)
+	a.Tasks.Start(ctx)
 
 	// Start server
 	port := os.Getenv("PORT")

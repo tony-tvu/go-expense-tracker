@@ -45,11 +45,13 @@ func (t *Tasks) refreshTransactionsAndAccountsTask(ctx context.Context) {
 func (t *Tasks) RefreshTransactions(ctx context.Context, items []*models.Item) {
 	for _, item := range items {
 		isSuccess := true
-		transactions, _, _, cursor, err := t.getTransactions(item)
+		transactions, _, _, cursor, err := t.getTransactions(ctx, item)
 		if err != nil {
 			log.Printf("error getting transaction for item_id: %v; err: %+v", item.ID, err)
 			isSuccess = false
 		}
+
+		log.Println(len(transactions))
 
 		// save new transactions
 		for _, transaction := range transactions {
@@ -61,6 +63,8 @@ func (t *Tasks) RefreshTransactions(ctx context.Context, items []*models.Item) {
 				{Key: "transaction_id", Value: transaction.GetTransactionId()},
 				{Key: "date", Value: date},
 				{Key: "amount", Value: transaction.Amount},
+				{Key: "category", Value: transaction.Category},
+				{Key: "name", Value: transaction.Name},
 				{Key: "created_at", Value: time.Now()},
 				{Key: "updated_at", Value: time.Now()},
 			}
@@ -168,9 +172,7 @@ func (t *Tasks) getItemAccounts(ctx context.Context, accessToken string) (*[]pla
 	return &accounts, nil
 }
 
-func (t *Tasks) getTransactions(item *models.Item) ([]plaid.Transaction, []plaid.Transaction, []plaid.RemovedTransaction, string, error) {
-	ctx := context.Background()
-
+func (t *Tasks) getTransactions(ctx context.Context, item *models.Item) ([]plaid.Transaction, []plaid.Transaction, []plaid.RemovedTransaction, string, error) {
 	// New transaction updates since "cursor"
 	var transactions []plaid.Transaction
 	var modified []plaid.Transaction

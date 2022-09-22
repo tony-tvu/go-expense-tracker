@@ -17,6 +17,7 @@ import (
 	"github.com/tony-tvu/goexpense/cache"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/tasks"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -25,6 +26,7 @@ type ItemHandler struct {
 	Db           *database.MongoDb
 	ConfigsCache *cache.Configs
 	Client       *plaid.APIClient
+	Tasks        *tasks.Tasks
 }
 
 func init() {
@@ -188,10 +190,23 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 		{Key: "created_at", Value: time.Now()},
 		{Key: "updated_at", Value: time.Now()},
 	}
-	if _, err = h.Db.Items.InsertOne(ctx, doc); err != nil {
+	res, err := h.Db.Items.InsertOne(ctx, doc)
+	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
+	// refresh transactions and accounts for the new item
+	newItemID := res.InsertedID.(primitive.ObjectID)
+	var item *models.Item
+	if err = h.Db.Items.FindOne(ctx, bson.D{{Key: "_id", Value: newItemID}}).Decode(&item); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+
+	h.Tasks.RefreshTransactions(ctx, []*models.Item{item})
+	h.Tasks.RefreshAccounts(ctx, []*models.Item{item})
 }
 
 // Remove item from user's collection
