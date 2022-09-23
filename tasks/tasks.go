@@ -18,7 +18,6 @@ type Tasks struct {
 	Client          *plaid.APIClient
 	TaskInterval    int
 	TasksEnabled    bool
-	NewItemsChannel chan string
 }
 
 func (t *Tasks) Start(ctx context.Context) {
@@ -26,33 +25,7 @@ func (t *Tasks) Start(ctx context.Context) {
 		return
 	}
 
-	newItemsChan := make(chan string, 3)
-	t.NewItemsChannel = newItemsChan
-	go t.processNewItems(ctx)
 	go t.refreshTransactionsAndAccountsTask(ctx)
-}
-
-func (t *Tasks) processNewItems(ctx context.Context) {
-	for {
-		newItemIDHex := <-t.NewItemsChannel
-		log.Printf("new item received: %v\n", newItemIDHex)
-
-		objID, err := primitive.ObjectIDFromHex(newItemIDHex)
-		if err != nil {
-			log.Printf("error getting new item object id: %v\n", err)
-		}
-
-		var item *models.Item
-		if err = t.Db.Items.FindOne(ctx, bson.D{{Key: "_id", Value: objID}}).Decode(&item); err != nil {
-			log.Printf("error getting new item from db: %v\n", err)
-		}
-
-		// buffer between new item creation on Plaid's system and updating transactions/accounts on our side
-		// ref: https://plaid.com/docs/transactions/webhooks/#pulling-transactions
-		time.Sleep(15 * time.Second)
-		t.refreshTransactions(ctx, []*models.Item{item})
-		t.refreshAccounts(ctx, []*models.Item{item})
-	}
 }
 
 func (t *Tasks) refreshTransactionsAndAccountsTask(ctx context.Context) {
