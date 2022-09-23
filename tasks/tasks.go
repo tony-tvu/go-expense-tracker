@@ -10,13 +10,15 @@ import (
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Tasks struct {
-	Db           *database.MongoDb
-	Client       *plaid.APIClient
-	TaskInterval int
-	TasksEnabled bool
+	Db              *database.MongoDb
+	Client          *plaid.APIClient
+	TaskInterval    int
+	TasksEnabled    bool
+	NewItemsChannel chan string
 }
 
 func (t *Tasks) Start(ctx context.Context) {
@@ -24,7 +26,33 @@ func (t *Tasks) Start(ctx context.Context) {
 		return
 	}
 
+	newItemsChan := make(chan string, 5)
+	t.NewItemsChannel = newItemsChan
+	go t.listenForNewItems(ctx)
+
 	go t.refreshTransactionsAndAccountsTask(ctx)
+}
+
+func (t *Tasks) listenForNewItems(ctx context.Context) {
+	for {
+		newItemIDHex := <-t.NewItemsChannel
+		log.Printf("new item received: %v\n", newItemIDHex)
+
+		objID, err := primitive.ObjectIDFromHex(newItemIDHex)
+		if err != nil {
+			log.Printf("error getting new item object id: %v\n", err)
+		}
+
+		var item *models.Item
+		if err = t.Db.Items.FindOne(ctx, bson.D{{Key: "_id", Value: objID}}).Decode(&item); err != nil {
+			log.Printf("error getting new item from db: %v\n", err)
+		}
+
+		// buffer between new item creation on Plaid's system and updating transactions/accounts on our side
+		time.Sleep(10 * time.Second)
+		t.refreshTransactions(ctx, []*models.Item{item})
+		t.refreshAccounts(ctx, []*models.Item{item})
+	}
 }
 
 func (t *Tasks) refreshTransactionsAndAccountsTask(ctx context.Context) {
@@ -35,14 +63,14 @@ func (t *Tasks) refreshTransactionsAndAccountsTask(ctx context.Context) {
 		}
 
 		log.Printf("refreshing transactions and accounts for %d items\n", len(items))
-		t.RefreshTransactions(ctx, items)
-		t.RefreshAccounts(ctx, items)
+		t.refreshTransactions(ctx, items)
+		t.refreshAccounts(ctx, items)
 
 		time.Sleep(time.Duration(t.TaskInterval) * time.Second)
 	}
 }
 
-func (t *Tasks) RefreshTransactions(ctx context.Context, items []*models.Item) {
+func (t *Tasks) refreshTransactions(ctx context.Context, items []*models.Item) {
 	for _, item := range items {
 		isSuccess := true
 		transactions, _, _, cursor, err := t.getTransactions(ctx, item)
@@ -51,28 +79,12 @@ func (t *Tasks) RefreshTransactions(ctx context.Context, items []*models.Item) {
 			isSuccess = false
 		}
 
-		log.Println(len(transactions))
-
 		// save new transactions
 		for _, transaction := range transactions {
-			date, _ := time.Parse("2006-01-02", transaction.Date)
-
-			doc := &bson.D{
-				{Key: "item_id", Value: item.ID},
-				{Key: "user_id", Value: item.UserID},
-				{Key: "transaction_id", Value: transaction.GetTransactionId()},
-				{Key: "date", Value: date},
-				{Key: "amount", Value: transaction.Amount},
-				{Key: "category", Value: transaction.Category},
-				{Key: "name", Value: transaction.Name},
-				{Key: "created_at", Value: time.Now()},
-				{Key: "updated_at", Value: time.Now()},
-			}
-			if _, err = t.Db.Transactions.InsertOne(ctx, doc); err != nil {
-				if !strings.Contains(err.Error(), "duplicate key error") {
-					log.Printf("error inserting new transaction: %+v\n", err)
-					isSuccess = false
-				}
+			err := t.saveTransaction(ctx, transaction, &item.UserID, &item.ID)
+			if err != nil && !strings.Contains(err.Error(), "duplicate key error") {
+				log.Printf("error inserting new transaction: %+v\n", err)
+				isSuccess = false
 			}
 		}
 
@@ -98,7 +110,27 @@ func (t *Tasks) RefreshTransactions(ctx context.Context, items []*models.Item) {
 	}
 }
 
-func (t *Tasks) RefreshAccounts(ctx context.Context, items []*models.Item) {
+func (t *Tasks) saveTransaction(ctx context.Context, transaction plaid.Transaction, userID, itemID *primitive.ObjectID) error {
+	date, _ := time.Parse("2006-01-02", transaction.Date)
+	doc := &bson.D{
+		{Key: "item_id", Value: itemID},
+		{Key: "user_id", Value: userID},
+		{Key: "transaction_id", Value: transaction.GetTransactionId()},
+		{Key: "date", Value: date},
+		{Key: "amount", Value: transaction.Amount},
+		{Key: "category", Value: transaction.Category},
+		{Key: "name", Value: transaction.Name},
+		{Key: "created_at", Value: time.Now()},
+		{Key: "updated_at", Value: time.Now()},
+	}
+	if _, err := t.Db.Transactions.InsertOne(ctx, doc); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *Tasks) refreshAccounts(ctx context.Context, items []*models.Item) {
 	for _, item := range items {
 		plaidAccounts, err := t.getItemAccounts(ctx, item.AccessToken)
 		if err != nil {

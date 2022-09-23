@@ -131,7 +131,6 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 // Adds a new item to user's items collection
 func (h *ItemHandler) CreateItem(c *gin.Context) {
 	ctx := c.Request.Context()
-
 	userID, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
@@ -141,20 +140,17 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 	type Input struct {
 		PublicToken string `json:"public_token" validate:"required"`
 	}
-
 	var input Input
 	bodyBytes, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-
 	err = json.Unmarshal(bodyBytes, &input)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-
 	err = v.Struct(input)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
@@ -171,7 +167,6 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-
 	accessToken := exchangePublicTokenResp.GetAccessToken()
 	plaidItemID := exchangePublicTokenResp.GetItemId()
 
@@ -197,16 +192,8 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 	}
 
 	// refresh transactions and accounts for the new item
-	newItemID := res.InsertedID.(primitive.ObjectID)
-	var item *models.Item
-	if err = h.Db.Items.FindOne(ctx, bson.D{{Key: "_id", Value: newItemID}}).Decode(&item); err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
+	h.Tasks.NewItemsChannel <- res.InsertedID.(primitive.ObjectID).Hex()
 
-
-	h.Tasks.RefreshTransactions(ctx, []*models.Item{item})
-	h.Tasks.RefreshAccounts(ctx, []*models.Item{item})
 }
 
 // Remove item from user's collection
