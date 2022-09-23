@@ -139,6 +139,7 @@ func (a *App) Initialize(ctx context.Context) {
 		api.GET("/items/:page", items.GetItems)
 		api.POST("/items", items.CreateItem)
 		api.DELETE("/items/:id", items.DeleteItem)
+		api.GET("/cash_accounts", items.GetCashAccounts)
 
 		// transactions
 		api.GET("/transactions/:page", transactions.GetTransactions)

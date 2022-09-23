@@ -257,6 +257,33 @@ func (h *ItemHandler) DeleteItem(c *gin.Context) {
 	}
 }
 
+// Returns all cash accounts associated with a userID
+func (h *ItemHandler) GetCashAccounts(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userObjID, _, err := auth.AuthorizeUser(c, h.Db)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	var accounts []*models.Account
+	cursor, err := h.Db.Accounts.Find(ctx, bson.D{{Key: "user_id", Value: userObjID}})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if err = cursor.All(ctx, &accounts); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"accounts": accounts,
+	})
+
+}
+
 func getInstitution(ctx context.Context, client *plaid.APIClient, accessToken string) (*string, error) {
 	itemGetResp, _, err := client.PlaidApi.ItemGet(ctx).ItemGetRequest(
 		*plaid.NewItemGetRequest(accessToken),
