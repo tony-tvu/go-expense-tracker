@@ -128,8 +128,8 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 	})
 }
 
-// Adds a new item to user's items collection. New transactions may not be immedietaly available
-// upon successful link. You should rely on the scheduled task to populate transactions.
+// Adds a new item to user's items collection
+// New transactions may not be immedietaly available
 // ref: https://plaid.com/docs/api/products/transactions/#transactionssync
 func (h *ItemHandler) CreateItem(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -172,14 +172,19 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 		{Key: "user_id", Value: *userID},
 		{Key: "plaid_item_id", Value: plaidItemID},
 		{Key: "access_token", Value: accessToken},
+		{Key: "cursor", Value: ""},
 		{Key: "created_at", Value: time.Now()},
 		{Key: "updated_at", Value: time.Now()},
 	}
-	_, err = h.Db.Items.InsertOne(ctx, doc)
+	res, err := h.Db.Items.InsertOne(ctx, doc)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
+	go func() {
+		h.Tasks.NewItemsChannel <- res.InsertedID.(primitive.ObjectID).Hex()
+	}()
 }
 
 // exchange the public_token for a permanent access_token, itemID, and get institution

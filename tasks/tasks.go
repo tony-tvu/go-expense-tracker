@@ -18,14 +18,63 @@ type Tasks struct {
 	Client          *plaid.APIClient
 	TaskInterval    int
 	TasksEnabled    bool
+	NewItemsChannel chan string
 }
 
 func (t *Tasks) Start(ctx context.Context) {
 	if !t.TasksEnabled {
 		return
 	}
+	newItemsChan := make(chan string, 3)
+	t.NewItemsChannel = newItemsChan
+	go t.processNewItems(ctx)
 
 	go t.refreshTransactionsAndAccountsTask(ctx)
+}
+
+func (t *Tasks) processNewItems(ctx context.Context) {
+	for {
+		newItemIDHex := <-t.NewItemsChannel
+		log.Printf("new item received: %v\n", newItemIDHex)
+
+		objID, err := primitive.ObjectIDFromHex(newItemIDHex)
+		if err != nil {
+			log.Printf("error getting new item object id: %v\n", err)
+		}
+
+		var item *models.Item
+		if err = t.Db.Items.FindOne(ctx, bson.D{{Key: "_id", Value: objID}}).Decode(&item); err != nil {
+			log.Printf("error getting new item from db: %v\n", err)
+		}
+
+		// buffer between new item creation on Plaid's system and updating transactions/accounts on our side
+		// ref: https://plaid.com/docs/transactions/webhooks/#pulling-transactions
+		time.Sleep(10 * time.Second)
+
+		t.getInitialTransactions(ctx, item)
+		t.refreshAccounts(ctx, []*models.Item{item})
+	}
+}
+
+// Plaid api does not populate transaction data instantly, so we'll make 3 consecutive
+// calls to update transactions on our end when user creates an initial item connection
+func (t *Tasks) getInitialTransactions(ctx context.Context, item *models.Item) {
+	count := 0
+
+	for count < 3 {
+		transactions, _, _, _, err := t.getTransactions(ctx, item)
+		if err != nil {
+			log.Printf("error getting initial transactions for item_id: %v; err: %+v", item.ID, err)
+		}
+
+		for _, transaction := range transactions {
+			err := t.saveTransaction(ctx, transaction, &item.UserID, &item.ID)
+			if err != nil {
+				log.Printf("error inserting new transaction: %+v\n", err)
+			}
+		}
+		count++
+	}
 }
 
 func (t *Tasks) refreshTransactionsAndAccountsTask(ctx context.Context) {
@@ -48,14 +97,14 @@ func (t *Tasks) refreshTransactions(ctx context.Context, items []*models.Item) {
 		isSuccess := true
 		transactions, _, _, cursor, err := t.getTransactions(ctx, item)
 		if err != nil {
-			log.Printf("error getting transaction for item_id: %v; err: %+v", item.ID, err)
+			log.Printf("error getting transactions for item_id: %v; err: %+v", item.ID, err)
 			isSuccess = false
 		}
 
 		// save new transactions
 		for _, transaction := range transactions {
 			err := t.saveTransaction(ctx, transaction, &item.UserID, &item.ID)
-			if err != nil && !strings.Contains(err.Error(), "duplicate key error") {
+			if err != nil {
 				log.Printf("error inserting new transaction: %+v\n", err)
 				isSuccess = false
 			}
@@ -96,7 +145,8 @@ func (t *Tasks) saveTransaction(ctx context.Context, transaction plaid.Transacti
 		{Key: "created_at", Value: time.Now()},
 		{Key: "updated_at", Value: time.Now()},
 	}
-	if _, err := t.Db.Transactions.InsertOne(ctx, doc); err != nil {
+	_, err := t.Db.Transactions.InsertOne(ctx, doc)
+	if err != nil && !strings.Contains(err.Error(), "duplicate key error") {
 		return err
 	}
 
