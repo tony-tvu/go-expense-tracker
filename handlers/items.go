@@ -158,19 +158,7 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 	}
 
 	// exchange the public_token for a permanent access_token and itemID
-	exchangePublicTokenResp, _, err :=
-		h.Client.PlaidApi.ItemPublicTokenExchange(ctx).
-			ItemPublicTokenExchangeRequest(
-				*plaid.NewItemPublicTokenExchangeRequest(input.PublicToken),
-			).Execute()
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	accessToken := exchangePublicTokenResp.GetAccessToken()
-	plaidItemID := exchangePublicTokenResp.GetItemId()
-
-	institution, err := getInstitution(ctx, h.Client, accessToken)
+	accessToken, plaidItemID, institution, err := h.exchangePublicToken(ctx, input.PublicToken)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -192,8 +180,30 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 	}
 
 	// refresh transactions and accounts for the new item
-	h.Tasks.NewItemsChannel <- res.InsertedID.(primitive.ObjectID).Hex()
+	go func() {
+		h.Tasks.NewItemsChannel <- res.InsertedID.(primitive.ObjectID).Hex()
+	}()
+}
 
+// exchange the public_token for a permanent access_token, itemID, and get institution
+func (h *ItemHandler) exchangePublicToken(ctx context.Context, publicToken string) (*string, *string, *string, error) {
+	exchangePublicTokenResp, _, err :=
+		h.Client.PlaidApi.ItemPublicTokenExchange(ctx).
+			ItemPublicTokenExchangeRequest(
+				*plaid.NewItemPublicTokenExchangeRequest(publicToken),
+			).Execute()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	accessToken := exchangePublicTokenResp.GetAccessToken()
+	plaidItemID := exchangePublicTokenResp.GetItemId()
+	institution, err := getInstitution(ctx, h.Client, accessToken)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return &accessToken, &plaidItemID, institution, nil
 }
 
 // Remove item from user's collection

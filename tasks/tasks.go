@@ -26,14 +26,13 @@ func (t *Tasks) Start(ctx context.Context) {
 		return
 	}
 
-	newItemsChan := make(chan string, 5)
+	newItemsChan := make(chan string, 3)
 	t.NewItemsChannel = newItemsChan
-	go t.listenForNewItems(ctx)
-
+	go t.processNewItems(ctx)
 	go t.refreshTransactionsAndAccountsTask(ctx)
 }
 
-func (t *Tasks) listenForNewItems(ctx context.Context) {
+func (t *Tasks) processNewItems(ctx context.Context) {
 	for {
 		newItemIDHex := <-t.NewItemsChannel
 		log.Printf("new item received: %v\n", newItemIDHex)
@@ -49,7 +48,8 @@ func (t *Tasks) listenForNewItems(ctx context.Context) {
 		}
 
 		// buffer between new item creation on Plaid's system and updating transactions/accounts on our side
-		time.Sleep(10 * time.Second)
+		// ref: https://plaid.com/docs/transactions/webhooks/#pulling-transactions
+		time.Sleep(15 * time.Second)
 		t.refreshTransactions(ctx, []*models.Item{item})
 		t.refreshAccounts(ctx, []*models.Item{item})
 	}
