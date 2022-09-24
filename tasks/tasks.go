@@ -47,22 +47,22 @@ func (t *Tasks) processNewItems(ctx context.Context) {
 			log.Printf("error getting new item from db: %v\n", err)
 		}
 
-		// buffer between new item creation on Plaid's system and updating transactions/accounts on our side
-		// ref: https://plaid.com/docs/transactions/webhooks/#pulling-transactions
-		time.Sleep(10 * time.Second)
 
-		t.getInitialTransactions(ctx, item)
+
+		go t.getInitialTransactions(ctx, item)
 		t.refreshAccounts(ctx, []*models.Item{item})
 	}
 }
 
-// Plaid api does not populate transaction data instantly, so we'll make 3 consecutive
-// calls to update transactions on our end when user creates an initial item connection
+// Plaid api could take several seconds/minutes to populate initial transaction data upon item creation.
+// To make sure we get transaction data ASAP for the user, this function makes 10 calls
+// to update transactions every 10 seconds upon initial item creation
 func (t *Tasks) getInitialTransactions(ctx context.Context, item *models.Item) {
 	count := 0
 
-	for count < 3 {
+	for count < 10 {
 		transactions, _, _, _, err := t.getTransactions(ctx, item)
+		log.Println(len(transactions))
 		if err != nil {
 			log.Printf("error getting initial transactions for item_id: %v; err: %+v", item.ID, err)
 		}
@@ -74,6 +74,7 @@ func (t *Tasks) getInitialTransactions(ctx context.Context, item *models.Item) {
 			}
 		}
 		count++
+		time.Sleep(10 * time.Second)
 	}
 }
 
