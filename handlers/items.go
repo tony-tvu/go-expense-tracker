@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -34,7 +35,7 @@ func init() {
 }
 
 var products string = "transactions"
-var countryCodes string = "US,CA"
+var countryCodes string = "US"
 
 /*
 This resolver returns a link_token to the client. From the client, use the
@@ -67,6 +68,7 @@ func (h *ItemHandler) GetLinkToken(c *gin.Context) {
 		user,
 	)
 	request.SetProducts(p)
+	request.SetWebhook("WEBHOOK_URL")
 
 	linkTokenCreateResp, _, err :=
 		h.Client.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
@@ -176,15 +178,15 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 		{Key: "created_at", Value: time.Now()},
 		{Key: "updated_at", Value: time.Now()},
 	}
-	res, err := h.Db.Items.InsertOne(ctx, doc)
+	_, err = h.Db.Items.InsertOne(ctx, doc)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	go func() {
-		h.Tasks.NewItemsChannel <- res.InsertedID.(primitive.ObjectID).Hex()
-	}()
+	// go func() {
+	// 	h.Tasks.NewItemsChannel <- res.InsertedID.(primitive.ObjectID).Hex()
+	// }()
 }
 
 // exchange the public_token for a permanent access_token, itemID, and get institution
@@ -224,10 +226,7 @@ func (h *ItemHandler) DeleteItem(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	count, err := h.Db.Items.CountDocuments(ctx, bson.D{
-		{Key: "_id", Value: itemObjID},
-		{Key: "user_id", Value: userObjID},
-	})
+	count, err := h.Db.Items.CountDocuments(ctx, bson.M{"_id": &itemObjID, "user_id": userObjID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -238,24 +237,21 @@ func (h *ItemHandler) DeleteItem(c *gin.Context) {
 	}
 
 	// delete accounts associated with item
-	_, err = h.Db.Accounts.DeleteMany(ctx, bson.D{
-		{Key: "user_id", Value: userObjID},
-		{Key: "item_id", Value: itemObjID},
-	})
+	_, err = h.Db.Accounts.DeleteMany(ctx, bson.M{"item_id": &itemObjID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	// delete item
-	_, err = h.Db.Items.DeleteOne(ctx, bson.M{"_id": itemObjID})
+	_, err = h.Db.Items.DeleteOne(ctx, bson.M{"_id": &itemObjID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	// delete transactions belonging to item
-	_, err = h.Db.Transactions.DeleteMany(ctx, bson.M{"item_id": itemObjID})
+	_, err = h.Db.Transactions.DeleteMany(ctx, bson.M{"item_id": &itemObjID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -318,4 +314,24 @@ func convertCountryCodes(countryCodeStrs []string) []plaid.CountryCode {
 	}
 
 	return codes
+}
+
+func (h *ItemHandler) ReceiveWebook(c *gin.Context) {
+	defer c.Request.Body.Close()
+
+	var webhook *plaid.DefaultUpdateWebhook
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	err = json.Unmarshal(bodyBytes, &webhook)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("%+v\n", webhook)
+
 }
