@@ -1,4 +1,18 @@
-import { Center, Spinner } from '@chakra-ui/react'
+import {
+  Accordion,
+  AccordionButton,
+  AccordionIcon,
+  AccordionItem,
+  AccordionPanel,
+  Box,
+  Center,
+  Container,
+  HStack,
+  Spacer,
+  Spinner,
+  Text,
+  VStack,
+} from '@chakra-ui/react'
 import React, { useEffect, useState } from 'react'
 import logger from '../logger'
 
@@ -29,19 +43,52 @@ export default function CashAccounts() {
     }
   }, [loading])
 
-  if (loading && !data) {
-    return (
-      <Center pt={10}>
-        <Spinner
-          thickness="4px"
-          speed="0.65s"
-          emptyColor="gray.200"
-          color="blue.500"
-          size="xl"
-        />
-      </Center>
-    )
+  function getCashTotal() {
+    let total = 0
+
+    data.forEach((acc) => {
+      total += acc.current_balance
+    })
+
+    return total
   }
 
-  return <div>CashAccounts</div>
+  return (
+    <Container maxW="container.md" centerContent >
+      {loading ? (
+        <Center pt={10}>
+          <Spinner
+            thickness="4px"
+            speed="0.65s"
+            emptyColor="gray.200"
+            color="blue.500"
+            size="xl"
+          />
+        </Center>
+      ) : (
+        <Accordion allowMultiple width="100%">
+          <AccordionItem>
+            <h2>
+              <AccordionButton>
+
+                <HStack flex="1">
+                  <Text fontSize='2xl' as='b'>Checking & Savings</Text>
+                  <Spacer/>
+                  <Text fontSize='2xl' as='b' pr={5}>${getCashTotal()}</Text>
+                </HStack>
+                <AccordionIcon />
+
+              </AccordionButton>
+            </h2>
+            <AccordionPanel pb={4}>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
+              enim ad minim veniam, quis nostrud exercitation ullamco laboris
+              nisi ut aliquip ex ea commodo consequat.
+            </AccordionPanel>
+          </AccordionItem>
+        </Accordion>
+      )}
+    </Container>
+  )
 }
