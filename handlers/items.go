@@ -28,6 +28,7 @@ type ItemHandler struct {
 	ConfigsCache *cache.Configs
 	Client       *plaid.APIClient
 	Tasks        *tasks.Tasks
+	WebhooksURL  string
 }
 
 func init() {
@@ -68,7 +69,7 @@ func (h *ItemHandler) GetLinkToken(c *gin.Context) {
 		user,
 	)
 	request.SetProducts(p)
-	request.SetWebhook("WEBHOOK_URL")
+	request.SetWebhook(h.WebhooksURL)
 
 	linkTokenCreateResp, _, err :=
 		h.Client.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
@@ -316,7 +317,7 @@ func convertCountryCodes(countryCodeStrs []string) []plaid.CountryCode {
 	return codes
 }
 
-func (h *ItemHandler) ReceiveWebook(c *gin.Context) {
+func (h *ItemHandler) ReceiveWebooks(c *gin.Context) {
 	defer c.Request.Body.Close()
 
 	var webhook *plaid.DefaultUpdateWebhook

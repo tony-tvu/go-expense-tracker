@@ -90,7 +90,8 @@ func (a *App) Initialize(ctx context.Context) {
 
 	// Handlers
 	users := &handlers.UserHandler{Db: a.Db}
-	items := &handlers.ItemHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, Client: pc, Tasks: tasks}
+	webhooksURL := os.Getenv("WEBHOOKS_URL")
+	items := &handlers.ItemHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, Client: pc, Tasks: tasks, WebhooksURL: webhooksURL}
 	transactions := &handlers.TransactionHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 	configs := &handlers.ConfigsHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 
@@ -100,16 +101,18 @@ func (a *App) Initialize(ctx context.Context) {
 	}
 	router := gin.New()
 	router.ForwardedByClientIP = true
+
+	// TODO: make cors middleware to handle dev and prod webhooks url
 	if env == Development {
 		router.Use(func(c *gin.Context) {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+			c.Writer.Header().Set("Access-Control-Allow-Origin", webhooksURL)
 			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Plaid-Public-Token")
 			c.Next()
 		})
 
 		router.Use(cors.New(cors.Config{
-			AllowOrigins:     []string{"http://localhost:3000"},
+			AllowOrigins:     []string{webhooksURL},
 			AllowMethods:     []string{"GET", "PUT", "PATCH", "POST", "DELETE"},
 			AllowCredentials: true,
 			MaxAge:           5 * time.Minute,
@@ -140,6 +143,7 @@ func (a *App) Initialize(ctx context.Context) {
 		api.POST("/items", items.CreateItem)
 		api.DELETE("/items/:id", items.DeleteItem)
 		api.GET("/cash_accounts", items.GetCashAccounts)
+		api.POST("/receive_webhooks", items.ReceiveWebooks)
 
 		// transactions
 		api.GET("/transactions/:page", transactions.GetTransactions)
