@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -102,27 +103,21 @@ func (a *App) Initialize(ctx context.Context) {
 	router := gin.New()
 	router.ForwardedByClientIP = true
 
-	// TODO: make cors middleware to handle dev and prod webhooks url
-	if env == Development {
-		router.Use(func(c *gin.Context) {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", webhooksURL)
-			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Plaid-Public-Token")
-			c.Next()
-		})
-
-		router.Use(cors.New(cors.Config{
-			AllowOrigins:     []string{webhooksURL},
-			AllowMethods:     []string{"GET", "PUT", "PATCH", "POST", "DELETE"},
-			AllowCredentials: true,
-			MaxAge:           5 * time.Minute,
-		}))
-	}
+	// Cors
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	allowedOriginsArr := strings.Split(allowedOrigins, ",")
+	router.Use(middleware.CorsHeaders(allowedOriginsArr))
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     allowedOriginsArr,
+		AllowMethods:     []string{"GET", "PUT", "POST", "DELETE"},
+		AllowCredentials: true,
+		MaxAge:           5 * time.Minute,
+	}))
 
 	// middleware
 	router.Use(middleware.RateLimit())
 	router.Use(middleware.Logger(env))
-
+	
 	api := router.Group("/api", middleware.NoCache)
 	{
 		// configs
