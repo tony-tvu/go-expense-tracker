@@ -83,6 +83,51 @@ func (h *ItemHandler) GetLinkToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"link_token": linkToken})
 }
 
+func (h *ItemHandler) UpdateWebhooksURL(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	if _, userType, err := auth.AuthorizeUser(c, h.Db); err != nil || *userType != models.AdminUser {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	type Input struct {
+		WebhooksURL string `json:"webhooks_url" validate:"required"`
+	}
+	var input Input
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	err = json.Unmarshal(bodyBytes, &input)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	err = v.Struct(input)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	items, err := database.GetItems(ctx, h.Db)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	for _, item := range items {
+		request := plaid.NewItemWebhookUpdateRequest(item.AccessToken)
+		request.Webhook = *plaid.NewNullableString(&input.WebhooksURL)
+		_, _, err := h.Client.PlaidApi.ItemWebhookUpdate(ctx).ItemWebhookUpdateRequest(*request).Execute()
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
 // Returns all items associated with userID
 func (h *ItemHandler) GetItems(c *gin.Context) {
 	ctx := c.Request.Context()
