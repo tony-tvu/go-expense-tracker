@@ -66,7 +66,6 @@ func TestMain(m *testing.M) {
 	testApp.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
 	testApp.Db.Transactions = mongoclient.Database(dbName).Collection("transactions")
 	testApp.Db.Users = mongoclient.Database(dbName).Collection("users")
-	testApp.Db.Webhooks = mongoclient.Database(dbName).Collection("webhooks")
 
 	// Create unique constraints
 	database.CreateUniqueConstraints(ctx, testApp.Db)
