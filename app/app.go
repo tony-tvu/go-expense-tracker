@@ -14,7 +14,6 @@ import (
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/cache"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/handlers"
@@ -29,7 +28,6 @@ type App struct {
 	Db           *database.MongoDb
 	ConfigsCache *cache.Configs
 	Router       *gin.Engine
-	PlaidClient  *plaid.APIClient
 	Tasks        *tasks.Tasks
 }
 
@@ -54,44 +52,19 @@ func (a *App) Initialize(ctx context.Context) {
 	a.Db = &database.MongoDb{}
 	a.ConfigsCache = &cache.Configs{}
 
-	// Plaid
-	var plaidEnvs = map[string]plaid.Environment{
-		"sandbox":     plaid.Sandbox,
-		"development": plaid.Development,
-		"production":  plaid.Production,
-	}
-	clientID := os.Getenv("PLAID_CLIENT_ID")
-	secret := os.Getenv("PLAID_SECRET")
-	plaidEnv := os.Getenv("PLAID_ENV")
-	if util.ContainsEmpty(clientID, secret, plaidEnv) {
-		log.Println("plaid env configs are missing - service will not work")
-	}
-	plaidCfg := plaid.NewConfiguration()
-	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", clientID)
-	plaidCfg.AddDefaultHeader("PLAID-SECRET", secret)
-	plaidCfg.UseEnvironment(plaidEnvs[plaidEnv])
-	pc := plaid.NewAPIClient(plaidCfg)
-	a.PlaidClient = pc
-
 	// Tasks
-	tasks := &tasks.Tasks{Db: a.Db, Client: a.PlaidClient}
+	tasks := &tasks.Tasks{Db: a.Db}
 	taskInterval, err := strconv.Atoi(os.Getenv("TASK_INTERVAL"))
 	if err != nil {
 		tasks.TaskInterval = 3600
 	} else {
 		tasks.TaskInterval = taskInterval
 	}
-	tasksEnabled, err := strconv.ParseBool(os.Getenv("TASKS_ENABLED"))
-	if err != nil {
-		tasks.TasksEnabled = false
-	} else {
-		tasks.TasksEnabled = tasksEnabled
-	}
 	a.Tasks = tasks
 
 	// Handlers
 	users := &handlers.UserHandler{Db: a.Db}
-	items := &handlers.ItemHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, Client: pc, Tasks: tasks, WebhooksURL: os.Getenv("WEBHOOKS_URL")}
+	items := &handlers.ItemHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, Tasks: tasks, WebhooksURL: os.Getenv("WEBHOOKS_URL")}
 	transactions := &handlers.TransactionHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 	configs := &handlers.ConfigsHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 
@@ -138,7 +111,7 @@ func (a *App) Initialize(ctx context.Context) {
 		api.DELETE("/items/:id", items.DeleteItem)
 		api.GET("/cash_accounts", items.GetCashAccounts)
 		api.POST("/receive_webhooks", items.ReceiveWebooks)
-		api.PUT("/update_webhooks_url", items.UpdateWebhooksURL)
+		api.PUT("/update_webhooks_url", items.UpdateItemsWebhooksURL)
 
 		// transactions
 		api.GET("/transactions/:page", transactions.GetTransactions)

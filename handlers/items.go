@@ -1,29 +1,25 @@
 package handlers
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/MicahParks/keyfunc"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
 	. "github.com/gobeam/mongo-go-pagination"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/cache"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/plaidclient"
 	"github.com/tony-tvu/goexpense/tasks"
+	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -31,7 +27,6 @@ import (
 type ItemHandler struct {
 	Db           *database.MongoDb
 	ConfigsCache *cache.Configs
-	Client       *plaid.APIClient
 	Tasks        *tasks.Tasks
 	WebhooksURL  string
 }
@@ -39,9 +34,6 @@ type ItemHandler struct {
 func init() {
 	v = validator.New()
 }
-
-var products string = "transactions"
-var countryCodes string = "US"
 
 /*
 This resolver returns a link_token to the client. From the client, use the
@@ -59,36 +51,16 @@ func (h *ItemHandler) GetLinkToken(c *gin.Context) {
 		return
 	}
 
-	p := []plaid.Products{}
-	for _, product := range strings.Split(products, ",") {
-		p = append(p, plaid.Products(product))
-	}
-	user := plaid.LinkTokenCreateRequestUser{
-		ClientUserId: time.Now().String(),
-	}
-
-	request := plaid.NewLinkTokenCreateRequest(
-		"Plaid Quickstart",
-		"en",
-		convertCountryCodes(strings.Split(countryCodes, ",")),
-		user,
-	)
-	request.SetProducts(p)
-	request.SetWebhook(h.WebhooksURL)
-
-	linkTokenCreateResp, _, err :=
-		h.Client.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
+	linkToken, err := plaidclient.CreateLinkToken(ctx)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	linkToken := linkTokenCreateResp.GetLinkToken()
-
 	c.JSON(http.StatusOK, gin.H{"link_token": linkToken})
 }
 
-func (h *ItemHandler) UpdateWebhooksURL(c *gin.Context) {
+func (h *ItemHandler) UpdateItemsWebhooksURL(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	if _, userType, err := auth.AuthorizeUser(c, h.Db); err != nil || *userType != models.AdminUser {
@@ -123,9 +95,7 @@ func (h *ItemHandler) UpdateWebhooksURL(c *gin.Context) {
 	}
 
 	for _, item := range items {
-		request := plaid.NewItemWebhookUpdateRequest(item.AccessToken)
-		request.Webhook = *plaid.NewNullableString(&input.WebhooksURL)
-		_, _, err := h.Client.PlaidApi.ItemWebhookUpdate(ctx).ItemWebhookUpdateRequest(*request).Execute()
+		err := plaidclient.UpdateWebhooksURL(ctx, input.WebhooksURL, item.AccessToken)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
@@ -213,7 +183,7 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 	}
 
 	// exchange the public_token for a permanent access_token and itemID
-	accessToken, plaidItemID, institution, err := h.exchangePublicToken(ctx, input.PublicToken)
+	accessToken, plaidItemID, institution, err := plaidclient.ExchangePublicToken(ctx, input.PublicToken)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -229,36 +199,15 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 		{Key: "created_at", Value: time.Now()},
 		{Key: "updated_at", Value: time.Now()},
 	}
-	_, err = h.Db.Items.InsertOne(ctx, doc)
+	res, err := h.Db.Items.InsertOne(ctx, doc)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	// go func() {
-	// 	h.Tasks.NewItemsChannel <- res.InsertedID.(primitive.ObjectID).Hex()
-	// }()
-}
-
-// exchange the public_token for a permanent access_token, itemID, and get institution
-func (h *ItemHandler) exchangePublicToken(ctx context.Context, publicToken string) (*string, *string, *string, error) {
-	exchangePublicTokenResp, _, err :=
-		h.Client.PlaidApi.ItemPublicTokenExchange(ctx).
-			ItemPublicTokenExchangeRequest(
-				*plaid.NewItemPublicTokenExchangeRequest(publicToken),
-			).Execute()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	accessToken := exchangePublicTokenResp.GetAccessToken()
-	plaidItemID := exchangePublicTokenResp.GetItemId()
-	institution, err := getInstitution(ctx, h.Client, accessToken)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return &accessToken, &plaidItemID, institution, nil
+	go func() {
+		h.Tasks.NewAccountsChannel <- res.InsertedID.(primitive.ObjectID).Hex()
+	}()
 }
 
 // Remove item from user's collection
@@ -333,38 +282,14 @@ func (h *ItemHandler) GetCashAccounts(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"accounts": accounts,
 	})
-
 }
 
-func getInstitution(ctx context.Context, client *plaid.APIClient, accessToken string) (*string, error) {
-	itemGetResp, _, err := client.PlaidApi.ItemGet(ctx).ItemGetRequest(
-		*plaid.NewItemGetRequest(accessToken),
-	).Execute()
-	if err != nil {
-		return nil, err
-	}
-
-	institutionGetByIdResp, _, err := client.PlaidApi.InstitutionsGetById(ctx).InstitutionsGetByIdRequest(
-		*plaid.NewInstitutionsGetByIdRequest(
-			*itemGetResp.GetItem().InstitutionId.Get(),
-			convertCountryCodes(strings.Split(countryCodes, ",")),
-		),
-	).Execute()
-	if err != nil {
-		return nil, err
-	}
-
-	institution := institutionGetByIdResp.GetInstitution().Name
-	return &institution, nil
-}
-
-func convertCountryCodes(countryCodeStrs []string) []plaid.CountryCode {
-	codes := []plaid.CountryCode{}
-	for _, countryCodeStr := range countryCodeStrs {
-		codes = append(codes, plaid.CountryCode(countryCodeStr))
-	}
-
-	return codes
+var TRANSACTIONS_WEBHOOKS = []string{
+	"SYNC_UPDATES_AVAILABLE",
+	"INITIAL_UPDATE",
+	"HISTORICAL_UPDATE",
+	"DEFAULT_UPDATE",
+	"TRANSACTIONS_REMOVED",
 }
 
 func (h *ItemHandler) ReceiveWebooks(c *gin.Context) {
@@ -373,7 +298,7 @@ func (h *ItemHandler) ReceiveWebooks(c *gin.Context) {
 
 	signedJwt := c.Request.Header.Get("Plaid-Verification")
 
-	sha256Val, err := h.verifyWebhook(ctx, signedJwt)
+	sha256Val, err := plaidclient.VerifyWebhook(ctx, signedJwt)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -403,68 +328,9 @@ func (h *ItemHandler) ReceiveWebooks(c *gin.Context) {
 		return
 	}
 
-	// TODO: send itemID to get processed
-}
-
-// Function verifies if webhook came from Plaid api
-func (h *ItemHandler) verifyWebhook(ctx context.Context, signedJwt string) (*string, error) {
-	decodedToken, _, err := new(jwt.Parser).ParseUnverified(signedJwt, jwt.MapClaims{})
-	if err != nil {
-		return nil, err
+	if util.Contains(&TRANSACTIONS_WEBHOOKS, webhook.WebhookCode) {
+		go func() {
+			h.Tasks.NewTransactionsChannel <- webhook.ItemId
+		}()
 	}
-	if decodedToken.Header["alg"] != "ES256" {
-		return nil, errors.New("error - invalid plaid jwt algorithm")
-	}
-
-	currentKeyID := fmt.Sprintf("%v", decodedToken.Header["kid"])
-	if currentKeyID == "" {
-		return nil, errors.New("error - plaid jwt key id (kid) missing")
-	}
-
-	webhookReq := plaid.NewWebhookVerificationKeyGetRequest(currentKeyID)
-	keyResponse, _, err := h.Client.PlaidApi.WebhookVerificationKeyGet(ctx).WebhookVerificationKeyGetRequest(*webhookReq).Execute()
-
-	type JwkKeys struct {
-		Keys []interface{} `json:"keys"`
-	}
-	jwkKeys := &JwkKeys{
-		Keys: []interface{}{keyResponse.GetKey()},
-	}
-
-	keyJSON, _ := json.Marshal(jwkKeys)
-	jwks, err := keyfunc.NewJSON(keyJSON)
-	if err != nil {
-		return nil, err
-	}
-
-	type Claims struct {
-		IssuedAt       float32 `json:"iat"`
-		RequestBodySha string  `json:"request_body_sha256"`
-		jwt.RegisteredClaims
-	}
-
-	token, err := jwt.ParseWithClaims(signedJwt, &Claims{}, jwks.Keyfunc)
-	if err != nil {
-		return nil, err
-	}
-	if !token.Valid {
-		return nil, errors.New("webhook token is invalid")
-	}
-
-	// verify that the webhook is not more than 5 minutes old to help prevent replay attacks.
-	claims := token.Claims.(*Claims)
-	integ, decim := math.Modf(float64(claims.IssuedAt))
-	issuedAtTime := time.Unix(int64(integ), int64(decim*(1e9)))
-	fiveMinPassed := issuedAtTime.Add(5 * time.Minute)
-	hasExpired := fiveMinPassed.Before(time.Now())
-
-	if hasExpired {
-		return nil, errors.New("webhook token is over five minutes old")
-	}
-
-	if claims.RequestBodySha == "" {
-		return nil, errors.New("webhook request body sha is missing")
-	}
-
-	return &claims.RequestBodySha, nil
 }

@@ -9,33 +9,51 @@ import (
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/plaidclient"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Tasks struct {
-	Db              *database.MongoDb
-	Client          *plaid.APIClient
-	TaskInterval    int
-	TasksEnabled    bool
-	NewItemsChannel chan string
+	Db                     *database.MongoDb
+	Client                 *plaid.APIClient
+	TaskInterval           int
+	NewTransactionsChannel chan string
+	NewAccountsChannel     chan string
 }
 
 func (t *Tasks) Start(ctx context.Context) {
-	if !t.TasksEnabled {
-		return
-	}
-	newItemsChan := make(chan string, 3)
-	t.NewItemsChannel = newItemsChan
-	go t.processNewItems(ctx)
+	newTransactionsChan := make(chan string, 3)
+	t.NewTransactionsChannel = newTransactionsChan
+	newAccountsChan := make(chan string, 3)
+	t.NewAccountsChannel = newAccountsChan
 
-	go t.refreshTransactionsAndAccountsTask(ctx)
+	go t.newTransactionsListener(ctx)
+	go t.newAccountsListener(ctx)
+	go t.refreshAccountsTask(ctx)
 }
 
-func (t *Tasks) processNewItems(ctx context.Context) {
+// An item's plaid ID will be sent to NewTransactionsChannel from /api/receive_webhooks whenever
+// plaid api sends us a webhook specifying that new transactions are available for an item
+// This function handles retrieving the updated transactions for that item.
+func (t *Tasks) newTransactionsListener(ctx context.Context) {
 	for {
-		newItemIDHex := <-t.NewItemsChannel
-		log.Printf("new item received: %v\n", newItemIDHex)
+		plaidItemID := <-t.NewTransactionsChannel
+
+		var item *models.Item
+		if err := t.Db.Items.FindOne(ctx, bson.D{{Key: "plaid_item_id", Value: plaidItemID}}).Decode(&item); err != nil {
+			log.Printf("error getting new item from db: %v\n", err)
+		}
+
+		log.Printf("processing new transactions for plaid_item_id: %v\n", item.PlaidItemID)
+		go t.processNewTransactions(ctx, item)
+	}
+}
+
+func (t *Tasks) newAccountsListener(ctx context.Context) {
+	for {
+		newItemIDHex := <-t.NewAccountsChannel
+		log.Printf("processing new account for item_id: %v\n", newItemIDHex)
 
 		objID, err := primitive.ObjectIDFromHex(newItemIDHex)
 		if err != nil {
@@ -47,91 +65,123 @@ func (t *Tasks) processNewItems(ctx context.Context) {
 			log.Printf("error getting new item from db: %v\n", err)
 		}
 
-
-
-		go t.getInitialTransactions(ctx, item)
-		t.refreshAccounts(ctx, []*models.Item{item})
+		go t.refreshAccountData(ctx, item)
 	}
 }
 
-// Plaid api could take several seconds/minutes to populate initial transaction data upon item creation.
-// To make sure we get transaction data ASAP for the user, this function makes 10 calls
-// to update transactions every 10 seconds upon initial item creation
-func (t *Tasks) getInitialTransactions(ctx context.Context, item *models.Item) {
-	count := 0
-
-	for count < 10 {
-		transactions, _, _, _, err := t.getTransactions(ctx, item)
-		log.Println(len(transactions))
-		if err != nil {
-			log.Printf("error getting initial transactions for item_id: %v; err: %+v", item.ID, err)
-		}
-
-		for _, transaction := range transactions {
-			err := t.saveTransaction(ctx, transaction, &item.UserID, &item.ID)
-			if err != nil {
-				log.Printf("error inserting new transaction: %+v\n", err)
-			}
-		}
-		count++
-		time.Sleep(10 * time.Second)
-	}
-}
-
-func (t *Tasks) refreshTransactionsAndAccountsTask(ctx context.Context) {
+func (t *Tasks) refreshAccountsTask(ctx context.Context) {
 	for {
 		items, err := database.GetItems(ctx, t.Db)
 		if err != nil {
 			log.Printf("error getting items: %+v\n", err)
 		}
 
-		log.Printf("refreshing transactions and accounts for %d items\n", len(items))
-		t.refreshTransactions(ctx, items)
-		t.refreshAccounts(ctx, items)
-
+		log.Printf("refreshing accounts for %d items\n", len(items))
+		for _, item := range items {
+			t.refreshAccountData(ctx, item)
+		}
 		time.Sleep(time.Duration(t.TaskInterval) * time.Second)
 	}
 }
 
-func (t *Tasks) refreshTransactions(ctx context.Context, items []*models.Item) {
-	for _, item := range items {
-		isSuccess := true
-		transactions, _, _, cursor, err := t.getTransactions(ctx, item)
+func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
+	plaidAccounts, err := plaidclient.GetItemAccounts(ctx, item.AccessToken)
+	if err != nil {
+		log.Printf("error getting item's plaid accounts: %+v\n", err)
+	}
+
+	for _, plaidAccount := range *plaidAccounts {
+		if *plaidAccount.Subtype.Get() != "checking" && *plaidAccount.Subtype.Get() != "savings" {
+			continue
+		}
+
+		count, err := t.Db.Accounts.CountDocuments(ctx, bson.D{
+			{Key: "user_id", Value: item.UserID},
+			{Key: "account_id", Value: plaidAccount.AccountId},
+			{Key: "item_id", Value: item.ID},
+		})
 		if err != nil {
-			log.Printf("error getting transactions for item_id: %v; err: %+v", item.ID, err)
-			isSuccess = false
+			log.Printf("error checking if account exists: %+v\n", err)
 		}
 
-		// save new transactions
-		for _, transaction := range transactions {
-			err := t.saveTransaction(ctx, transaction, &item.UserID, &item.ID)
-			if err != nil {
-				log.Printf("error inserting new transaction: %+v\n", err)
-				isSuccess = false
+		// save new account document if does not exist yet
+		if count == 0 {
+			doc := &bson.D{
+				{Key: "user_id", Value: item.UserID},
+				{Key: "item_id", Value: item.ID},
+				{Key: "account_id", Value: plaidAccount.AccountId},
+				{Key: "type", Value: plaidAccount.Subtype.Get()},
+				{Key: "current_balance", Value: *plaidAccount.Balances.Current.Get()},
+				{Key: "name", Value: plaidAccount.Name},
+				{Key: "created_at", Value: time.Now()},
+				{Key: "updated_at", Value: time.Now()},
 			}
+			if _, err := t.Db.Accounts.InsertOne(ctx, doc); err != nil {
+				log.Printf("error inserting new account: %+v\n", err)
+			}
+			continue
 		}
 
-		// TODO: handling modified transactions
-		// TODO: handling removed transactions
-
-		// Do not save new cursor if there was an error - we want to retry on the next task run
-		if isSuccess {
-			_, err = t.Db.Items.UpdateOne(
-				ctx,
-				bson.M{"_id": item.ID},
-				bson.D{
-					{Key: "$set", Value: bson.D{
-						{Key: "cursor", Value: cursor},
-						{Key: "updated_at", Value: time.Now()},
-					}},
-				},
-			)
-			if err != nil {
-				log.Printf("error updating item cursor: %+v\n", err)
-			}
+		// update existing account document
+		_, err = t.Db.Accounts.UpdateOne(
+			ctx,
+			bson.D{
+				{Key: "user_id", Value: item.UserID},
+				{Key: "account_id", Value: plaidAccount.AccountId},
+				{Key: "item_id", Value: item.ID},
+			},
+			bson.D{
+				{Key: "$set", Value: bson.D{
+					{Key: "current_balance", Value: *plaidAccount.Balances.Current.Get()},
+					{Key: "updated_at", Value: time.Now()},
+				}},
+			},
+		)
+		if err != nil {
+			log.Printf("error updating item cursor: %+v\n", err)
 		}
 	}
 }
+
+func (t *Tasks) processNewTransactions(ctx context.Context, item *models.Item) {
+	isSuccess := true
+	transactions, _, _, cursor, err := plaidclient.GetNewTransactions(ctx, item)
+	if err != nil {
+		log.Printf("error getting transactions for plaid_item_id: %v; err: %+v", item.PlaidItemID, err)
+		isSuccess = false
+	}
+
+	// save new transactions
+	log.Printf("saving %v new transactions for plaid_item_id: %v", len(transactions), item.PlaidItemID)
+	for _, transaction := range transactions {
+		err := t.saveTransaction(ctx, transaction, &item.UserID, &item.ID)
+		if err != nil {
+			log.Printf("error inserting new transaction: %+v\n", err)
+			isSuccess = false
+		}
+	}
+
+	// TODO: handling modified transactions
+	// TODO: handling removed transactions
+
+	// Do not save new cursor if there was an error - we want to retry on the next task run
+	if isSuccess {
+		_, err = t.Db.Items.UpdateOne(
+			ctx,
+			bson.M{"_id": item.ID},
+			bson.D{
+				{Key: "$set", Value: bson.D{
+					{Key: "cursor", Value: cursor},
+					{Key: "updated_at", Value: time.Now()},
+				}},
+			},
+		)
+		if err != nil {
+			log.Printf("error updating item cursor: %+v\n", err)
+		}
+	}
+}
+
 
 func (t *Tasks) saveTransaction(ctx context.Context, transaction plaid.Transaction, userID, itemID *primitive.ObjectID) error {
 	date, _ := time.Parse("2006-01-02", transaction.Date)
@@ -152,108 +202,4 @@ func (t *Tasks) saveTransaction(ctx context.Context, transaction plaid.Transacti
 	}
 
 	return nil
-}
-
-func (t *Tasks) refreshAccounts(ctx context.Context, items []*models.Item) {
-	for _, item := range items {
-		plaidAccounts, err := t.getItemAccounts(ctx, item.AccessToken)
-		if err != nil {
-			log.Printf("error getting item's plaid accounts: %+v\n", err)
-		}
-
-		for _, plaidAccount := range *plaidAccounts {
-			if *plaidAccount.Subtype.Get() != "checking" && *plaidAccount.Subtype.Get() != "savings" {
-				continue
-			}
-
-			count, err := t.Db.Accounts.CountDocuments(ctx, bson.D{
-				{Key: "user_id", Value: item.UserID},
-				{Key: "account_id", Value: plaidAccount.AccountId},
-				{Key: "item_id", Value: item.ID},
-			})
-			if err != nil {
-				log.Printf("error checking if account exists: %+v\n", err)
-			}
-
-			// save new account document if does not exist yet
-			if count == 0 {
-				doc := &bson.D{
-					{Key: "user_id", Value: item.UserID},
-					{Key: "item_id", Value: item.ID},
-					{Key: "account_id", Value: plaidAccount.AccountId},
-					{Key: "type", Value: plaidAccount.Subtype.Get()},
-					{Key: "current_balance", Value: *plaidAccount.Balances.Current.Get()},
-					{Key: "name", Value: plaidAccount.Name},
-					{Key: "created_at", Value: time.Now()},
-					{Key: "updated_at", Value: time.Now()},
-				}
-				if _, err := t.Db.Accounts.InsertOne(ctx, doc); err != nil {
-					log.Printf("error inserting new account: %+v\n", err)
-				}
-				continue
-			}
-
-			// update existing account document
-			_, err = t.Db.Accounts.UpdateOne(
-				ctx,
-				bson.D{
-					{Key: "user_id", Value: item.UserID},
-					{Key: "account_id", Value: plaidAccount.AccountId},
-					{Key: "item_id", Value: item.ID},
-				},
-				bson.D{
-					{Key: "$set", Value: bson.D{
-						{Key: "current_balance", Value: *plaidAccount.Balances.Current.Get()},
-						{Key: "updated_at", Value: time.Now()},
-					}},
-				},
-			)
-			if err != nil {
-				log.Printf("error updating item cursor: %+v\n", err)
-			}
-		}
-	}
-}
-
-// Returns high-level information about all accounts associated with an item
-func (t *Tasks) getItemAccounts(ctx context.Context, accessToken string) (*[]plaid.AccountBase, error) {
-	accountsGetResp, _, err := t.Client.PlaidApi.AccountsGet(ctx).AccountsGetRequest(
-		*plaid.NewAccountsGetRequest(accessToken),
-	).Execute()
-	if err != nil {
-		return nil, err
-	}
-
-	accounts := accountsGetResp.GetAccounts()
-	return &accounts, nil
-}
-
-func (t *Tasks) getTransactions(ctx context.Context, item *models.Item) ([]plaid.Transaction, []plaid.Transaction, []plaid.RemovedTransaction, string, error) {
-	// New transaction updates since "cursor"
-	var transactions []plaid.Transaction
-	var modified []plaid.Transaction
-	var removed []plaid.RemovedTransaction
-	cursor := item.Cursor
-	hasMore := true
-
-	for hasMore {
-		request := plaid.NewTransactionsSyncRequest(item.AccessToken)
-		if cursor != "" {
-			request.SetCursor(cursor)
-		}
-		resp, _, err := t.Client.PlaidApi.TransactionsSync(
-			ctx,
-		).TransactionsSyncRequest(*request).Execute()
-		if err != nil {
-			return nil, nil, nil, "", err
-		}
-
-		transactions = append(transactions, resp.GetAdded()...)
-		modified = append(modified, resp.GetModified()...)
-		removed = append(removed, resp.GetRemoved()...)
-
-		hasMore = resp.GetHasMore()
-		cursor = resp.GetNextCursor()
-	}
-	return transactions, modified, removed, cursor, nil
 }
