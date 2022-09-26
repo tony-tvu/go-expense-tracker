@@ -328,6 +328,19 @@ func (h *ItemHandler) ReceiveWebooks(c *gin.Context) {
 		return
 	}
 
+	// save webhook info for logging
+	doc := &bson.D{
+		{Key: "webhook_type", Value: webhook.WebhookType},
+		{Key: "webhook_code", Value: webhook.WebhookCode},
+		{Key: "new_transactions", Value: webhook.NewTransactions},
+		{Key: "item_id", Value: webhook.ItemId},
+		{Key: "created_at", Value: time.Now()},
+	}
+	if _, err = h.Db.Webhooks.InsertOne(ctx, doc); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
 	if util.Contains(&TRANSACTIONS_WEBHOOKS, webhook.WebhookCode) {
 		go func() {
 			h.Tasks.NewTransactionsChannel <- webhook.ItemId

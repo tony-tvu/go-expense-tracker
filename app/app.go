@@ -146,6 +146,7 @@ func (a *App) Start(ctx context.Context) {
 	a.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
 	a.Db.Transactions = mongoclient.Database(dbName).Collection("transactions")
 	a.Db.Users = mongoclient.Database(dbName).Collection("users")
+	a.Db.Webhooks = mongoclient.Database(dbName).Collection("webhooks")
 
 	database.CreateUniqueConstraints(ctx, a.Db)
 	username := os.Getenv("ADMIN_USERNAME")

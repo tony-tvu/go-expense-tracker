@@ -19,6 +19,7 @@ type MongoDb struct {
 	Sessions     *mongo.Collection
 	Transactions *mongo.Collection
 	Users        *mongo.Collection
+	Webhooks     *mongo.Collection
 }
 
 func GetItems(ctx context.Context, db *MongoDb) ([]*models.Item, error) {
