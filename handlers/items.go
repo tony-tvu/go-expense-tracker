@@ -2,17 +2,22 @@ package handlers
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
-	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/MicahParks/keyfunc"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
 	. "github.com/gobeam/mongo-go-pagination"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/cache"
@@ -363,21 +368,103 @@ func convertCountryCodes(countryCodeStrs []string) []plaid.CountryCode {
 }
 
 func (h *ItemHandler) ReceiveWebooks(c *gin.Context) {
+	ctx := c.Request.Context()
 	defer c.Request.Body.Close()
 
-	var webhook *plaid.DefaultUpdateWebhook
+	signedJwt := c.Request.Header.Get("Plaid-Verification")
+
+	sha256Val, err := h.verifyWebhook(ctx, signedJwt)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
 	bodyBytes, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
+	// verify webhook key and body sha matches
+	shaCompute := sha256.New()
+	shaCompute.Write(bodyBytes)
+	bodySha := shaCompute.Sum(nil)
+	bodyShaStr := fmt.Sprintf("%x", bodySha)
+
+	if bodyShaStr != *sha256Val {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	var webhook *plaid.DefaultUpdateWebhook
 	err = json.Unmarshal(bodyBytes, &webhook)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	log.Printf("%+v\n", webhook)
+	// TODO: send itemID to get processed
+}
 
+// Function verifies if webhook came from Plaid api
+func (h *ItemHandler) verifyWebhook(ctx context.Context, signedJwt string) (*string, error) {
+	decodedToken, _, err := new(jwt.Parser).ParseUnverified(signedJwt, jwt.MapClaims{})
+	if err != nil {
+		return nil, err
+	}
+	if decodedToken.Header["alg"] != "ES256" {
+		return nil, errors.New("error - invalid plaid jwt algorithm")
+	}
+
+	currentKeyID := fmt.Sprintf("%v", decodedToken.Header["kid"])
+	if currentKeyID == "" {
+		return nil, errors.New("error - plaid jwt key id (kid) missing")
+	}
+
+	webhookReq := plaid.NewWebhookVerificationKeyGetRequest(currentKeyID)
+	keyResponse, _, err := h.Client.PlaidApi.WebhookVerificationKeyGet(ctx).WebhookVerificationKeyGetRequest(*webhookReq).Execute()
+
+	type JwkKeys struct {
+		Keys []interface{} `json:"keys"`
+	}
+	jwkKeys := &JwkKeys{
+		Keys: []interface{}{keyResponse.GetKey()},
+	}
+
+	keyJSON, _ := json.Marshal(jwkKeys)
+	jwks, err := keyfunc.NewJSON(keyJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	type Claims struct {
+		IssuedAt       float32 `json:"iat"`
+		RequestBodySha string  `json:"request_body_sha256"`
+		jwt.RegisteredClaims
+	}
+
+	token, err := jwt.ParseWithClaims(signedJwt, &Claims{}, jwks.Keyfunc)
+	if err != nil {
+		return nil, err
+	}
+	if !token.Valid {
+		return nil, errors.New("webhook token is invalid")
+	}
+
+	// verify that the webhook is not more than 5 minutes old to help prevent replay attacks.
+	claims := token.Claims.(*Claims)
+	integ, decim := math.Modf(float64(claims.IssuedAt))
+	issuedAtTime := time.Unix(int64(integ), int64(decim*(1e9)))
+	fiveMinPassed := issuedAtTime.Add(5 * time.Minute)
+	hasExpired := fiveMinPassed.Before(time.Now())
+
+	if hasExpired {
+		return nil, errors.New("webhook token is over five minutes old")
+	}
+
+	if claims.RequestBodySha == "" {
+		return nil, errors.New("webhook request body sha is missing")
+	}
+
+	return &claims.RequestBodySha, nil
 }

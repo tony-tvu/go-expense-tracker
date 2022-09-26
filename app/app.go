@@ -91,8 +91,7 @@ func (a *App) Initialize(ctx context.Context) {
 
 	// Handlers
 	users := &handlers.UserHandler{Db: a.Db}
-	webhooksURL := os.Getenv("WEBHOOKS_URL")
-	items := &handlers.ItemHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, Client: pc, Tasks: tasks, WebhooksURL: webhooksURL}
+	items := &handlers.ItemHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, Client: pc, Tasks: tasks, WebhooksURL: os.Getenv("WEBHOOKS_URL")}
 	transactions := &handlers.TransactionHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 	configs := &handlers.ConfigsHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 
@@ -117,7 +116,7 @@ func (a *App) Initialize(ctx context.Context) {
 	// middleware
 	router.Use(middleware.RateLimit())
 	router.Use(middleware.Logger(env))
-	
+
 	api := router.Group("/api", middleware.NoCache)
 	{
 		// configs

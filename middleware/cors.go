@@ -11,7 +11,7 @@ func CorsHeaders(allowedOrigins []string) gin.HandlerFunc {
 		if util.Contains(&allowedOrigins, origin) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type,Plaid-Verification")
 		}
 		c.Next()
 	}

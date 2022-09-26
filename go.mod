@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/MicahParks/keyfunc v1.2.2
 	github.com/allegro/bigcache v1.2.1
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/contrib v0.0.0-20201101042839-6a891bf89f19
