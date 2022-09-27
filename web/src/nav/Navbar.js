@@ -16,6 +16,7 @@ import {
   Stack,
   chakra,
   Text,
+  Spacer,
 } from '@chakra-ui/react'
 import { Link as RouterLink } from 'react-router-dom'
 import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons'
@@ -51,7 +52,7 @@ export default function Navbar({isLoggedIn, registrationEnabled, isAdmin}) {
       <Box>
         <Flex
           bg={'gray.800'}
-          h={isLoggedIn ? '50px' : '6vh'}
+          h={'50px'}
           pl={'2vw'}
           pr={'2vw'}
           alignItems={'center'}
@@ -75,10 +76,10 @@ export default function Navbar({isLoggedIn, registrationEnabled, isAdmin}) {
             />
           )}
 
-          <HStack spacing={8} alignItems={'center'}>
+          <HStack spacing={8}>
             {isLoggedIn ? (
               <RouterLink to="/">
-                <CFcat size={'30px'} color={colors.primary} />
+                <CFcat size={'30px'} ml={3} color={colors.primary} />
               </RouterLink>
             ) : (
               <RouterLink to="/login">
@@ -112,10 +113,23 @@ export default function Navbar({isLoggedIn, registrationEnabled, isAdmin}) {
                 >
                   Overview
                 </Link>
+                <Link
+                  px={2}
+                  py={1}
+                  rounded={'md'}
+                  _hover={{
+                    textDecoration: 'none',
+                    bg: 'gray.700',
+                  }}
+                  href={'/accounts'}
+                  color={'white'}
+                >
+                  Accounts
+                </Link>
               </HStack>
             )}
           </HStack>
-
+                  <Spacer />
           <Flex alignItems={'center'}>
             {registrationEnabled && (
               <Link
@@ -148,9 +162,6 @@ export default function Navbar({isLoggedIn, registrationEnabled, isAdmin}) {
                   <Avatar size={'sm'} bg={colors.primary} />
                 </MenuButton>
                 <MenuList>
-                  <MenuItem onClick={() => navigate('/accounts')}>
-                    Accounts
-                  </MenuItem>
                   {isAdmin && (
                     <MenuItem onClick={() => navigate('/admin')}>
                       Admin
@@ -178,6 +189,18 @@ export default function Navbar({isLoggedIn, registrationEnabled, isAdmin}) {
                 href={'/'}
               >
                 Overview
+              </Link>
+              <Link
+                px={2}
+                py={1}
+                rounded={'md'}
+                _hover={{
+                  textDecoration: 'none',
+                  bg: linkBgColor,
+                }}
+                href={'/accounts'}
+              >
+                Accounts
               </Link>
             </Stack>
           </Box>
