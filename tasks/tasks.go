@@ -78,7 +78,7 @@ func (t *Tasks) refreshAccountsTask(ctx context.Context) {
 			log.Printf("error getting items: %+v\n", err)
 		}
 
-		log.Printf("running accounts scheduled task for %d items\n. task interval: %ds", len(items), t.TaskInterval)
+		log.Printf("running accounts scheduled task for %d items. task interval: %ds", len(items), t.TaskInterval)
 		for _, item := range items {
 			t.refreshAccountData(ctx, item)
 		}
@@ -93,7 +93,7 @@ func (t *Tasks) refreshTransactionsTask(ctx context.Context) {
 			log.Printf("error getting items: %+v\n", err)
 		}
 
-		log.Printf("running transactions scheduled task for %d items\n. task interval: %ds", len(items), t.TaskInterval)
+		log.Printf("running transactions scheduled task for %d items. task interval: %ds", len(items), t.TaskInterval)
 		for _, item := range items {
 			t.processNewTransactions(ctx, item)
 		}
@@ -152,7 +152,7 @@ func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
 
 func (t *Tasks) processNewTransactions(ctx context.Context, item *models.Item) {
 	isSuccess := true
-	transactions, _, _, cursor, err := plaidclient.GetNewTransactions(ctx, item)
+	transactions, modifiedTransactions, removedTransactions, cursor, err := plaidclient.GetNewTransactions(ctx, item)
 	if err != nil {
 		log.Printf("error getting transactions for plaid_item_id: %v; err: %+v", item.PlaidItemID, err)
 		isSuccess = false
@@ -168,8 +168,35 @@ func (t *Tasks) processNewTransactions(ctx context.Context, item *models.Item) {
 		}
 	}
 
-	// TODO: handling modified transactions
-	// TODO: handling removed transactions
+	// handle modified transactions
+	log.Printf("modifying %v transactions for plaid_item_id: %v", len(modifiedTransactions), item.PlaidItemID)
+	for _, modified := range modifiedTransactions {
+		date, _ := time.Parse("2006-01-02", modified.Date)
+		_, err = t.Db.Transactions.UpdateOne(
+			ctx,
+			bson.M{"transaction_id": modified.GetTransactionId()},
+			bson.M{
+				"$set": bson.M{
+					"amount":     modified.Amount,
+					"name":       modified.Name,
+					"date":       date,
+					"updated_at": time.Now()}},
+		)
+		if err != nil {
+			log.Printf("error updating transaction: %+v\n", err)
+			isSuccess = false
+		}
+	}
+
+	// handle removed transactions
+	log.Printf("removing %v transactions for plaid_item_id: %v", len(removedTransactions), item.PlaidItemID)
+	for _, modified := range removedTransactions {
+		_, err = t.Db.Transactions.DeleteOne(ctx, bson.M{"transaction_id": modified.GetTransactionId()})
+		if err != nil {
+			log.Printf("error removing transaction: %+v\n", err)
+			isSuccess = false
+		}
+	}
 
 	// Do not save new cursor if there was an error - we want to retry on the next task run
 	if isSuccess {
