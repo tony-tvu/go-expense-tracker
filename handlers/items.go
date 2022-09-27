@@ -95,7 +95,7 @@ func (h *ItemHandler) UpdateItemsWebhooksURL(c *gin.Context) {
 	}
 
 	for _, item := range items {
-		err := plaidclient.UpdateWebhooksURL(ctx, input.WebhooksURL, item.AccessToken)
+		err := plaidclient.UpdateWebhooksURL(ctx, &input.WebhooksURL, &item.AccessToken)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
@@ -222,13 +222,20 @@ func (h *ItemHandler) DeleteItem(c *gin.Context) {
 	plaidItemID := c.Param("plaid_item_id")
 
 	// verify item belongs to user
-	count, err := h.Db.Items.CountDocuments(ctx, bson.M{"plaid_item_id": plaidItemID, "user_id": userObjID})
-	if err != nil {
+	var item *models.Item
+	if err = h.Db.Items.FindOne(ctx, bson.M{"plaid_item_id": plaidItemID}).Decode(&item); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	if count == 0 {
+	if item.UserID != *userObjID {
 		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	// delete item on plaid
+	err = plaidclient.RemoveItem(ctx, &item.AccessToken)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 

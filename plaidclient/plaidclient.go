@@ -78,9 +78,9 @@ func CreateLinkToken(ctx context.Context) (*string, error) {
 	return &linkToken, nil
 }
 
-func UpdateWebhooksURL(ctx context.Context, newURL, accessToken string) error {
-	request := plaid.NewItemWebhookUpdateRequest(accessToken)
-	request.Webhook = *plaid.NewNullableString(&newURL)
+func UpdateWebhooksURL(ctx context.Context, newURL, accessToken *string) error {
+	request := plaid.NewItemWebhookUpdateRequest(*accessToken)
+	request.Webhook = *plaid.NewNullableString(newURL)
 	_, _, err := client.PlaidApi.ItemWebhookUpdate(ctx).ItemWebhookUpdateRequest(*request).Execute()
 	if err != nil {
 		return err
@@ -102,7 +102,7 @@ func ExchangePublicToken(ctx context.Context, publicToken string) (*string, *str
 
 	accessToken := exchangePublicTokenResp.GetAccessToken()
 	plaidItemID := exchangePublicTokenResp.GetItemId()
-	institution, err := getInstitution(ctx, accessToken)
+	institution, err := getInstitution(ctx, &accessToken)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -110,9 +110,9 @@ func ExchangePublicToken(ctx context.Context, publicToken string) (*string, *str
 	return &accessToken, &plaidItemID, institution, nil
 }
 
-func getInstitution(ctx context.Context, accessToken string) (*string, error) {
+func getInstitution(ctx context.Context, accessToken *string) (*string, error) {
 	itemGetResp, _, err := client.PlaidApi.ItemGet(ctx).ItemGetRequest(
-		*plaid.NewItemGetRequest(accessToken),
+		*plaid.NewItemGetRequest(*accessToken),
 	).Execute()
 	if err != nil {
 		return nil, err
@@ -142,7 +142,7 @@ func convertCountryCodes(countryCodeStrs []string) []plaid.CountryCode {
 }
 
 // Function verifies if webhook came from Plaid api
-func VerifyWebhook(ctx context.Context, signedJwt string)  (*string, error) {
+func VerifyWebhook(ctx context.Context, signedJwt string) (*string, error) {
 	decodedToken, _, err := new(jwt.Parser).ParseUnverified(signedJwt, jwt.MapClaims{})
 	if err != nil {
 		return nil, err
@@ -205,9 +205,9 @@ func VerifyWebhook(ctx context.Context, signedJwt string)  (*string, error) {
 }
 
 // Returns high-level information about all accounts associated with an item
-func GetItemAccounts(ctx context.Context, accessToken string) (*[]plaid.AccountBase, error) {
+func GetItemAccounts(ctx context.Context, accessToken *string) (*[]plaid.AccountBase, error) {
 	accountsGetResp, _, err := client.PlaidApi.AccountsGet(ctx).AccountsGetRequest(
-		*plaid.NewAccountsGetRequest(accessToken),
+		*plaid.NewAccountsGetRequest(*accessToken),
 	).Execute()
 	if err != nil {
 		return nil, err
@@ -245,4 +245,13 @@ func GetNewTransactions(ctx context.Context, item *models.Item) ([]plaid.Transac
 		cursor = resp.GetNextCursor()
 	}
 	return transactions, modified, removed, cursor, nil
+}
+
+func RemoveItem(ctx context.Context, accessToken *string) error {
+	request := plaid.NewItemRemoveRequest(*accessToken)
+	_, _, err := client.PlaidApi.ItemRemove(ctx).ItemRemoveRequest(*request).Execute()
+	if err != nil {
+		return err
+	}
+	return nil
 }

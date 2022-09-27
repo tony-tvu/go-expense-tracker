@@ -102,7 +102,7 @@ func (t *Tasks) refreshTransactionsTask(ctx context.Context) {
 }
 
 func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
-	plaidAccounts, err := plaidclient.GetItemAccounts(ctx, item.AccessToken)
+	plaidAccounts, err := plaidclient.GetItemAccounts(ctx, &item.AccessToken)
 	if err != nil {
 		log.Printf("error getting item's accounts: %+v\n", err)
 	}
