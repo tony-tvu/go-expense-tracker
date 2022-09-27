@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -332,6 +333,7 @@ func (h *ItemHandler) ReceiveWebooks(c *gin.Context) {
 	}
 
 	if util.Contains(&TRANSACTIONS_WEBHOOKS, webhook.WebhookCode) {
+		log.Printf("webhook received: %+v", webhook)
 		go func() {
 			h.Tasks.NewTransactionsChannel <- webhook.ItemId
 		}()

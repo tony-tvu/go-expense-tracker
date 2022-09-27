@@ -78,7 +78,7 @@ func (t *Tasks) refreshAccountsTask(ctx context.Context) {
 			log.Printf("error getting items: %+v\n", err)
 		}
 
-		log.Printf("refreshing accounts for %d items\n", len(items))
+		log.Printf("running accounts scheduled task for %d items\n. task interval: %ds", len(items), t.TaskInterval)
 		for _, item := range items {
 			t.refreshAccountData(ctx, item)
 		}
@@ -93,7 +93,7 @@ func (t *Tasks) refreshTransactionsTask(ctx context.Context) {
 			log.Printf("error getting items: %+v\n", err)
 		}
 
-		log.Printf("refreshing transactions for %d items\n", len(items))
+		log.Printf("running transactions scheduled task for %d items\n. task interval: %ds", len(items), t.TaskInterval)
 		for _, item := range items {
 			t.processNewTransactions(ctx, item)
 		}

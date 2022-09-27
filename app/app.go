@@ -56,7 +56,7 @@ func (a *App) Initialize(ctx context.Context) {
 	tasks := &tasks.Tasks{Db: a.Db}
 	taskInterval, err := strconv.Atoi(os.Getenv("TASK_INTERVAL"))
 	if err != nil {
-		tasks.TaskInterval = 3600
+		tasks.TaskInterval = 86400
 	} else {
 		tasks.TaskInterval = taskInterval
 	}
