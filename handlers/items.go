@@ -273,7 +273,7 @@ func (h *ItemHandler) GetCashAccounts(c *gin.Context) {
 	}
 
 	var accounts []*models.Account
-	cursor, err := h.Db.Accounts.Find(ctx, bson.M{"user_id": userObjID})
+	cursor, err := h.Db.Accounts.Find(ctx, bson.M{"user_id": &userObjID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
