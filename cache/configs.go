@@ -104,14 +104,13 @@ func (c *Configs) UpdateConfigsCache(ctx context.Context, db *database.MongoDb, 
 	_, err := db.Configs.UpdateOne(
 		ctx,
 		bson.M{"_id": configs.ID},
-		bson.D{
-			{Key: "$set", Value: bson.D{
-				{Key: "quota_enabled", Value: input.QuotaEnabled},
-				{Key: "quota_limit", Value: input.QuotaLimit},
-				{Key: "registration_enabled", Value: input.RegistrationEnabled},
-				{Key: "updated_at", Value: time.Now()},
+		bson.M{
+			"$set": bson.M{
+				"quota_enabled":        input.QuotaEnabled,
+				"quota_limit":          input.QuotaLimit,
+				"registration_enabled": input.RegistrationEnabled,
+				"updated_at":           time.Now(),
 			}},
-		},
 	)
 	if err != nil {
 		return err

@@ -122,11 +122,10 @@ func TestAuthAdminRestricted(t *testing.T) {
 	_, err := testApp.Db.Users.UpdateOne(
 		ctx,
 		bson.M{"username": user.Username},
-		bson.D{
-			{Key: "$set", Value: bson.D{
-				{Key: "type", Value: models.AdminUser},
+		bson.M{
+			"$set": bson.M{
+				"type": models.AdminUser,
 			}},
-		},
 	)
 	if err != nil {
 		t.FailNow()

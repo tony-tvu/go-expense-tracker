@@ -53,10 +53,9 @@ func (t *Tasks) newTransactionsListener(ctx context.Context) {
 func (t *Tasks) newAccountsListener(ctx context.Context) {
 	for {
 		newItemIDHex := <-t.NewAccountsChannel
-		log.Printf("processing new account for item_id: %v\n", newItemIDHex)
 
-		// give 10 second buffer for plaid to populate data
 		time.Sleep(10 * time.Second)
+		log.Printf("processing new account for item_id: %v\n", newItemIDHex)
 
 		objID, err := primitive.ObjectIDFromHex(newItemIDHex)
 		if err != nil {
@@ -90,7 +89,7 @@ func (t *Tasks) refreshAccountsTask(ctx context.Context) {
 func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
 	plaidAccounts, err := plaidclient.GetItemAccounts(ctx, item.AccessToken)
 	if err != nil {
-		log.Printf("error getting item's plaid accounts: %+v\n", err)
+		log.Printf("error getting item's accounts: %+v\n", err)
 	}
 
 	for _, plaidAccount := range *plaidAccounts {
@@ -125,11 +124,10 @@ func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
 		_, err = t.Db.Accounts.UpdateOne(
 			ctx,
 			bson.M{"item_id": item.ID},
-			bson.D{
-				{Key: "$set", Value: bson.M{
+			bson.M{
+				"$set": bson.M{
 					"current_balance": *plaidAccount.Balances.Current.Get(),
 					"updated_at":      time.Now()}},
-			},
 		)
 		if err != nil {
 			log.Printf("error updating item cursor: %+v\n", err)
@@ -163,11 +161,10 @@ func (t *Tasks) processNewTransactions(ctx context.Context, item *models.Item) {
 		_, err = t.Db.Items.UpdateOne(
 			ctx,
 			bson.M{"_id": item.ID},
-			bson.D{
-				{Key: "$set", Value: bson.M{
+			bson.M{
+				"$set": bson.M{
 					"cursor":     cursor,
 					"updated_at": time.Now()}},
-			},
 		)
 		if err != nil {
 			log.Printf("error updating item cursor: %+v\n", err)

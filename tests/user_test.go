@@ -41,7 +41,7 @@ func TestLoginAndLogout(t *testing.T) {
 
 	// should have user session saved in db
 	var s *models.Session
-	if err := testApp.Db.Sessions.FindOne(ctx, bson.D{{Key: "user_id", Value: user.ID}}).Decode(&s); err != nil {
+	if err := testApp.Db.Sessions.FindOne(ctx, bson.M{"user_id": user.ID}).Decode(&s); err != nil {
 		t.FailNow()
 	}
 	assert.Equal(t, user.ID, s.UserID)
@@ -54,7 +54,7 @@ func TestLoginAndLogout(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// should no longer have user session saved after logging out
-	count, err := testApp.Db.Sessions.CountDocuments(ctx, bson.D{{Key: "user_id", Value: user.ID}})
+	count, err := testApp.Db.Sessions.CountDocuments(ctx, bson.M{"user_id": user.ID})
 	if err != nil {
 		t.FailNow()
 	}
@@ -125,12 +125,11 @@ func TestIsAdminRoute(t *testing.T) {
 	_, err := testApp.Db.Users.UpdateOne(
 		ctx,
 		bson.M{"username": user.Username},
-		bson.D{
-			{Key: "$set", Value: bson.D{
-				{Key: "type", Value: models.AdminUser},
-				{Key: "updated_at", Value: time.Now()},
+		bson.M{
+			"$set": bson.M{
+				"type":       models.AdminUser,
+				"updated_at": time.Now(),
 			}},
-		},
 	)
 	if err != nil {
 		t.FailNow()

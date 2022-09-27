@@ -64,7 +64,7 @@ func CreateUniqueConstraints(ctx context.Context, db *MongoDb) {
 // Creates initial admin user. Account details can be specified in .env
 func CreateInitialAdminUser(ctx context.Context, db *MongoDb, username, email, password string) {
 	// check if admin already exists
-	count, err := db.Users.CountDocuments(ctx, bson.D{{Key: "username", Value: username}})
+	count, err := db.Users.CountDocuments(ctx, bson.M{"username": username})
 	if err != nil {
 		log.Fatal(err)
 	}

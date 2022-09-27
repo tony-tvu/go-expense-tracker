@@ -131,7 +131,7 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 		Limit(configs.PageLimit).
 		Page(int64(page)).
 		Sort("institution", 1).
-		Select(bson.D{}).
+		Select(bson.M{}).
 		Filter(bson.M{"user_id": userID}).
 		Decode(&items).Find()
 	if err != nil {
@@ -269,7 +269,7 @@ func (h *ItemHandler) GetCashAccounts(c *gin.Context) {
 	}
 
 	var accounts []*models.Account
-	cursor, err := h.Db.Accounts.Find(ctx, bson.D{{Key: "user_id", Value: userObjID}})
+	cursor, err := h.Db.Accounts.Find(ctx, bson.M{"user_id": userObjID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

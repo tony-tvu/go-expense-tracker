@@ -45,7 +45,7 @@ func AuthorizeUser(c *gin.Context, db *database.MongoDb) (*primitive.ObjectID, *
 
 		// find existing session
 		var session *models.Session
-		if err = db.Sessions.FindOne(ctx, bson.D{{Key: "user_id", Value: objID}}).Decode(&session); err != nil {
+		if err = db.Sessions.FindOne(ctx, bson.M{"user_id": objID}).Decode(&session); err != nil {
 			return nil, nil, errors.New("not authorized")
 		}
 
@@ -71,18 +71,17 @@ func AuthorizeUser(c *gin.Context, db *database.MongoDb) (*primitive.ObjectID, *
 		_, err = db.Sessions.UpdateOne(
 			ctx,
 			bson.M{"_id": session.ID},
-			bson.D{
-				{Key: "$set", Value: bson.D{
-					{Key: "refresh_token", Value: renewedRefresh.Value},
-					{Key: "expires_at", Value: renewedRefresh.ExpiresAt},
-					{Key: "updated_at", Value: time.Now()},
+			bson.M{
+				"$set": bson.M{
+					"refresh_token": renewedRefresh.Value,
+					"expires_at":    renewedRefresh.ExpiresAt,
+					"updated_at":    time.Now(),
 				}},
-			},
 		)
 		if err != nil {
 			return nil, nil, errors.New("internal server error")
 		}
-		
+
 		util.SetCookie(c.Writer, "goexpense_refresh", renewedRefresh.Value, renewedRefresh.ExpiresAt)
 	}
 

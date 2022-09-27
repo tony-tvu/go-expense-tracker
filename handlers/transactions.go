@@ -45,7 +45,7 @@ func (h *TransactionHandler) GetTransactions(c *gin.Context) {
 		Limit(configs.PageLimit).
 		Page(int64(page)).
 		Sort("date", -1).
-		Select(bson.D{}).
+		Select(bson.M{}).
 		Filter(bson.M{"user_id": userID}).
 		Decode(&transactions).Find()
 	if err != nil {
