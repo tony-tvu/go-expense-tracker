@@ -24,7 +24,7 @@ export default function EditAccountBtn({item, onSuccess}) {
   const cancelRef = React.useRef()
 
   async function deleteAccount() {
-    await fetch(`${process.env.REACT_APP_API_URL}/items/${item.id}`, {
+    await fetch(`${process.env.REACT_APP_API_URL}/items/${item.plaid_item_id}`, {
       method: 'DELETE',
       credentials: 'include',
     })

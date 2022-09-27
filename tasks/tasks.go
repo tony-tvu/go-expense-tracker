@@ -30,6 +30,7 @@ func (t *Tasks) Start(ctx context.Context) {
 
 	go t.newTransactionsListener(ctx)
 	go t.newAccountsListener(ctx)
+	go t.refreshTransactionsTask(ctx)
 	go t.refreshAccountsTask(ctx)
 }
 
@@ -45,7 +46,6 @@ func (t *Tasks) newTransactionsListener(ctx context.Context) {
 			log.Printf("error getting new item from db: %v\n", err)
 		}
 
-		log.Printf("processing new transactions for plaid_item_id: %v\n", item.PlaidItemID)
 		go t.processNewTransactions(ctx, item)
 	}
 }
@@ -55,7 +55,7 @@ func (t *Tasks) newAccountsListener(ctx context.Context) {
 		newItemIDHex := <-t.NewAccountsChannel
 
 		time.Sleep(10 * time.Second)
-		log.Printf("processing new account for item_id: %v\n", newItemIDHex)
+		log.Printf("getting initial account data for plaid_item_id: %v\n", newItemIDHex)
 
 		objID, err := primitive.ObjectIDFromHex(newItemIDHex)
 		if err != nil {
@@ -86,6 +86,21 @@ func (t *Tasks) refreshAccountsTask(ctx context.Context) {
 	}
 }
 
+func (t *Tasks) refreshTransactionsTask(ctx context.Context) {
+	for {
+		items, err := database.GetItems(ctx, t.Db)
+		if err != nil {
+			log.Printf("error getting items: %+v\n", err)
+		}
+
+		log.Printf("refreshing transactions for %d items\n", len(items))
+		for _, item := range items {
+			t.processNewTransactions(ctx, item)
+		}
+		time.Sleep(time.Duration(t.TaskInterval) * time.Second)
+	}
+}
+
 func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
 	plaidAccounts, err := plaidclient.GetItemAccounts(ctx, item.AccessToken)
 	if err != nil {
@@ -97,7 +112,7 @@ func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
 			continue
 		}
 
-		count, err := t.Db.Accounts.CountDocuments(ctx, bson.M{"item_id": item.ID})
+		count, err := t.Db.Accounts.CountDocuments(ctx, bson.M{"plaid_account_id": plaidAccount.AccountId})
 		if err != nil {
 			log.Printf("error checking if account exists: %+v\n", err)
 		}
@@ -106,8 +121,8 @@ func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
 		if count == 0 {
 			doc := &bson.D{
 				{Key: "user_id", Value: item.UserID},
-				{Key: "item_id", Value: item.ID},
-				{Key: "account_id", Value: plaidAccount.AccountId},
+				{Key: "plaid_item_id", Value: item.PlaidItemID},
+				{Key: "plaid_account_id", Value: plaidAccount.AccountId},
 				{Key: "type", Value: plaidAccount.Subtype.Get()},
 				{Key: "current_balance", Value: *plaidAccount.Balances.Current.Get()},
 				{Key: "name", Value: plaidAccount.Name},
@@ -123,7 +138,7 @@ func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
 		// update existing account document
 		_, err = t.Db.Accounts.UpdateOne(
 			ctx,
-			bson.M{"item_id": item.ID},
+			bson.M{"plaid_account_id": plaidAccount.AccountId},
 			bson.M{
 				"$set": bson.M{
 					"current_balance": *plaidAccount.Balances.Current.Get(),
@@ -144,9 +159,9 @@ func (t *Tasks) processNewTransactions(ctx context.Context, item *models.Item) {
 	}
 
 	// save new transactions
-	log.Printf("saving %v new transactions for plaid_item_id: %v", len(transactions), item.PlaidItemID)
+	log.Printf("inserting %v transactions for plaid_item_id: %v", len(transactions), item.PlaidItemID)
 	for _, transaction := range transactions {
-		err := t.saveTransaction(ctx, transaction, &item.UserID, &item.ID)
+		err := t.saveTransaction(ctx, &transaction, &item.UserID, &item.PlaidItemID)
 		if err != nil {
 			log.Printf("error inserting new transaction: %+v\n", err)
 			isSuccess = false
@@ -172,11 +187,11 @@ func (t *Tasks) processNewTransactions(ctx context.Context, item *models.Item) {
 	}
 }
 
-func (t *Tasks) saveTransaction(ctx context.Context, transaction plaid.Transaction, userID, itemID *primitive.ObjectID) error {
+func (t *Tasks) saveTransaction(ctx context.Context, transaction *plaid.Transaction, userID *primitive.ObjectID, plaidItemID *string) error {
 	date, _ := time.Parse("2006-01-02", transaction.Date)
 	doc := &bson.D{
-		{Key: "item_id", Value: itemID},
 		{Key: "user_id", Value: userID},
+		{Key: "plaid_item_id", Value: plaidItemID},
 		{Key: "transaction_id", Value: transaction.GetTransactionId()},
 		{Key: "date", Value: date},
 		{Key: "amount", Value: transaction.Amount},

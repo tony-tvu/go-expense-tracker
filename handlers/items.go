@@ -139,9 +139,8 @@ func (h *ItemHandler) GetItems(c *gin.Context) {
 		return
 	}
 
-	// remove plaid item id and access token - should never expose this info
+	// remove plaid access token - should never expose this info
 	for _, item := range items {
-		item.PlaidItemID = ""
 		item.AccessToken = ""
 	}
 
@@ -220,13 +219,10 @@ func (h *ItemHandler) DeleteItem(c *gin.Context) {
 		return
 	}
 
+	plaidItemID := c.Param("plaid_item_id")
+
 	// verify item belongs to user
-	itemObjID, err := primitive.ObjectIDFromHex(c.Param("id"))
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	count, err := h.Db.Items.CountDocuments(ctx, bson.M{"_id": &itemObjID, "user_id": userObjID})
+	count, err := h.Db.Items.CountDocuments(ctx, bson.M{"plaid_item_id": plaidItemID, "user_id": userObjID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -237,21 +233,21 @@ func (h *ItemHandler) DeleteItem(c *gin.Context) {
 	}
 
 	// delete accounts associated with item
-	_, err = h.Db.Accounts.DeleteMany(ctx, bson.M{"item_id": &itemObjID})
+	_, err = h.Db.Accounts.DeleteMany(ctx, bson.M{"plaid_item_id": plaidItemID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	// delete item
-	_, err = h.Db.Items.DeleteOne(ctx, bson.M{"_id": &itemObjID})
+	_, err = h.Db.Items.DeleteOne(ctx, bson.M{"plaid_item_id": plaidItemID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	// delete transactions belonging to item
-	_, err = h.Db.Transactions.DeleteMany(ctx, bson.M{"item_id": &itemObjID})
+	_, err = h.Db.Transactions.DeleteMany(ctx, bson.M{"plaid_item_id": plaidItemID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

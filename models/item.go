@@ -16,7 +16,7 @@ type Item struct {
 	UserID primitive.ObjectID `json:"user_id" bson:"user_id"`
 
 	Institution string `json:"institution" bson:"institution"`
-	PlaidItemID string `json:"plaid_item_id,omitempty" bson:"plaid_item_id"`
+	PlaidItemID string `json:"plaid_item_id" bson:"plaid_item_id"`
 	AccessToken string `json:"access_token,omitempty" bson:"access_token"`
 	Cursor      string `json:"cursor" bson:"cursor"`
 
