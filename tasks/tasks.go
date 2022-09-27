@@ -41,7 +41,7 @@ func (t *Tasks) newTransactionsListener(ctx context.Context) {
 		plaidItemID := <-t.NewTransactionsChannel
 
 		var item *models.Item
-		if err := t.Db.Items.FindOne(ctx, bson.D{{Key: "plaid_item_id", Value: plaidItemID}}).Decode(&item); err != nil {
+		if err := t.Db.Items.FindOne(ctx, bson.M{"plaid_item_id": plaidItemID}).Decode(&item); err != nil {
 			log.Printf("error getting new item from db: %v\n", err)
 		}
 
@@ -64,7 +64,7 @@ func (t *Tasks) newAccountsListener(ctx context.Context) {
 		}
 
 		var item *models.Item
-		if err = t.Db.Items.FindOne(ctx, bson.D{{Key: "_id", Value: objID}}).Decode(&item); err != nil {
+		if err = t.Db.Items.FindOne(ctx, bson.M{"_id": objID}).Decode(&item); err != nil {
 			log.Printf("error getting new item from db: %v\n", err)
 		}
 
@@ -98,11 +98,7 @@ func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
 			continue
 		}
 
-		count, err := t.Db.Accounts.CountDocuments(ctx, bson.D{
-			{Key: "user_id", Value: item.UserID},
-			{Key: "account_id", Value: plaidAccount.AccountId},
-			{Key: "item_id", Value: item.ID},
-		})
+		count, err := t.Db.Accounts.CountDocuments(ctx, bson.M{"item_id": item.ID})
 		if err != nil {
 			log.Printf("error checking if account exists: %+v\n", err)
 		}
@@ -128,16 +124,11 @@ func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
 		// update existing account document
 		_, err = t.Db.Accounts.UpdateOne(
 			ctx,
+			bson.M{"item_id": item.ID},
 			bson.D{
-				{Key: "user_id", Value: item.UserID},
-				{Key: "account_id", Value: plaidAccount.AccountId},
-				{Key: "item_id", Value: item.ID},
-			},
-			bson.D{
-				{Key: "$set", Value: bson.D{
-					{Key: "current_balance", Value: *plaidAccount.Balances.Current.Get()},
-					{Key: "updated_at", Value: time.Now()},
-				}},
+				{Key: "$set", Value: bson.M{
+					"current_balance": *plaidAccount.Balances.Current.Get(),
+					"updated_at":      time.Now()}},
 			},
 		)
 		if err != nil {
@@ -173,10 +164,9 @@ func (t *Tasks) processNewTransactions(ctx context.Context, item *models.Item) {
 			ctx,
 			bson.M{"_id": item.ID},
 			bson.D{
-				{Key: "$set", Value: bson.D{
-					{Key: "cursor", Value: cursor},
-					{Key: "updated_at", Value: time.Now()},
-				}},
+				{Key: "$set", Value: bson.M{
+					"cursor":     cursor,
+					"updated_at": time.Now()}},
 			},
 		)
 		if err != nil {
@@ -184,7 +174,6 @@ func (t *Tasks) processNewTransactions(ctx context.Context, item *models.Item) {
 		}
 	}
 }
-
 
 func (t *Tasks) saveTransaction(ctx context.Context, transaction plaid.Transaction, userID, itemID *primitive.ObjectID) error {
 	date, _ := time.Parse("2006-01-02", transaction.Date)
