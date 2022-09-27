@@ -4,9 +4,11 @@ import { usePlaidLink } from 'react-plaid-link'
 import { BsPlus } from 'react-icons/bs'
 import { Button } from '@chakra-ui/react'
 import { colors } from '../theme'
+import { useNavigate } from 'react-router-dom'
 
 export default function AddAccountBtn({ onSuccess }) {
   const [linkToken, setLinkToken] = useState(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchLinkToken()
@@ -23,6 +25,9 @@ export default function AddAccountBtn({ onSuccess }) {
     })
       .then(async (res) => {
         if (!res) return
+        if (res.status === 401) {
+          navigate('/login')
+        }
         const data = await res.json().catch((err) => logger(err))
         setLinkToken(data?.link_token)
       })
@@ -45,6 +50,9 @@ export default function AddAccountBtn({ onSuccess }) {
       body: JSON.stringify({ public_token: public_token }),
     })
       .then((res) => {
+        if (res.status === 401) {
+          navigate('/login')
+        }
         if (res.status === 200) onSuccess()
       })
       .catch((e) => {
@@ -63,7 +71,27 @@ export default function AddAccountBtn({ onSuccess }) {
       leftIcon={<BsPlus />}
       type="button"
       variant="solid"
-      onClick={() => openLinkingPopup()}
+      onClick={() => {
+        fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then(async (res) => {
+            if (!res) return
+            const data = await res.json().catch((err) => logger(err))
+            if (data && data.logged_in) {
+              openLinkingPopup()
+            } else {
+              navigate('/login')
+            }
+          })
+          .catch((err) => {
+            logger('error verifying login state', err)
+          })
+      }}
       disabled={!isReadyToLinkAccount}
       bg={colors.primary}
       color={'white'}

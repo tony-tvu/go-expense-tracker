@@ -18,17 +18,25 @@ import {
 import { BsPencil, BsTrash } from 'react-icons/bs'
 import React from 'react'
 import logger from '../logger'
+import { useNavigate } from 'react-router-dom'
 
-export default function EditAccountBtn({item, onSuccess}) {
+export default function EditAccountBtn({ item, onSuccess }) {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const cancelRef = React.useRef()
+  const navigate = useNavigate()
 
   async function deleteAccount() {
-    await fetch(`${process.env.REACT_APP_API_URL}/items/${item.plaid_item_id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    })
+    await fetch(
+      `${process.env.REACT_APP_API_URL}/items/${item.plaid_item_id}`,
+      {
+        method: 'DELETE',
+        credentials: 'include',
+      }
+    )
       .then((res) => {
+        if (res.status === 401) {
+          navigate('/login')
+        }
         if (res.status === 200) {
           onSuccess()
           onClose()
