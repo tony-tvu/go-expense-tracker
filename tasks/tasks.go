@@ -55,6 +55,9 @@ func (t *Tasks) newAccountsListener(ctx context.Context) {
 		newItemIDHex := <-t.NewAccountsChannel
 		log.Printf("processing new account for item_id: %v\n", newItemIDHex)
 
+		// give 10 second buffer for plaid to populate data
+		time.Sleep(10 * time.Second)
+
 		objID, err := primitive.ObjectIDFromHex(newItemIDHex)
 		if err != nil {
 			log.Printf("error getting new item object id: %v\n", err)
