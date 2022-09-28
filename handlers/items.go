@@ -23,6 +23,7 @@ import (
 	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type ItemHandler struct {
@@ -234,11 +235,7 @@ func (h *ItemHandler) DeleteItem(c *gin.Context) {
 	}
 
 	// delete item on plaid
-	err = plaidclient.RemoveItem(ctx, &item.AccessToken)
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
+	go plaidclient.RemoveItem(&item.AccessToken)
 
 	// delete accounts associated with item
 	_, err = h.Db.Accounts.DeleteMany(ctx, bson.M{"plaid_item_id": plaidItemID})
@@ -272,8 +269,9 @@ func (h *ItemHandler) GetCashAccounts(c *gin.Context) {
 		return
 	}
 
+	opts := options.Find().SetSort(bson.D{{Key: "institution", Value: 1}})
 	var accounts []*models.Account
-	cursor, err := h.Db.Accounts.Find(ctx, bson.M{"user_id": &userObjID})
+	cursor, err := h.Db.Accounts.Find(ctx, bson.M{"user_id": &userObjID}, opts)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

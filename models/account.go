@@ -16,6 +16,7 @@ type Account struct {
 	Type           string  `json:"type" bson:"type"`
 	CurrentBalance float64 `json:"current_balance" bson:"current_balance"`
 	Name           string  `json:"name" bson:"name"`
+	Institution    string  `json:"institution" bson:"institution"`
 
 	CreatedAt time.Time `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`

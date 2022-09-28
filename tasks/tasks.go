@@ -108,10 +108,6 @@ func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
 	}
 
 	for _, plaidAccount := range *plaidAccounts {
-		if *plaidAccount.Subtype.Get() != "checking" && *plaidAccount.Subtype.Get() != "savings" {
-			continue
-		}
-
 		count, err := t.Db.Accounts.CountDocuments(ctx, bson.M{"plaid_account_id": plaidAccount.AccountId})
 		if err != nil {
 			log.Printf("error checking if account exists: %+v\n", err)
@@ -126,6 +122,7 @@ func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
 				{Key: "type", Value: plaidAccount.Subtype.Get()},
 				{Key: "current_balance", Value: *plaidAccount.Balances.Current.Get()},
 				{Key: "name", Value: plaidAccount.Name},
+				{Key: "institution", Value: item.Institution},
 				{Key: "created_at", Value: time.Now()},
 				{Key: "updated_at", Value: time.Now()},
 			}

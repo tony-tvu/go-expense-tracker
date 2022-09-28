@@ -247,7 +247,10 @@ func GetNewTransactions(ctx context.Context, item *models.Item) ([]plaid.Transac
 	return transactions, modified, removed, cursor, nil
 }
 
-func RemoveItem(ctx context.Context, accessToken *string) error {
+func RemoveItem(accessToken *string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*15))
+	defer cancel()
+
 	request := plaid.NewItemRemoveRequest(*accessToken)
 	_, _, err := client.PlaidApi.ItemRemove(ctx).ItemRemoveRequest(*request).Execute()
 	if err != nil {

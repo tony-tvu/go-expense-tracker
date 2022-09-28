@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 import {
   Text,
@@ -14,7 +14,7 @@ import EditAccountBtn from '../components/EditAccountBtn'
 import AddAccountBtn from '../components/AddAccountBtn'
 import logger from '../logger'
 
-export default function Accounts() {
+export default function LinkedAccountsPage() {
   const [data, setData] = useState([])
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
@@ -48,7 +48,6 @@ export default function Accounts() {
           logger('error getting items', err)
         })
     }
-
   }, [page, loading])
 
   function onSuccess() {

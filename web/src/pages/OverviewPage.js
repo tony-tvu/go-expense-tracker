@@ -8,17 +8,14 @@ import {
 } from '@chakra-ui/react'
 import React, { useCallback, useEffect, useState } from 'react'
 import logger from '../logger'
-import CashAccounts from "../components/CashAccounts"
-import Transactions from "../components/Transactions"
+import Accounts from '../components/Accounts'
+import Transactions from '../components/Transactions'
 
 export default function OverviewPage() {
-
   return (
     <VStack>
       <Container maxW="container.md" centerContent>
-        <CashAccounts />
-      
-        <Transactions />
+        <Accounts />
       </Container>
     </VStack>
   )

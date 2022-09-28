@@ -1,7 +1,7 @@
 import { ChakraProvider, theme } from '@chakra-ui/react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import OverviewPage from './pages/OverviewPage'
-import AccountsPage from './pages/AccountsPage'
+import LinkedAccountsPage from './pages/LinkedAccountsPage'
 import AdminPage from './pages/AdminPage'
 import LoginPage from './pages/LoginPage'
 import Protected from './components/Protected'
@@ -24,7 +24,7 @@ export default function App() {
             path="/accounts"
             element={
               <Protected>
-                <AccountsPage />
+                <LinkedAccountsPage />
               </Protected>
             }
           />
