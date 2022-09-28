@@ -17,7 +17,7 @@ import React, { useEffect, useState } from 'react'
 import { currency, timeSince } from '../commons'
 import logger from '../logger'
 
-export default function CashAccounts() {
+export default function AccountsSummary() {
   const [data, setData] = useState([])
   const [cashTotal, setCashTotal] = useState(0)
   const [creditTotal, setCreditTotal] = useState(0)
