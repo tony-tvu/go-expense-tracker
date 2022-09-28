@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import logger from '../logger'
-import Navbar from '../nav/Navbar'
+import Navbar from './Navbar'
+import Sidenav from './Sidenav'
 
-export default function Protected({ adminOnly, children }) {
+export default function Protected({ adminOnly, current, children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(null)
   const [isAdmin, setIsAdmin] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -39,7 +40,7 @@ export default function Protected({ adminOnly, children }) {
   if (loading) {
     return null
   }
-  
+
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />
   }
@@ -47,11 +48,10 @@ export default function Protected({ adminOnly, children }) {
   if (adminOnly && !isAdmin) {
     return <Navigate to="/" replace />
   }
-  
+
   return (
-    <>
-    <Navbar isLoggedIn={isLoggedIn} isAdmin={isAdmin}/>
-    {children}
-    </>
+    <Sidenav isLoggedIn={isLoggedIn} isAdmin={isAdmin} current={current}>
+      {children}
+    </Sidenav>
   )
 }

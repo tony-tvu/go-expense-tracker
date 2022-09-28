@@ -25,7 +25,7 @@ import { FaInfoCircle } from 'react-icons/fa'
 import { colors } from '../theme'
 const CFInfoCircle = chakra(FaInfoCircle)
 
-export default function AdminPage() {
+export default function Admin() {
   const [loading, setLoading] = useState(true)
   const [quotaEnabled, setQuoteEnabled] = useState(true)
   const [quotaLimit, setQuotaLimit] = useState(0)

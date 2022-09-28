@@ -6,7 +6,7 @@ import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import ExpenseSummary from '../components/ExpenseSummary'
 
-export default function OverviewPage() {
+export default function Dashboard() {
   return (
     <Container>
       <Row>

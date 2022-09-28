@@ -18,14 +18,13 @@ import { FaUserAlt, FaLock, FaCat } from 'react-icons/fa'
 import { colors } from '../theme'
 import { useNavigate } from 'react-router-dom'
 import logger from '../logger'
-import Navbar from '../nav/Navbar'
 import Sidenav from '../nav/Sidenav'
 
 const CFaUserAlt = chakra(FaUserAlt)
 const CFaLock = chakra(FaLock)
 const CFcat = chakra(FaCat)
 
-export default function LoginPage() {
+export default function Login() {
   const [registrationEnabled, setRegistrationEnabled] = useState(false)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')

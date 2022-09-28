@@ -1,29 +1,23 @@
-import React, { useEffect, useState } from 'react'
-
 import {
-  Text,
-  Spacer,
-  VStack,
   Center,
+  Container,
   HStack,
   Spinner,
-  Container,
-  useColorModeValue,
+  Text,
+  VStack,
 } from '@chakra-ui/react'
-import EditAccountBtn from '../components/EditAccountBtn'
-import AddAccountBtn from '../components/AddAccountBtn'
+import React, { useCallback, useEffect, useState } from 'react'
 import logger from '../logger'
 
-export default function LinkedAccountsPage() {
+export default function Expenses() {
   const [data, setData] = useState([])
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
-
-  const stackBgColor = useColorModeValue('white', 'gray.900')
+  const [expensesTotal, setExpensesTotal] = useState(null)
 
   useEffect(() => {
     if (loading) {
-      fetch(`${process.env.REACT_APP_API_URL}/items/${page}`, {
+      fetch(`${process.env.REACT_APP_API_URL}/transactions/${page}`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -33,8 +27,8 @@ export default function LinkedAccountsPage() {
         .then(async (res) => {
           if (!res) return
           const resData = await res.json().catch((err) => logger(err))
-          if (res.status === 200 && resData.items) {
-            setData((curr) => [...curr, ...resData.items])
+          if (res.status === 200 && resData.transactions) {
+            setData((curr) => [...curr, ...resData.transactions])
             if (page !== Number(resData.page_info.totalPage)) {
               setPage(resData.page_info.next)
             } else {
@@ -45,57 +39,51 @@ export default function LinkedAccountsPage() {
           }
         })
         .catch((err) => {
-          logger('error getting items', err)
+          logger('error getting transactions', err)
         })
     }
   }, [page, loading])
 
-  function onSuccess() {
-    setPage(1)
-    setData([])
-    setLoading(true)
-  }
-
-  function renderAccounts() {
+  function show() {
     if (data.length === 0 && !loading) {
       return (
         <Text fontSize="l" pl={1}>
-          You have not linked any accounts.
+          You have no transactions
+        </Text>
+      )
+    } else {
+      
+      return (
+        <Text fontSize="l" pl={1}>
+          {calculateTotals()}
         </Text>
       )
     }
+  }
 
-    return data.map((item) => {
-      return (
-        <HStack
-          key={item.id}
-          width={'100%'}
-          borderWidth="1px"
-          borderRadius="lg"
-          bg={stackBgColor}
-          boxShadow={'2xl'}
-          p={3}
-          mb={5}
-        >
-          <Text fontSize="xl" as="b">
-            {item.institution}
-          </Text>
-          <Spacer />
-          <EditAccountBtn item={item} onSuccess={onSuccess} />
-        </HStack>
-      )
+  function calculateTotals() {
+    let expTotal = 0
+
+    data.forEach((transaction) => {
+      expTotal += transaction.amount
     })
+
+    return expTotal
   }
 
   return (
     <VStack>
       <Container maxW="container.md" centerContent>
-        <HStack alignItems="end" width="100%" mt={5} mb={5}>
+        <HStack
+          alignItems="end"
+          justifyContent={'center'}
+          width="100%"
+          mt={5}
+          mb={5}
+        >
           <Text fontSize="3xl" as="b" pl={1}>
-            Accounts
+            Overview
           </Text>
-          <Spacer />
-          <AddAccountBtn onSuccess={onSuccess} />
         </HStack>
 
         {loading ? (
@@ -109,7 +97,7 @@ export default function LinkedAccountsPage() {
             />
           </Center>
         ) : (
-          renderAccounts()
+          show()
         )}
       </Container>
     </VStack>

@@ -6,7 +6,6 @@ import {
   Flex,
   Icon,
   useColorModeValue,
-  Link,
   Drawer,
   DrawerContent,
   Text,
@@ -14,31 +13,36 @@ import {
   chakra,
   Divider,
   Spacer,
+  color,
 } from '@chakra-ui/react'
 import {
-  FiHome,
-  FiTrendingUp,
-  FiCompass,
-  FiStar,
   FiSettings,
   FiMenu,
 } from 'react-icons/fi'
-import { FaCat, FaThLarge, FaPen } from 'react-icons/fa'
-import { ColorModeSwitcher } from '../ColorModeSwitcher'
+import {
+  FaCat,
+  FaThLarge,
+  FaPen,
+  FaMugHot,
+  FaMoneyBill,
+  FaListUl,
+} from 'react-icons/fa'
+import { ColorModeSwitcher } from '../components/ColorModeSwitcher'
 import { colors } from '../theme'
 import { appName } from '../commons'
 import { Link as RouterLink } from 'react-router-dom'
 
 const CFcat = chakra(FaCat)
-const CFThLarge = chakra(FaThLarge)
-const CFPen = chakra(FaPen)
-const fontColor = 'gray.100'
+const textColor = '#DCDCE2'
+const hoverBgColor = '#303031'
+const navBgColor = '#252526'
 
 export default function Sidenav({
   children,
   isLoggedIn,
   registrationEnabled,
   isAdmin,
+  current,
 }) {
   const { isOpen, onOpen, onClose } = useDisclosure()
   return (
@@ -48,6 +52,7 @@ export default function Sidenav({
         isLoggedIn={isLoggedIn}
         registrationEnabled={registrationEnabled}
         isAdmin={isAdmin}
+        current={current}
         display={{ base: 'none', md: 'block' }}
       />
       <Drawer
@@ -76,16 +81,18 @@ const SidebarContent = ({
   onClose,
   isLoggedIn,
   registrationEnabled,
+  isAdmin,
+  current,
   ...rest
 }) => {
   return (
     <Box
-      bg={'#252526'}
+      bg={navBgColor}
       borderRight="1px"
       borderColor={'#1E1E1E'}
       w={{ base: 'full', md: 60 }}
       pos="fixed"
-      color={fontColor}
+      color={textColor}
       h="full"
       {...rest}
     >
@@ -100,7 +107,7 @@ const SidebarContent = ({
             fontSize="2xl"
             fontFamily="monospace"
             fontWeight="bold"
-            color={fontColor}
+            color={textColor}
           >
             {appName()}
           </Text>
@@ -111,47 +118,103 @@ const SidebarContent = ({
 
       {isLoggedIn && (
         <>
-          <NavItem icon={CFThLarge}>Dashboard</NavItem>
+          <Text p={3} color={'#79797C'} fontWeight={'600'} fontSize={'sm'}>
+            MANAGE
+          </Text>
+          <NavItem
+            to="/"
+            icon={FaThLarge}
+            bgColor={current === 'dashboard' ? hoverBgColor : navBgColor}
+            iconColor={current === 'dashboard' ? colors.primary : textColor}
+          >
+            Dashboard
+          </NavItem>
+          <NavItem
+            to="/expenses"
+            icon={FaMoneyBill}
+            bgColor={current === 'expenses' ? hoverBgColor : navBgColor}
+            iconColor={current === 'expenses' ? colors.primary : textColor}
+          >
+            Expenses
+          </NavItem>
+          {isAdmin && (
+            <NavItem
+              to="/admin"
+              icon={FaMugHot}
+              bgColor={current === 'admin' ? hoverBgColor : navBgColor}
+              iconColor={current === 'admin' ? colors.primary : textColor}
+            >
+              Admin
+            </NavItem>
+          )}
+
           <Divider mt={5} borderColor={'#464646'} />
         </>
       )}
 
       {!isLoggedIn && registrationEnabled && (
         <>
-          <RouterLink to="/register">
-            <NavItem color={fontColor} icon={CFPen}>
-              Register
-            </NavItem>
-          </RouterLink>
+          <NavItem to="/register" color={textColor} icon={FaPen}>
+            Register
+          </NavItem>
           <Divider mt={5} borderColor={'#464646'} />
         </>
       )}
 
-      <Text pt={3} pl={3} color={'#79797C'} fontWeight={'600'} fontSize={'sm'}>
+      <Text pl={3} pt={3} color={'#79797C'} fontWeight={'600'} fontSize={'sm'}>
         PREFERENCES
       </Text>
-      <ColorModeSwitcher justifySelf="flex-end" color={fontColor} />
+      <ColorModeSwitcher justifySelf="flex-end" color={textColor} />
+
+      {isLoggedIn && (
+        <>
+         <NavItem
+          to="/accounts"
+          icon={FaListUl}
+          bgColor={current === 'linked_accounts' ? hoverBgColor : navBgColor}
+          iconColor={current === 'linked_accounts' ? colors.primary : textColor}
+        >
+          Accounts
+        </NavItem>
+        <NavItem
+          to="/settings"
+          icon={FiSettings}
+          bgColor={current === 'settings' ? hoverBgColor : navBgColor}
+          iconColor={current === 'settings' ? colors.primary : textColor}
+        >
+          Settings
+        </NavItem>
+        </>
+       
+      )}
     </Box>
   )
 }
 
-const NavItem = ({ icon, children, ...rest }) => {
+const NavItem = ({ icon, children, bgColor, iconColor, to, ...rest }) => {
   return (
-    <Link
-      href="#"
+    <RouterLink
+      to={to}
       style={{ textDecoration: 'none' }}
       _focus={{ boxShadow: 'none' }}
+      color={textColor}
+      fontWeight="500"
+      _hover={{
+        color: textColor,
+      }}
     >
       <Flex
         align="center"
         p="4"
         mx="4"
-        borderRadius="lg"
+        mb={1}
+        borderRadius="4px"
         role="group"
         cursor="pointer"
+        bg={bgColor}
         _hover={{
-          bg: colors.primary,
-          color: 'white',
+          bg: hoverBgColor,
+          color: textColor,
         }}
         {...rest}
       >
@@ -159,15 +222,16 @@ const NavItem = ({ icon, children, ...rest }) => {
           <Icon
             mr="4"
             fontSize="16"
+            color={iconColor}
             _groupHover={{
-              color: 'white',
+              color: colors.primary,
             }}
             as={icon}
           />
         )}
         {children}
       </Flex>
-    </Link>
+    </RouterLink>
   )
 }
 

@@ -21,7 +21,7 @@ import {
 import { Link as RouterLink } from 'react-router-dom'
 import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons'
 import logger from '../logger'
-import { ColorModeSwitcher } from '../ColorModeSwitcher'
+import { ColorModeSwitcher } from '../components/ColorModeSwitcher'
 import { FaCat } from 'react-icons/fa'
 import { colors } from '../theme'
 import { useNavigate } from 'react-router-dom'

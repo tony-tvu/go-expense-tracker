@@ -1,52 +1,52 @@
 import { ChakraProvider, theme } from '@chakra-ui/react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import OverviewPage from './pages/OverviewPage'
-import LinkedAccountsPage from './pages/LinkedAccountsPage'
-import AdminPage from './pages/AdminPage'
-import LoginPage from './pages/LoginPage'
-import Protected from './components/Protected'
-import ExpensesPage from './pages/ExpensesPage'
+import Dashboard from './pages/Dashboard'
+import LinkedAccounts from './pages/LinkedAccounts'
+import Admin from './pages/Admin'
+import Login from './pages/Login'
+import Protected from './nav/Protected'
+import Expenses from './pages/Expenses'
 
 export default function App() {
   return (
     <ChakraProvider theme={theme}>
       <Router>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login" element={<Login />} />
           <Route
             path="/"
             element={
-              <Protected>
-                <OverviewPage />
+              <Protected current="dashboard">
+                <Dashboard />
               </Protected>
             }
           />
           <Route
             path="/accounts"
             element={
-              <Protected>
-                <LinkedAccountsPage />
+              <Protected current="linked_accounts">
+                <LinkedAccounts />
               </Protected>
             }
           />
            <Route
             path="/expenses"
             element={
-              <Protected>
-                <ExpensesPage />
+              <Protected current="expenses">
+                <Expenses />
               </Protected>
             }
           />
           <Route
             path="/admin"
             element={
-              <Protected adminOnly={true}>
-                <AdminPage />
+              <Protected adminOnly={true} current="admin">
+                <Admin />
               </Protected>
             }
           />
 
-          <Route path="*" element={<LoginPage />} />
+          <Route path="*" element={<Login />} />
         </Routes>
       </Router>
     </ChakraProvider>

@@ -22,12 +22,11 @@ export const ColorModeSwitcher = (props) => {
       minH={'60px'}
       p={5}
       pl={'31px'}
-      color={'gray.200'}
+      color={'#DCDCE2'}
+      fontWeight="500"
     >
       <SwitchIcon />
-      <Text ml={'17px'}>
-        Theme
-      </Text>
+      <Text ml={'17px'}>Theme</Text>
       <Spacer />
       <Switch
         isChecked={colorMode === 'dark' ? true : false}
