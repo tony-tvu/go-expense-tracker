@@ -1,3 +1,7 @@
+export function appName() {
+  return process.env.REACT_APP_NAME
+}
+
 export const currency = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',

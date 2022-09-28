@@ -19,6 +19,7 @@ import { colors } from '../theme'
 import { useNavigate } from 'react-router-dom'
 import logger from '../logger'
 import Navbar from '../nav/Navbar'
+import Sidenav from '../nav/Sidenav'
 
 const CFaUserAlt = chakra(FaUserAlt)
 const CFaLock = chakra(FaLock)
@@ -32,7 +33,6 @@ export default function LoginPage() {
   const handleShowClick = () => setShowPassword(!showPassword)
   const navigate = useNavigate()
 
-  const bgColor = useColorModeValue(colors.bgLight, colors.bgDark)
   const logoColor = useColorModeValue('black', colors.primary)
 
   useEffect(() => {
@@ -89,21 +89,9 @@ export default function LoginPage() {
   }
 
   return (
-    <>
-      <Navbar registrationEnabled={registrationEnabled} />
-      <Flex
-        flexDirection="column"
-        width="100wh"
-        height="95vh"
-        backgroundColor={bgColor}
-        alignItems="center"
-      >
-        <Stack
-          flexDir="column"
-          mt="20vh"
-          justifyContent="center"
-          alignItems="center"
-        >
+    <Sidenav registrationEnabled={registrationEnabled}>
+      <Flex flexDirection="column">
+        <Stack flexDir="column" mt="15%" alignItems="center">
           <CFcat width={'10vh'} size={'100px'} color={logoColor} />
           <Box
             minW={{ base: '90%', md: '468px' }}
@@ -115,7 +103,7 @@ export default function LoginPage() {
                 p="1rem"
                 backgroundColor={useColorModeValue(
                   'whiteAlpha.800',
-                  'gray.900'
+                  '#252526'
                 )}
                 boxShadow={'2xl'}
                 borderWidth="1px"
@@ -136,7 +124,7 @@ export default function LoginPage() {
                       }}
                       onChange={(event) => setUsername(event.target.value)}
                       color={useColorModeValue('black', 'white')}
-                      bg={useColorModeValue('whiteAlpha.800', 'gray.900')}
+                      bg={useColorModeValue('whiteAlpha.800', '#252526')}
                     />
                   </InputGroup>
                 </FormControl>
@@ -157,7 +145,7 @@ export default function LoginPage() {
                         borderColor: 'gray.500',
                       }}
                       color={useColorModeValue('black', 'white')}
-                      bg={useColorModeValue('whiteAlpha.800', 'gray.900')}
+                      bg={useColorModeValue('whiteAlpha.800', '#252526')}
                     />
                     <InputRightElement width="4.5rem">
                       <Button
@@ -203,6 +191,6 @@ export default function LoginPage() {
           </Box>
         </Stack>
       </Flex>
-    </>
+    </Sidenav>
   )
 }

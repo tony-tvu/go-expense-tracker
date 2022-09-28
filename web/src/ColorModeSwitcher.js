@@ -1,27 +1,38 @@
-import React from "react"
-import { useColorMode, useColorModeValue, IconButton } from "@chakra-ui/react"
-import { FaMoon, FaSun } from "react-icons/fa"
+import React from 'react'
+import {
+  useColorMode,
+  useColorModeValue,
+  Flex,
+  Text,
+  Switch,
+  Spacer,
+} from '@chakra-ui/react'
+import { FaMoon, FaSun } from 'react-icons/fa'
 
 export const ColorModeSwitcher = (props) => {
-  const { toggleColorMode } = useColorMode()
-  const text = useColorModeValue("dark", "light")
+  const { toggleColorMode, colorMode } = useColorMode()
   const SwitchIcon = useColorModeValue(FaMoon, FaSun)
 
+  console.log(colorMode)
+
   return (
-    <IconButton
-      _hover={{
-        backgroundColor: "gray.600",
-        color: "white",
-      }}
-      size="md"
-      fontSize="lg"
-      aria-label={`Switch to ${text} mode`}
-      variant="ghost"
-      color="current"
-      marginLeft="2"
-      onClick={toggleColorMode}
-      icon={<SwitchIcon />}
-      {...props}
-    />
+    <Flex
+      alignItems={'center'}
+      justifyContent={'space-between'}
+      minH={'60px'}
+      p={5}
+      pl={'31px'}
+      color={'gray.200'}
+    >
+      <SwitchIcon />
+      <Text ml={'17px'}>
+        Theme
+      </Text>
+      <Spacer />
+      <Switch
+        isChecked={colorMode === 'dark' ? true : false}
+        onChange={toggleColorMode}
+      />
+    </Flex>
   )
 }
