@@ -28,7 +28,7 @@ import { useNavigate } from 'react-router-dom'
 
 const CFcat = chakra(FaCat)
 
-export default function Navbar({isLoggedIn, registrationEnabled, isAdmin}) {
+export default function Navbar({ isLoggedIn, registrationEnabled, isAdmin }) {
   const navigate = useNavigate()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const linkBgColor = useColorModeValue('gray.200', 'gray.700')
@@ -121,15 +121,15 @@ export default function Navbar({isLoggedIn, registrationEnabled, isAdmin}) {
                     textDecoration: 'none',
                     bg: 'gray.700',
                   }}
-                  href={'/accounts'}
+                  href={'/expenses'}
                   color={'white'}
                 >
-                  Accounts
+                  Expenses
                 </Link>
               </HStack>
             )}
           </HStack>
-                  <Spacer />
+          <Spacer />
           <Flex alignItems={'center'}>
             {registrationEnabled && (
               <Link
@@ -162,6 +162,9 @@ export default function Navbar({isLoggedIn, registrationEnabled, isAdmin}) {
                   <Avatar size={'sm'} bg={colors.primary} />
                 </MenuButton>
                 <MenuList>
+                  <MenuItem onClick={() => navigate('/accounts')}>
+                    Accounts
+                  </MenuItem>
                   {isAdmin && (
                     <MenuItem onClick={() => navigate('/admin')}>
                       Admin
@@ -198,9 +201,9 @@ export default function Navbar({isLoggedIn, registrationEnabled, isAdmin}) {
                   textDecoration: 'none',
                   bg: linkBgColor,
                 }}
-                href={'/accounts'}
+                href={'/expenses'}
               >
-                Accounts
+                Expenses
               </Link>
             </Stack>
           </Box>

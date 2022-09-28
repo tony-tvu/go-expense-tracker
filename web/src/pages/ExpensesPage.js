@@ -9,7 +9,7 @@ import {
 import React, { useCallback, useEffect, useState } from 'react'
 import logger from '../logger'
 
-export default function Transactions() {
+export default function ExpensesPage() {
   const [data, setData] = useState([])
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)

@@ -1,22 +1,22 @@
-import {
-  Center,
-  Container,
-  HStack,
-  Spinner,
-  Text,
-  VStack,
-} from '@chakra-ui/react'
 import React, { useCallback, useEffect, useState } from 'react'
 import logger from '../logger'
 import AccountSummary from '../components/AccountSummary'
-import Transactions from '../components/TransactionSummary'
+import Container from 'react-bootstrap/Container'
+import Row from 'react-bootstrap/Row'
+import Col from 'react-bootstrap/Col'
+import ExpenseSummary from '../components/ExpenseSummary'
 
 export default function OverviewPage() {
   return (
-    <VStack>
-      <Container maxW="container.md" centerContent>
-        <AccountSummary />
-      </Container>
-    </VStack>
+    <Container>
+      <Row>
+        <Col sm={12} md={6}>
+          <AccountSummary />
+        </Col>
+        <Col sm={12} md={6}>
+          <ExpenseSummary />
+        </Col>
+      </Row>
+    </Container>
   )
 }

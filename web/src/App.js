@@ -5,6 +5,7 @@ import LinkedAccountsPage from './pages/LinkedAccountsPage'
 import AdminPage from './pages/AdminPage'
 import LoginPage from './pages/LoginPage'
 import Protected from './components/Protected'
+import ExpensesPage from './pages/ExpensesPage'
 
 export default function App() {
   return (
@@ -25,6 +26,14 @@ export default function App() {
             element={
               <Protected>
                 <LinkedAccountsPage />
+              </Protected>
+            }
+          />
+           <Route
+            path="/expenses"
+            element={
+              <Protected>
+                <ExpensesPage />
               </Protected>
             }
           />

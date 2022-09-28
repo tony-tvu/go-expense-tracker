@@ -4,9 +4,12 @@ import {
   AccordionIcon,
   AccordionItem,
   AccordionPanel,
+  Center,
+  Container,
   Divider,
   HStack,
   Spacer,
+  Spinner,
   Text,
   VStack,
 } from '@chakra-ui/react'
@@ -14,7 +17,7 @@ import React, { useEffect, useState } from 'react'
 import { currency, timeSince } from '../commons'
 import logger from '../logger'
 
-export default function AccountSummary() {
+export default function ExpenseSummary() {
   const [data, setData] = useState([])
   const [cashTotal, setCashTotal] = useState(0)
   const [creditTotal, setCreditTotal] = useState(0)
@@ -73,27 +76,11 @@ export default function AccountSummary() {
                 </Text>
               </HStack>
               <HStack width="100%">
-                <Text
-                  fontSize={{
-                    base: '12px',
-                    sm: '12px',
-                    md: '16px',
-                    lg: '16px',
-                  }}
-                  color={'gray.500'}
-                >
+                <Text fontSize={['sm', 'md', 'lg', 'xl']} color={'gray.500'}>
                   {acc.institution}
                 </Text>
                 <Spacer />
-                <Text
-                  fontSize={{
-                    base: '12px',
-                    sm: '12px',
-                    md: '16px',
-                    lg: '16px',
-                  }}
-                  color={'gray.500'}
-                >
+                <Text fontSize={['sm', 'md', 'lg', 'xl']} color={'gray.500'}>
                   {timeSince(Date.parse(acc.updated_at))}
                 </Text>
               </HStack>
@@ -103,8 +90,12 @@ export default function AccountSummary() {
       })
   }
 
+  if (!data && loading) {
+    return null
+  }
+
   return (
-    <VStack width="100%" p={5}>
+    <VStack p={5} width="100%">
       <HStack width="100%">
         <Text
           mb={-3}
@@ -115,7 +106,7 @@ export default function AccountSummary() {
             lg: '16px',
           }}
         >
-          Net Worth
+          Expenses
         </Text>
         <Spacer />
       </HStack>
@@ -133,7 +124,7 @@ export default function AccountSummary() {
         </Text>
         <Spacer />
       </HStack>
-      <Accordion allowMultiple defaultIndex={[0, 1]} width="100%">
+      <Accordion allowMultiple defaultIndex={[]} width="100%">
         <AccordionItem>
           <AccordionButton>
             <HStack flex="1" pt={3} pb={3}>
