@@ -8,8 +8,8 @@ import {
 } from '@chakra-ui/react'
 import React, { useCallback, useEffect, useState } from 'react'
 import logger from '../logger'
-import Accounts from '../components/AccountsSummary'
-import Transactions from '../components/Transactions'
+import Accounts from '../components/AccountSummary'
+import Transactions from '../components/TransactionSummary'
 
 export default function TransactionsPage() {
   return (
