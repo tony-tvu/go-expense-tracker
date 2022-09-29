@@ -109,7 +109,7 @@ func (a *App) Initialize(ctx context.Context) {
 		api.GET("/items/:page", items.GetItems)
 		api.POST("/items", items.CreateItem)
 		api.DELETE("/items/:plaid_item_id", items.DeleteItem)
-		api.GET("/cash_accounts", items.GetCashAccounts)
+		api.GET("/accounts", items.GetAccounts)
 		api.POST("/receive_webhooks", items.ReceiveWebooks)
 		api.PUT("/update_webhooks_url", items.UpdateItemsWebhooksURL)
 

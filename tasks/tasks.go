@@ -28,6 +28,7 @@ func (t *Tasks) Start(ctx context.Context) {
 	newAccountsChan := make(chan string, 3)
 	t.NewAccountsChannel = newAccountsChan
 
+	// TODO: for loop and use select case statements to execute specific method
 	go t.newTransactionsListener(ctx)
 	go t.newAccountsListener(ctx)
 	go t.refreshTransactionsTask(ctx)
@@ -38,6 +39,8 @@ func (t *Tasks) Start(ctx context.Context) {
 // plaid api sends us a webhook specifying that new transactions are available for an item
 // This function handles retrieving the updated transactions for that item.
 func (t *Tasks) newTransactionsListener(ctx context.Context) {
+	
+	// TODO: for range so that channel doesn't keep running when theres no new items
 	for {
 		plaidItemID := <-t.NewTransactionsChannel
 

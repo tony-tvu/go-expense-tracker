@@ -260,7 +260,7 @@ func (h *ItemHandler) DeleteItem(c *gin.Context) {
 }
 
 // Returns all cash accounts associated with a userID
-func (h *ItemHandler) GetCashAccounts(c *gin.Context) {
+func (h *ItemHandler) GetAccounts(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	userObjID, _, err := auth.AuthorizeUser(c, h.Db)
