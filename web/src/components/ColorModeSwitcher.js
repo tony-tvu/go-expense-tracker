@@ -21,7 +21,7 @@ export const ColorModeSwitcher = (props) => {
       justifyContent={'space-between'}
       minH={'60px'}
       p={5}
-      pl={'31px'}
+      pl={'32px'}
       color={'#DCDCE2'}
       fontWeight="500"
     >

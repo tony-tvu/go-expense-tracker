@@ -13,12 +13,8 @@ import {
   chakra,
   Divider,
   Spacer,
-  color,
 } from '@chakra-ui/react'
-import {
-  FiSettings,
-  FiMenu,
-} from 'react-icons/fi'
+import { FiSettings, FiMenu } from 'react-icons/fi'
 import {
   FaCat,
   FaThLarge,
@@ -65,7 +61,13 @@ export default function Sidenav({
         size="full"
       >
         <DrawerContent>
-          <SidebarContent onClose={onClose} />
+          <SidebarContent
+            isLoggedIn={isLoggedIn}
+            registrationEnabled={registrationEnabled}
+            isAdmin={isAdmin}
+            current={current}
+            onClose={onClose}
+          />
         </DrawerContent>
       </Drawer>
       {/* mobilenav */}
@@ -137,16 +139,6 @@ const SidebarContent = ({
           >
             Expenses
           </NavItem>
-          {isAdmin && (
-            <NavItem
-              to="/admin"
-              icon={FaMugHot}
-              bgColor={current === 'admin' ? hoverBgColor : navBgColor}
-              iconColor={current === 'admin' ? colors.primary : textColor}
-            >
-              Admin
-            </NavItem>
-          )}
 
           <Divider mt={5} borderColor={'#464646'} />
         </>
@@ -168,24 +160,35 @@ const SidebarContent = ({
 
       {isLoggedIn && (
         <>
-         <NavItem
-          to="/accounts"
-          icon={FaListUl}
-          bgColor={current === 'linked_accounts' ? hoverBgColor : navBgColor}
-          iconColor={current === 'linked_accounts' ? colors.primary : textColor}
-        >
-          Accounts
-        </NavItem>
-        <NavItem
-          to="/settings"
-          icon={FiSettings}
-          bgColor={current === 'settings' ? hoverBgColor : navBgColor}
-          iconColor={current === 'settings' ? colors.primary : textColor}
-        >
-          Settings
-        </NavItem>
+          <NavItem
+            to="/accounts"
+            icon={FaListUl}
+            bgColor={current === 'linked_accounts' ? hoverBgColor : navBgColor}
+            iconColor={
+              current === 'linked_accounts' ? colors.primary : textColor
+            }
+          >
+            Accounts
+          </NavItem>
+          {isAdmin && (
+            <NavItem
+              to="/admin"
+              icon={FaMugHot}
+              bgColor={current === 'admin' ? hoverBgColor : navBgColor}
+              iconColor={current === 'admin' ? colors.primary : textColor}
+            >
+              Admin
+            </NavItem>
+          )}
+          <NavItem
+            to="/settings"
+            icon={FiSettings}
+            bgColor={current === 'settings' ? hoverBgColor : navBgColor}
+            iconColor={current === 'settings' ? colors.primary : textColor}
+          >
+            Settings
+          </NavItem>
         </>
-       
       )}
     </Box>
   )
@@ -253,11 +256,24 @@ const MobileNav = ({ onOpen, ...rest }) => {
         onClick={onOpen}
         aria-label="open menu"
         icon={<FiMenu />}
+        mr={5}
       />
 
-      <Text fontSize="2xl" ml="8" fontFamily="monospace" fontWeight="bold">
-        Logo
-      </Text>
+      <RouterLink to="/">
+        <CFcat size={'25px'} color={colors.primary} />
+      </RouterLink>
+
+      <RouterLink to="/">
+        <Text
+          ml={3}
+          fontSize="2xl"
+          fontFamily="monospace"
+          fontWeight="bold"
+          color={useColorModeValue('black', textColor)}
+        >
+          {appName()}
+        </Text>
+      </RouterLink>
     </Flex>
   )
 }
