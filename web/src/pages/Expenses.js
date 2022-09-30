@@ -1,3 +1,4 @@
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   Center,
   Container,
@@ -6,7 +7,6 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
-import React, { useCallback, useEffect, useState } from 'react'
 import logger from '../logger'
 
 export default function Expenses() {

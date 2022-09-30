@@ -1,3 +1,4 @@
+import React from 'react'
 import {
   Popover,
   PopoverTrigger,
@@ -16,7 +17,6 @@ import {
   AlertDialogFooter,
 } from '@chakra-ui/react'
 import { BsPencil, BsTrash } from 'react-icons/bs'
-import React from 'react'
 import logger from '../logger'
 import { useNavigate } from 'react-router-dom'
 

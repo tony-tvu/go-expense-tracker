@@ -13,8 +13,6 @@ export const ColorModeSwitcher = (props) => {
   const { toggleColorMode, colorMode } = useColorMode()
   const SwitchIcon = useColorModeValue(FaMoon, FaSun)
 
-  console.log(colorMode)
-
   return (
     <Flex
       alignItems={'center'}

@@ -34,7 +34,8 @@ logs
 
 node_modules
 bower_components
-**/build
+web/build/static/app.css
+web/build/static/app.js
 *.sublime*
 
 psd
@@ -57,3 +58,4 @@ gin-bin
 db
 app.yaml
 tmp/main
+web/.env

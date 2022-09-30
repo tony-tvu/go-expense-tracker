@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from 'react'
 import {
   Accordion,
   AccordionButton,
@@ -13,7 +14,6 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
-import React, { useEffect, useState } from 'react'
 import { currency, timeSince } from '../commons'
 import logger from '../logger'
 
