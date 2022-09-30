@@ -12,9 +12,8 @@ build:
 	cd web && npm run build
 	go build -o ./bin/main main.go
 
-# requires gow installed globally: ` go install github.com/mitranim/gow@latest`
 api:
-	gow run main.go
+	go run main.go
 
 client:
 	cd web && npm run start	
@@ -22,8 +21,12 @@ client:
 watch: 
 	cd web && npm run dev
 
+# requires air installed globally: `go install github.com/cosmtrek/air@latest`
+air:
+	air
+
 start: 
-	make -j 2 api watch
+	make -j 2 air watch
 
 test:
 	go clean -testcache
