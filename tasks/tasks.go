@@ -15,63 +15,14 @@ import (
 )
 
 type Tasks struct {
-	Db                     *database.MongoDb
-	Client                 *plaid.APIClient
-	TaskInterval           int
-	NewTransactionsChannel chan string
-	NewAccountsChannel     chan string
+	Db           *database.MongoDb
+	Client       *plaid.APIClient
+	TaskInterval int
 }
 
 func (t *Tasks) Start(ctx context.Context) {
-	newTransactionsChan := make(chan string, 3)
-	t.NewTransactionsChannel = newTransactionsChan
-	newAccountsChan := make(chan string, 3)
-	t.NewAccountsChannel = newAccountsChan
-
-	// TODO: for loop and use select case statements to execute specific method
-	go t.newTransactionsListener(ctx)
-	go t.newAccountsListener(ctx)
 	go t.refreshTransactionsTask(ctx)
 	go t.refreshAccountsTask(ctx)
-}
-
-// An item's plaid ID will be sent to NewTransactionsChannel from /api/receive_webhooks whenever
-// plaid api sends us a webhook specifying that new transactions are available for an item
-// This function handles retrieving the updated transactions for that item.
-func (t *Tasks) newTransactionsListener(ctx context.Context) {
-	
-	// TODO: for range so that channel doesn't keep running when theres no new items
-	for {
-		plaidItemID := <-t.NewTransactionsChannel
-
-		var item *models.Item
-		if err := t.Db.Items.FindOne(ctx, bson.M{"plaid_item_id": plaidItemID}).Decode(&item); err != nil {
-			log.Printf("error getting new item from db: %v\n", err)
-		}
-
-		go t.processNewTransactions(ctx, item)
-	}
-}
-
-func (t *Tasks) newAccountsListener(ctx context.Context) {
-	for {
-		newItemIDHex := <-t.NewAccountsChannel
-
-		time.Sleep(10 * time.Second)
-		log.Printf("getting initial account data for plaid_item_id: %v\n", newItemIDHex)
-
-		objID, err := primitive.ObjectIDFromHex(newItemIDHex)
-		if err != nil {
-			log.Printf("error getting new item object id: %v\n", err)
-		}
-
-		var item *models.Item
-		if err = t.Db.Items.FindOne(ctx, bson.M{"_id": objID}).Decode(&item); err != nil {
-			log.Printf("error getting new item from db: %v\n", err)
-		}
-
-		go t.refreshAccountData(ctx, item)
-	}
 }
 
 func (t *Tasks) refreshAccountsTask(ctx context.Context) {
@@ -83,7 +34,7 @@ func (t *Tasks) refreshAccountsTask(ctx context.Context) {
 
 		log.Printf("running accounts scheduled task for %d items. task interval: %ds", len(items), t.TaskInterval)
 		for _, item := range items {
-			t.refreshAccountData(ctx, item)
+			t.RefreshAccountData(ctx, item)
 		}
 		time.Sleep(time.Duration(t.TaskInterval) * time.Second)
 	}
@@ -98,13 +49,14 @@ func (t *Tasks) refreshTransactionsTask(ctx context.Context) {
 
 		log.Printf("running transactions scheduled task for %d items. task interval: %ds", len(items), t.TaskInterval)
 		for _, item := range items {
-			t.processNewTransactions(ctx, item)
+			t.RefreshTransactionsData(ctx, item)
 		}
 		time.Sleep(time.Duration(t.TaskInterval) * time.Second)
 	}
 }
 
-func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
+// function retreives latest accounts data
+func (t *Tasks) RefreshAccountData(ctx context.Context, item *models.Item) {
 	plaidAccounts, err := plaidclient.GetItemAccounts(ctx, &item.AccessToken)
 	if err != nil {
 		log.Printf("error getting item's accounts: %+v\n", err)
@@ -150,7 +102,8 @@ func (t *Tasks) refreshAccountData(ctx context.Context, item *models.Item) {
 	}
 }
 
-func (t *Tasks) processNewTransactions(ctx context.Context, item *models.Item) {
+// function retreives latest transactions data
+func (t *Tasks) RefreshTransactionsData(ctx context.Context, item *models.Item) {
 	isSuccess := true
 	transactions, modifiedTransactions, removedTransactions, cursor, err := plaidclient.GetNewTransactions(ctx, item)
 	if err != nil {

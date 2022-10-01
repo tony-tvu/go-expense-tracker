@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -206,8 +207,20 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 		return
 	}
 
+	// retreive initial account data
 	go func() {
-		h.Tasks.NewAccountsChannel <- res.InsertedID.(primitive.ObjectID).Hex()
+		accountCtx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*15))
+		defer cancel()
+
+		itemID := res.InsertedID.(primitive.ObjectID)
+		log.Printf("getting initial account data for plaid_item_id: %v\n", itemID.Hex())
+
+		var item *models.Item
+		if err = h.Db.Items.FindOne(accountCtx, bson.M{"_id": itemID}).Decode(&item); err != nil {
+			log.Printf("error getting new item from db: %v\n", err)
+		}
+
+		h.Tasks.RefreshAccountData(accountCtx, item)
 	}()
 }
 
@@ -333,7 +346,15 @@ func (h *ItemHandler) ReceiveWebooks(c *gin.Context) {
 	if util.Contains(&TRANSACTIONS_WEBHOOKS, webhook.WebhookCode) {
 		log.Printf("webhook received: %+v", webhook)
 		go func() {
-			h.Tasks.NewTransactionsChannel <- webhook.ItemId
+			transactionsCtx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*15))
+			defer cancel()
+
+			var item *models.Item
+			if err := h.Db.Items.FindOne(transactionsCtx, bson.M{"plaid_item_id": webhook.ItemId}).Decode(&item); err != nil {
+				log.Printf("error getting new item from db: %v\n", err)
+			}
+
+			h.Tasks.RefreshTransactionsData(transactionsCtx, item)
 		}()
 	}
 }
