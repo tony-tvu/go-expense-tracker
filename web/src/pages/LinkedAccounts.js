@@ -9,10 +9,12 @@ import {
   Spinner,
   Container,
   useColorModeValue,
+  Tooltip,
 } from '@chakra-ui/react'
 import EditAccountBtn from '../components/EditAccountBtn'
 import AddAccountBtn from '../components/AddAccountBtn'
 import logger from '../logger'
+import { IoIosWarning } from 'react-icons/io'
 
 export default function LinkedAccounts() {
   const [data, setData] = useState([])
@@ -20,6 +22,8 @@ export default function LinkedAccounts() {
   const [loading, setLoading] = useState(true)
 
   const stackBgColor = useColorModeValue('white', 'gray.900')
+  const tooltipBg = useColorModeValue('white', 'gray.900')
+  const tooltipColor = useColorModeValue('black', 'white')
 
   useEffect(() => {
     if (loading) {
@@ -81,6 +85,26 @@ export default function LinkedAccounts() {
             {item.institution}
           </Text>
           <Spacer />
+
+          {(item.item_login_required) && (
+            <>
+              <Tooltip
+                label={`This account is unable to connect to your financial instituion. Please remove this account and add it back to repair the connection.`}
+                fontSize="md"
+                bg={tooltipBg}
+                color={tooltipColor}
+                borderWidth="1px"
+                boxShadow={'2xl'}
+                borderRadius="lg"
+                p={5}
+              >
+                <span>
+                  <IoIosWarning size={'40px'} color={'red'} />
+                </span>
+              </Tooltip>
+            </>
+          )}
+
           <EditAccountBtn item={item} onSuccess={onSuccess} />
         </HStack>
       )

@@ -16,7 +16,7 @@ api:
 	go run main.go
 
 client:
-	cd web && npm run start	
+	cd web && npm run dev	
 
 watch: 
 	cd web && npm run dev

@@ -51,12 +51,7 @@ export default function EditAccountBtn({ item, onSuccess }) {
     <>
       <Popover placement="start-start" isLazy>
         <PopoverTrigger>
-          <IconButton
-            aria-label="More server options"
-            icon={<BsPencil />}
-            variant="solid"
-            w="fit-content"
-          />
+          <IconButton icon={<BsPencil />} variant="solid" w="fit-content" />
         </PopoverTrigger>
         <PopoverContent w="fit-content" _focus={{ boxShadow: 'none' }}>
           <PopoverArrow />

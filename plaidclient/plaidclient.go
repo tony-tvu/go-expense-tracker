@@ -5,51 +5,26 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"math"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/MicahParks/keyfunc"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/joho/godotenv"
 	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/models"
-	"github.com/tony-tvu/goexpense/util"
 )
 
-var envs = map[string]plaid.Environment{
-	"sandbox":     plaid.Sandbox,
-	"development": plaid.Development,
-	"production":  plaid.Production,
+type PlaidClient struct {
+	Client      *plaid.APIClient
+	WebhooksURL *string
+	RedirectURI *string
 }
 
-var client *plaid.APIClient
-var webhooksURL string
 var products string = "transactions"
 var countryCodes string = "US"
 
-func init() {
-	if err := godotenv.Load(".env"); err != nil {
-		log.Println("no .env file found")
-	}
-	clientID := os.Getenv("PLAID_CLIENT_ID")
-	secret := os.Getenv("PLAID_SECRET")
-	plaidEnv := os.Getenv("PLAID_ENV")
-	if util.ContainsEmpty(clientID, secret, plaidEnv) {
-		log.Println("plaid env configs are missing - service will not work")
-	}
-	plaidCfg := plaid.NewConfiguration()
-	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", clientID)
-	plaidCfg.AddDefaultHeader("PLAID-SECRET", secret)
-	plaidCfg.UseEnvironment(envs[plaidEnv])
-	pc := plaid.NewAPIClient(plaidCfg)
-	client = pc
-	webhooksURL = os.Getenv("WEBHOOKS_URL")
-}
-
-func CreateLinkToken(ctx context.Context) (*string, error) {
+func (p *PlaidClient) CreateLinkToken(ctx context.Context) (*string, error) {
 	pp := []plaid.Products{}
 	for _, product := range strings.Split(products, ",") {
 		pp = append(pp, plaid.Products(product))
@@ -65,23 +40,48 @@ func CreateLinkToken(ctx context.Context) (*string, error) {
 		user,
 	)
 	request.SetProducts(pp)
-	request.SetWebhook(webhooksURL)
+	request.SetWebhook(*p.WebhooksURL)
 
-	linkTokenCreateResp, _, err :=
-		client.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
+	res, _, err :=
+		p.Client.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
 	if err != nil {
 		return nil, err
 	}
 
-	linkToken := linkTokenCreateResp.GetLinkToken()
+	linkToken := res.GetLinkToken()
 
 	return &linkToken, nil
 }
 
-func UpdateWebhooksURL(ctx context.Context, newURL, accessToken *string) error {
+func (p *PlaidClient) CreateUpdateLinkToken(ctx context.Context, accessToken *string) (*string, error) {
+	user := plaid.LinkTokenCreateRequestUser{
+		ClientUserId: time.Now().String(),
+	}
+
+	request := plaid.NewLinkTokenCreateRequest(
+		"Plaid Quickstart",
+		"en",
+		convertCountryCodes(strings.Split(countryCodes, ",")),
+		user,
+	)
+	request.SetWebhook(*p.WebhooksURL)
+	request.SetAccessToken(*accessToken)
+
+	res, _, err :=
+		p.Client.PlaidApi.LinkTokenCreate(ctx).LinkTokenCreateRequest(*request).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	linkToken := res.GetLinkToken()
+
+	return &linkToken, nil
+}
+
+func (p *PlaidClient) UpdateWebhooksURL(ctx context.Context, newURL, accessToken *string) error {
 	request := plaid.NewItemWebhookUpdateRequest(*accessToken)
 	request.Webhook = *plaid.NewNullableString(newURL)
-	_, _, err := client.PlaidApi.ItemWebhookUpdate(ctx).ItemWebhookUpdateRequest(*request).Execute()
+	_, _, err := p.Client.PlaidApi.ItemWebhookUpdate(ctx).ItemWebhookUpdateRequest(*request).Execute()
 	if err != nil {
 		return err
 	}
@@ -90,9 +90,9 @@ func UpdateWebhooksURL(ctx context.Context, newURL, accessToken *string) error {
 }
 
 // exchange the public_token for a permanent access_token, itemID, and get institution
-func ExchangePublicToken(ctx context.Context, publicToken string) (*string, *string, *string, error) {
+func (p *PlaidClient) ExchangePublicToken(ctx context.Context, publicToken string) (*string, *string, *string, error) {
 	exchangePublicTokenResp, _, err :=
-		client.PlaidApi.ItemPublicTokenExchange(ctx).
+		p.Client.PlaidApi.ItemPublicTokenExchange(ctx).
 			ItemPublicTokenExchangeRequest(
 				*plaid.NewItemPublicTokenExchangeRequest(publicToken),
 			).Execute()
@@ -102,7 +102,7 @@ func ExchangePublicToken(ctx context.Context, publicToken string) (*string, *str
 
 	accessToken := exchangePublicTokenResp.GetAccessToken()
 	plaidItemID := exchangePublicTokenResp.GetItemId()
-	institution, err := getInstitution(ctx, &accessToken)
+	institution, err := p.getInstitution(ctx, &accessToken)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -110,15 +110,15 @@ func ExchangePublicToken(ctx context.Context, publicToken string) (*string, *str
 	return &accessToken, &plaidItemID, institution, nil
 }
 
-func getInstitution(ctx context.Context, accessToken *string) (*string, error) {
-	itemGetResp, _, err := client.PlaidApi.ItemGet(ctx).ItemGetRequest(
+func (p *PlaidClient) getInstitution(ctx context.Context, accessToken *string) (*string, error) {
+	itemGetResp, _, err := p.Client.PlaidApi.ItemGet(ctx).ItemGetRequest(
 		*plaid.NewItemGetRequest(*accessToken),
 	).Execute()
 	if err != nil {
 		return nil, err
 	}
 
-	institutionGetByIdResp, _, err := client.PlaidApi.InstitutionsGetById(ctx).InstitutionsGetByIdRequest(
+	institutionGetByIdResp, _, err := p.Client.PlaidApi.InstitutionsGetById(ctx).InstitutionsGetByIdRequest(
 		*plaid.NewInstitutionsGetByIdRequest(
 			*itemGetResp.GetItem().InstitutionId.Get(),
 			convertCountryCodes(strings.Split(countryCodes, ",")),
@@ -142,7 +142,7 @@ func convertCountryCodes(countryCodeStrs []string) []plaid.CountryCode {
 }
 
 // Function verifies if webhook came from Plaid api
-func VerifyWebhook(ctx context.Context, signedJwt string) (*string, error) {
+func (p *PlaidClient) VerifyWebhook(ctx context.Context, signedJwt string) (*string, error) {
 	decodedToken, _, err := new(jwt.Parser).ParseUnverified(signedJwt, jwt.MapClaims{})
 	if err != nil {
 		return nil, err
@@ -157,7 +157,7 @@ func VerifyWebhook(ctx context.Context, signedJwt string) (*string, error) {
 	}
 
 	webhookReq := plaid.NewWebhookVerificationKeyGetRequest(currentKeyID)
-	keyResponse, _, err := client.PlaidApi.WebhookVerificationKeyGet(ctx).WebhookVerificationKeyGetRequest(*webhookReq).Execute()
+	keyResponse, _, err := p.Client.PlaidApi.WebhookVerificationKeyGet(ctx).WebhookVerificationKeyGetRequest(*webhookReq).Execute()
 
 	type JwkKeys struct {
 		Keys []interface{} `json:"keys"`
@@ -205,8 +205,8 @@ func VerifyWebhook(ctx context.Context, signedJwt string) (*string, error) {
 }
 
 // Returns high-level information about all accounts associated with an item
-func GetItemAccounts(ctx context.Context, accessToken *string) (*[]plaid.AccountBase, error) {
-	accountsGetResp, _, err := client.PlaidApi.AccountsGet(ctx).AccountsGetRequest(
+func (p *PlaidClient) GetItemAccounts(ctx context.Context, accessToken *string) (*[]plaid.AccountBase, error) {
+	accountsGetResp, _, err := p.Client.PlaidApi.AccountsGet(ctx).AccountsGetRequest(
 		*plaid.NewAccountsGetRequest(*accessToken),
 	).Execute()
 	if err != nil {
@@ -217,7 +217,7 @@ func GetItemAccounts(ctx context.Context, accessToken *string) (*[]plaid.Account
 	return &accounts, nil
 }
 
-func GetNewTransactions(ctx context.Context, item *models.Item) ([]plaid.Transaction, []plaid.Transaction, []plaid.RemovedTransaction, string, error) {
+func (p *PlaidClient) GetNewTransactions(ctx context.Context, item *models.Item) ([]plaid.Transaction, []plaid.Transaction, []plaid.RemovedTransaction, string, error) {
 	// New transaction updates since "cursor"
 	var transactions []plaid.Transaction
 	var modified []plaid.Transaction
@@ -230,10 +230,14 @@ func GetNewTransactions(ctx context.Context, item *models.Item) ([]plaid.Transac
 		if cursor != "" {
 			request.SetCursor(cursor)
 		}
-		resp, _, err := client.PlaidApi.TransactionsSync(
+		resp, _, err := p.Client.PlaidApi.TransactionsSync(
 			ctx,
 		).TransactionsSyncRequest(*request).Execute()
+
 		if err != nil {
+			errMsg := err.Error()
+
+			fmt.Printf(errMsg)
 			return nil, nil, nil, "", err
 		}
 
@@ -247,12 +251,12 @@ func GetNewTransactions(ctx context.Context, item *models.Item) ([]plaid.Transac
 	return transactions, modified, removed, cursor, nil
 }
 
-func RemoveItem(accessToken *string) error {
+func (p *PlaidClient) RemoveItem(accessToken *string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*15))
 	defer cancel()
 
 	request := plaid.NewItemRemoveRequest(*accessToken)
-	_, _, err := client.PlaidApi.ItemRemove(ctx).ItemRemoveRequest(*request).Execute()
+	_, _, err := p.Client.PlaidApi.ItemRemove(ctx).ItemRemoveRequest(*request).Execute()
 	if err != nil {
 		return err
 	}

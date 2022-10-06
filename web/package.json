@@ -24,9 +24,8 @@
   },
   "type": "module",
   "scripts": {
-    "start": "BROWSER=none react-scripts start",
     "dev": "npm run watch & npm run sync",
-    "sync": "browser-sync start --files 'build/static/app.js' '../**/*.go' --serveStatic 'build' --reload-delay 2000 --proxy 'http://localhost:8080'",
+    "sync": "browser-sync start --files 'build/static/app.js' '../**/*.go' --serveStatic 'build' --reload-delay 500 --proxy 'http://localhost:8080'",
     "watch": "nodemon --exec 'npm run build' --watch src/ --ignore node_modules/ --ignore build/",
     "build": "node esbuild.config.js",
     "test": "react-scripts test",

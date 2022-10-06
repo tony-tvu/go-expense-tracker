@@ -11,30 +11,30 @@ export default function AddAccountBtn({ onSuccess }) {
   const navigate = useNavigate()
 
   useEffect(() => {
-    fetchLinkToken()
-  }, [])
+    // link_token is required to start linking a bank account
+    const fetchLinkToken = async () => {
+      await fetch(`${process.env.REACT_APP_API_URL}/link_token`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+        .then(async (res) => {
+          if (!res) return
+          if (res.status === 401) {
+            navigate('/login')
+          }
+          const data = await res.json().catch((err) => logger(err))
+          setLinkToken(data?.link_token)
+        })
+        .catch((err) => {
+          logger('error fetching link_token', err)
+        })
+    }
 
-  // link_token is required to start linking a bank account
-  const fetchLinkToken = async () => {
-    await fetch(`${process.env.REACT_APP_API_URL}/link_token`, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then(async (res) => {
-        if (!res) return
-        if (res.status === 401) {
-          navigate('/login')
-        }
-        const data = await res.json().catch((err) => logger(err))
-        setLinkToken(data?.link_token)
-      })
-      .catch((err) => {
-        logger('error fetching link_token', err)
-      })
-  }
+    fetchLinkToken()
+  }, [navigate])
 
   /*
    * Upon linking success, plaid api will return a public_token which will be used

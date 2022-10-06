@@ -32,6 +32,7 @@ type ItemHandler struct {
 	ConfigsCache *cache.Configs
 	Tasks        *tasks.Tasks
 	WebhooksURL  string
+	PlaidClient  *plaidclient.PlaidClient
 }
 
 func init() {
@@ -54,13 +55,43 @@ func (h *ItemHandler) GetLinkToken(c *gin.Context) {
 		return
 	}
 
-	linkToken, err := plaidclient.CreateLinkToken(ctx)
+	linkToken, err := h.PlaidClient.CreateLinkToken(ctx)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"link_token": linkToken})
+}
+
+func (h *ItemHandler) GetUpdateLinkToken(c *gin.Context) {
+	ctx := c.Request.Context()
+	userObjID, _, err := auth.AuthorizeUser(c, h.Db)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	plaidItemID := c.Param("plaid_item_id")
+
+	// verify item belongs to user
+	var item *models.Item
+	if err = h.Db.Items.FindOne(ctx, bson.M{"plaid_item_id": plaidItemID}).Decode(&item); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if item.UserID != *userObjID {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	linkToken, err := h.PlaidClient.CreateUpdateLinkToken(ctx, &item.AccessToken)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"update_link_token": linkToken})
 }
 
 func (h *ItemHandler) UpdateItemsWebhooksURL(c *gin.Context) {
@@ -98,7 +129,7 @@ func (h *ItemHandler) UpdateItemsWebhooksURL(c *gin.Context) {
 	}
 
 	for _, item := range items {
-		err := plaidclient.UpdateWebhooksURL(ctx, &input.WebhooksURL, &item.AccessToken)
+		err := h.PlaidClient.UpdateWebhooksURL(ctx, &input.WebhooksURL, &item.AccessToken)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
@@ -185,7 +216,7 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 	}
 
 	// exchange the public_token for a permanent access_token and itemID
-	accessToken, plaidItemID, institution, err := plaidclient.ExchangePublicToken(ctx, input.PublicToken)
+	accessToken, plaidItemID, institution, err := h.PlaidClient.ExchangePublicToken(ctx, input.PublicToken)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -198,6 +229,8 @@ func (h *ItemHandler) CreateItem(c *gin.Context) {
 		{Key: "plaid_item_id", Value: plaidItemID},
 		{Key: "access_token", Value: accessToken},
 		{Key: "cursor", Value: ""},
+		{Key: "new_accounts_available", Value: false},
+		{Key: "item_login_required", Value: false},
 		{Key: "created_at", Value: time.Now()},
 		{Key: "updated_at", Value: time.Now()},
 	}
@@ -248,7 +281,7 @@ func (h *ItemHandler) DeleteItem(c *gin.Context) {
 	}
 
 	// delete item on plaid
-	go plaidclient.RemoveItem(&item.AccessToken)
+	go h.PlaidClient.RemoveItem(&item.AccessToken)
 
 	// delete accounts associated with item
 	_, err = h.Db.Accounts.DeleteMany(ctx, bson.M{"plaid_item_id": plaidItemID})
@@ -313,7 +346,7 @@ func (h *ItemHandler) ReceiveWebooks(c *gin.Context) {
 
 	signedJwt := c.Request.Header.Get("Plaid-Verification")
 
-	sha256Val, err := plaidclient.VerifyWebhook(ctx, signedJwt)
+	sha256Val, err := h.PlaidClient.VerifyWebhook(ctx, signedJwt)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -356,5 +389,33 @@ func (h *ItemHandler) ReceiveWebooks(c *gin.Context) {
 
 			h.Tasks.RefreshTransactionsData(transactionsCtx, item)
 		}()
+	}
+
+	if webhook.WebhookCode == "ITEM_LOGIN_REQUIRED" || webhook.WebhookCode == "PENDING_EXPIRATION" {
+		_, err = h.Db.Items.UpdateOne(
+			ctx,
+			bson.M{"plaid_item_id": webhook.ItemId},
+			bson.M{
+				"$set": bson.M{
+					"item_login_required": true,
+					"updated_at":          time.Now()}},
+		)
+		if err != nil {
+			log.Printf("error updating item_login_required webhook for plaid_item_id: %s; %+v\n", webhook.ItemId, err)
+		}
+	}
+
+	if webhook.WebhookCode == "NEW_ACCOUNTS_AVAILABLE" {
+		_, err = h.Db.Items.UpdateOne(
+			ctx,
+			bson.M{"plaid_item_id": webhook.ItemId},
+			bson.M{
+				"$set": bson.M{
+					"new_accounts_available": true,
+					"updated_at":             time.Now()}},
+		)
+		if err != nil {
+			log.Printf("error updating new_accounts_available webhook for plaid_item_id: %s; %+v\n", webhook.ItemId, err)
+		}
 	}
 }

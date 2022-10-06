@@ -15,10 +15,12 @@ type Item struct {
 	ID     primitive.ObjectID `json:"id" bson:"_id"`
 	UserID primitive.ObjectID `json:"user_id" bson:"user_id"`
 
-	Institution string `json:"institution" bson:"institution"`
-	PlaidItemID string `json:"plaid_item_id" bson:"plaid_item_id"`
-	AccessToken string `json:"access_token,omitempty" bson:"access_token"`
-	Cursor      string `json:"cursor" bson:"cursor"`
+	Institution          string `json:"institution" bson:"institution"`
+	PlaidItemID          string `json:"plaid_item_id" bson:"plaid_item_id"`
+	AccessToken          string `json:"access_token,omitempty" bson:"access_token"`
+	Cursor               string `json:"cursor" bson:"cursor"`
+	NewAccountsAvailable bool   `json:"new_accounts_available" bson:"new_accounts_available"`
+	ItemLoginRequired    bool   `json:"item_login_required" bson:"item_login_required"`
 
 	CreatedAt time.Time `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`

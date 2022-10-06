@@ -16,7 +16,7 @@ import (
 
 type Tasks struct {
 	Db           *database.MongoDb
-	Client       *plaid.APIClient
+	PlaidClient  *plaidclient.PlaidClient
 	TaskInterval int
 }
 
@@ -57,9 +57,19 @@ func (t *Tasks) refreshTransactionsTask(ctx context.Context) {
 
 // function retreives latest accounts data
 func (t *Tasks) RefreshAccountData(ctx context.Context, item *models.Item) {
-	plaidAccounts, err := plaidclient.GetItemAccounts(ctx, &item.AccessToken)
+	plaidAccounts, err := t.PlaidClient.GetItemAccounts(ctx, &item.AccessToken)
 	if err != nil {
-		log.Printf("error getting item's accounts: %+v\n", err)
+		log.Printf("error getting item's accounts data for plaid_item_id: %s; %+v\n", item.PlaidItemID, err)
+
+		t.Db.Items.UpdateOne(
+			ctx,
+			bson.M{"plaid_item_id": item.PlaidItemID},
+			bson.M{
+				"$set": bson.M{
+					"item_login_required": true,
+					"updated_at":          time.Now()}},
+		)
+		return
 	}
 
 	for _, plaidAccount := range *plaidAccounts {
@@ -105,7 +115,7 @@ func (t *Tasks) RefreshAccountData(ctx context.Context, item *models.Item) {
 // function retreives latest transactions data
 func (t *Tasks) RefreshTransactionsData(ctx context.Context, item *models.Item) {
 	isSuccess := true
-	transactions, modifiedTransactions, removedTransactions, cursor, err := plaidclient.GetNewTransactions(ctx, item)
+	transactions, modifiedTransactions, removedTransactions, cursor, err := t.PlaidClient.GetNewTransactions(ctx, item)
 	if err != nil {
 		log.Printf("error getting transactions for plaid_item_id: %v; err: %+v", item.PlaidItemID, err)
 		isSuccess = false
@@ -155,7 +165,7 @@ func (t *Tasks) RefreshTransactionsData(ctx context.Context, item *models.Item) 
 	if isSuccess {
 		_, err = t.Db.Items.UpdateOne(
 			ctx,
-			bson.M{"_id": item.ID},
+			bson.M{"plaid_item_id": item.PlaidItemID},
 			bson.M{
 				"$set": bson.M{
 					"cursor":     cursor,

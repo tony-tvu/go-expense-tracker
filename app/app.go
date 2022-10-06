@@ -14,10 +14,12 @@ import (
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/cache"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/handlers"
 	"github.com/tony-tvu/goexpense/middleware"
+	"github.com/tony-tvu/goexpense/plaidclient"
 	"github.com/tony-tvu/goexpense/tasks"
 	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -52,8 +54,33 @@ func (a *App) Initialize(ctx context.Context) {
 	a.Db = &database.MongoDb{}
 	a.ConfigsCache = &cache.Configs{}
 
+	// Plaid
+	var envs = map[string]plaid.Environment{
+		"sandbox":     plaid.Sandbox,
+		"development": plaid.Development,
+		"production":  plaid.Production,
+	}
+	clientID := os.Getenv("PLAID_CLIENT_ID")
+	plaidSecret := os.Getenv("PLAID_SECRET")
+	plaidEnv := os.Getenv("PLAID_ENV")
+	if util.ContainsEmpty(clientID, plaidSecret, plaidEnv) {
+		log.Println("plaid env configs are missing - service will not work")
+	}
+	plaidCfg := plaid.NewConfiguration()
+	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", clientID)
+	plaidCfg.AddDefaultHeader("PLAID-SECRET", plaidSecret)
+	plaidCfg.UseEnvironment(envs[plaidEnv])
+	pc := plaid.NewAPIClient(plaidCfg)
+	webhooksURL := os.Getenv("WEBHOOKS_URL")
+	redirectURI := os.Getenv("REDIRECT_URI")
+	plaidclient := &plaidclient.PlaidClient{
+		Client:      pc,
+		WebhooksURL: &webhooksURL,
+		RedirectURI: &redirectURI,
+	}
+
 	// Tasks
-	tasks := &tasks.Tasks{Db: a.Db}
+	tasks := &tasks.Tasks{Db: a.Db, PlaidClient: plaidclient}
 	taskInterval, err := strconv.Atoi(os.Getenv("TASK_INTERVAL"))
 	if err != nil {
 		tasks.TaskInterval = 86400
@@ -64,7 +91,7 @@ func (a *App) Initialize(ctx context.Context) {
 
 	// Handlers
 	users := &handlers.UserHandler{Db: a.Db}
-	items := &handlers.ItemHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, Tasks: tasks, WebhooksURL: os.Getenv("WEBHOOKS_URL")}
+	items := &handlers.ItemHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, PlaidClient: plaidclient, Tasks: tasks, WebhooksURL: os.Getenv("WEBHOOKS_URL")}
 	transactions := &handlers.TransactionHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 	configs := &handlers.ConfigsHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 
@@ -106,6 +133,7 @@ func (a *App) Initialize(ctx context.Context) {
 
 		// items
 		api.GET("/link_token", items.GetLinkToken)
+		api.GET("/update_link_token/:plaid_item_id", items.GetUpdateLinkToken)
 		api.GET("/items/:page", items.GetItems)
 		api.POST("/items", items.CreateItem)
 		api.DELETE("/items/:plaid_item_id", items.DeleteItem)
