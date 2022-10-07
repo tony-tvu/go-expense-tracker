@@ -36,7 +36,6 @@ func (h *TellerHandler) NewEnrollment(c *gin.Context) {
 
 	type Input struct {
 		AccessToken  string `json:"access_token" validate:"required"`
-		EnrollmentID string `json:"enrollment_id" validate:"required"`
 		Institution  string `json:"institution" validate:"required"`
 	}
 

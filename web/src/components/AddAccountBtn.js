@@ -40,14 +40,14 @@ export default function AddAccountBtn({ onSuccess }) {
   }, [])
 
   async function createEnrollment(enrollment) {
-    await fetch(`${process.env.REACT_APP_API_URL}/teller/enrollment`, {
+    await fetch(`${process.env.REACT_APP_API_URL}/enrollments`, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        accessToken: enrollment.accessToken,
+        access_token: enrollment.accessToken,
         institution: enrollment.enrollment.institution.name,
       }),
     })
@@ -71,8 +71,8 @@ export default function AddAccountBtn({ onSuccess }) {
         const res = await tellerApi.setup({
           applicationId: process.env.REACT_APP_TELLER_ID,
           environment: process.env.REACT_APP_TELLER_ENV,
-          onSuccess: function (enrollment) {
-            createEnrollment(enrollment)
+          onSuccess: async (enrollment) => {
+            await createEnrollment(enrollment)
           },
         })
         res.open()

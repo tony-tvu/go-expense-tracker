@@ -41,11 +41,10 @@ export default function LinkedAccounts() {
         .then(async (res) => {
           if (!res) return
           const resData = await res.json().catch((err) => logger(err))
-          console.log(resData)
           if (res.status === 200 && resData.enrollments) {
             setData(resData.enrollments)
-            setLoading(false)
           }
+          setLoading(false)
         })
         .catch((err) => {
           logger('error getting items', err)
