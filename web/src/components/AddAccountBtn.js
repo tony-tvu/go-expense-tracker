@@ -1,53 +1,55 @@
 import React, { useEffect, useState } from 'react'
 import logger from '../logger'
-import { usePlaidLink } from 'react-plaid-link'
 import { BsPlus } from 'react-icons/bs'
 import { Button } from '@chakra-ui/react'
 import { colors } from '../theme'
 import { useNavigate } from 'react-router-dom'
 
+function loadScript(elementId, src) {
+  if (!document.getElementById(elementId)) {
+    const script = document.createElement('script')
+    script.src = src
+    script.id = elementId
+    document.head.appendChild(script)
+  }
+}
+
+// Ensure the Teller Connect script is loaded
+// Returns the `window.TellerConnect` object once it exists
+function loadTellerConnect() {
+  return new Promise((resolve) => {
+    function check() {
+      if (window.TellerConnect) {
+        return resolve(window.TellerConnect)
+      }
+      loadScript('teller-script', 'https://cdn.teller.io/connect/connect.js')
+      setTimeout(check, 100)
+    }
+    check()
+  })
+}
+
 export default function AddAccountBtn({ onSuccess }) {
-  const [linkToken, setLinkToken] = useState(null)
+  const [tellerApi, setTellerApi] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
-    // link_token is required to start linking a bank account
-    const fetchLinkToken = async () => {
-      await fetch(`${process.env.REACT_APP_API_URL}/link_token`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-        .then(async (res) => {
-          if (!res) return
-          if (res.status === 401) {
-            navigate('/login')
-          }
-          const data = await res.json().catch((err) => logger(err))
-          setLinkToken(data?.link_token)
-        })
-        .catch((err) => {
-          logger('error fetching link_token', err)
-        })
-    }
+    loadTellerConnect().then((tellerApi) => {
+      setTellerApi(tellerApi)
+    })
+  }, [])
 
-    fetchLinkToken()
-  }, [navigate])
-
-  /*
-   * Upon linking success, plaid api will return a public_token which will be used
-   * to get a permanent access_token for the user's specific linked bank account.
-   */
-  const onLinkAccountSuccess = async (public_token) => {
-    await fetch(`${process.env.REACT_APP_API_URL}/items`, {
+  async function createEnrollment(enrollment) {
+    await fetch(`${process.env.REACT_APP_API_URL}/teller/enrollment`, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ public_token: public_token }),
+      body: JSON.stringify({
+        accessToken: enrollment.accessToken,
+        institution: enrollment.enrollment.institution.name,
+      }),
     })
       .then((res) => {
         if (res.status === 401) {
@@ -56,43 +58,25 @@ export default function AddAccountBtn({ onSuccess }) {
         if (res.status === 200) onSuccess()
       })
       .catch((e) => {
-        logger('error setting access token', e)
+        logger('error saving access token', e)
       })
   }
-  const plaidConfig = {
-    token: linkToken,
-    onSuccess: onLinkAccountSuccess,
-  }
-  const { open: openLinkingPopup, ready: isReadyToLinkAccount } =
-    usePlaidLink(plaidConfig)
 
   return (
     <Button
       leftIcon={<BsPlus />}
       type="button"
       variant="solid"
-      onClick={() => {
-        fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
+      onClick={async () => {
+        const res = await tellerApi.setup({
+          applicationId: process.env.REACT_APP_TELLER_ID,
+          environment: process.env.REACT_APP_TELLER_ENV,
+          onSuccess: function (enrollment) {
+            createEnrollment(enrollment)
           },
         })
-          .then(async (res) => {
-            if (!res) return
-            const data = await res.json().catch((err) => logger(err))
-            if (data && data.logged_in) {
-              openLinkingPopup()
-            } else {
-              navigate('/login')
-            }
-          })
-          .catch((err) => {
-            logger('error verifying login state', err)
-          })
+        res.open()
       }}
-      disabled={!isReadyToLinkAccount}
       bg={colors.primary}
       color={'white'}
       _hover={{

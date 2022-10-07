@@ -13,28 +13,22 @@ import (
 )
 
 type MongoDb struct {
-	Accounts     *mongo.Collection
 	Configs      *mongo.Collection
-	Items        *mongo.Collection
+	Enrollments  *mongo.Collection
 	Sessions     *mongo.Collection
 	Transactions *mongo.Collection
 	Users        *mongo.Collection
 }
 
-func GetItems(ctx context.Context, db *MongoDb) ([]*models.Item, error) {
-	cursor, err := db.Items.Find(ctx, bson.M{})
-	if err != nil {
-		return nil, err
-	}
-	var items []*models.Item
-	if err = cursor.All(ctx, &items); err != nil {
-		return nil, err
-	}
-
-	return items, nil
+func (db *MongoDb) SetCollections(client *mongo.Client, dbName string) {
+	db.Configs = client.Database(dbName).Collection("configs")
+	db.Enrollments = client.Database(dbName).Collection("enrollments")
+	db.Sessions = client.Database(dbName).Collection("sessions")
+	db.Transactions = client.Database(dbName).Collection("transactions")
+	db.Users = client.Database(dbName).Collection("users")
 }
 
-func CreateUniqueConstraints(ctx context.Context, db *MongoDb) {
+func (db *MongoDb) CreateUniqueConstraints(ctx context.Context) {
 	if _, err := db.Users.Indexes().CreateOne(
 		ctx, mongo.IndexModel{
 			Keys:    bson.D{{Key: "username", Value: 1}},
@@ -59,10 +53,18 @@ func CreateUniqueConstraints(ctx context.Context, db *MongoDb) {
 	); err != nil {
 		log.Fatal(err)
 	}
+	if _, err := db.Enrollments.Indexes().CreateOne(
+		ctx, mongo.IndexModel{
+			Keys:    bson.D{{Key: "access_token", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // Creates initial admin user. Account details can be specified in .env
-func CreateInitialAdminUser(ctx context.Context, db *MongoDb, username, email, password string) {
+func (db *MongoDb) CreateInitialAdminUser(ctx context.Context, username, email, password string) {
 	// check if admin already exists
 	count, err := db.Users.CountDocuments(ctx, bson.M{"username": username})
 	if err != nil {
