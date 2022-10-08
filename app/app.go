@@ -121,6 +121,7 @@ func (a *App) Initialize(ctx context.Context) {
 	{
 		// configs
 		api.GET("/registration_enabled", configs.RegistrationEnabled)
+		api.GET("/teller_app_id", configs.TellerAppID)
 		api.GET("/configs", configs.GetConfigs)
 		api.PUT("/configs", configs.UpdateConfigs)
 
