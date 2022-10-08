@@ -21,6 +21,7 @@ import (
 	"github.com/tony-tvu/goexpense/handlers"
 	"github.com/tony-tvu/goexpense/jobs"
 	"github.com/tony-tvu/goexpense/middleware"
+	"github.com/tony-tvu/goexpense/teller"
 	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -54,8 +55,29 @@ func (a *App) Initialize(ctx context.Context) {
 	a.Db = &database.MongoDb{}
 	a.ConfigsCache = &cache.Configs{}
 
+	// TellerClient
+	dirname, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	certPath := path.Join(dirname, "/certificate/certificate.pem")
+	keyPath := path.Join(dirname, "/certificate/private_key.pem")
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				Certificates: []tls.Certificate{cert},
+			},
+		},
+		Timeout: 2 * time.Minute,
+	}
+	tc := &teller.TellerClient{Client: client, Db: a.Db}
+
 	// Jobs
-	jobs := &jobs.Jobs{Db: a.Db}
+	jobs := &jobs.Jobs{Db: a.Db, TellerClient: tc}
 	jobsEnabled, err := strconv.ParseBool(os.Getenv("JOBS_ENABLED"))
 	if err != nil {
 		jobs.Enabled = false
@@ -70,29 +92,9 @@ func (a *App) Initialize(ctx context.Context) {
 	}
 	a.Jobs = jobs
 
-	// TellerClient
-	dirname, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	certPath := path.Join(dirname, "/certificate/certificate.pem")
-	keyPath := path.Join(dirname, "/certificate/private_key.pem")
-	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	tellerClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				Certificates: []tls.Certificate{cert},
-			},
-		},
-		Timeout: 2 * time.Minute,
-	}
-
 	// Handlers
 	users := &handlers.UserHandler{Db: a.Db}
-	teller := &handlers.TellerHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, TellerClient: tellerClient}
+	teller := &handlers.TellerHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, TellerClient: tc}
 	configs := &handlers.ConfigsHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 
 	// Router

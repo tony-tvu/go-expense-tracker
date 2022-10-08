@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/teller"
 )
 
 type Jobs struct {
-	Db       *database.MongoDb
-	Interval int
-	Enabled  bool
+	Db           *database.MongoDb
+	Interval     int
+	Enabled      bool
+	TellerClient *teller.TellerClient
 }
 
 func (j *Jobs) Start(ctx context.Context) {
