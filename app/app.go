@@ -182,8 +182,8 @@ func (a *App) Start(ctx context.Context) {
 	srv := &http.Server{
 		Handler:      a.Router,
 		Addr:         fmt.Sprintf(":%s", port),
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		ReadTimeout:  30 * time.Second,
 	}
 
 	log.Printf("Listening on port %s\n", port)

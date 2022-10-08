@@ -11,12 +11,16 @@ type Account struct {
 	ID     primitive.ObjectID `json:"id" bson:"_id"`
 	UserID primitive.ObjectID `json:"user_id" bson:"user_id"`
 
-	PlaidItemID    string  `json:"plaid_item_id" bson:"plaid_item_id"`
-	PlaidAccountID string  `json:"plaid_account_id" bson:"plaid_account_id"`
-	Type           string  `json:"type" bson:"type"`
-	CurrentBalance float64 `json:"current_balance" bson:"current_balance"`
-	Name           string  `json:"name" bson:"name"`
-	Institution    string  `json:"institution" bson:"institution"`
+	AccountID string `json:"account_id" bson:"account_id"`
+	// accessToken used to identify which enrollment this account belongs to
+	// when an enrollment is deleted, remove the associated accounts with the same accessToken
+	AccessToken string  `json:"access_token" bson:"access_token"`
+	Type        string  `json:"type" bson:"type"`
+	Subtype     string  `json:"subtype" bson:"subtype"`
+	Status      string  `json:"status" bson:"status"`
+	Name        string  `json:"name" bson:"name"`
+	Institution string  `json:"institution" bson:"institution"`
+	Balance     float64 `json:"balance" bson:"balance"`
 
 	CreatedAt time.Time `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`

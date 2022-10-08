@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -35,8 +36,8 @@ func (h *TellerHandler) NewEnrollment(c *gin.Context) {
 	}
 
 	type Input struct {
-		AccessToken  string `json:"access_token" validate:"required"`
-		Institution  string `json:"institution" validate:"required"`
+		AccessToken string `json:"access_token" validate:"required"`
+		Institution string `json:"institution" validate:"required"`
 	}
 
 	var input Input
@@ -74,15 +75,52 @@ func (h *TellerHandler) NewEnrollment(c *gin.Context) {
 }
 
 func (h *TellerHandler) populateAccounts(userID *primitive.ObjectID, accessToken *string) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(2*time.Minute))
+	defer cancel()
+
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/accounts", BASE_URL), nil)
 	req.SetBasicAuth(*accessToken, "")
 
-	res, err := h.TellerClient.Do(req)
-	if err != nil {
-		log.Printf("error populating accounts for access_token %s: %v", *accessToken, err)
+	retryLimit := 3
+	count := 0
+
+	for count != retryLimit {
+		res, err := h.TellerClient.Do(req)
+		if err != nil {
+			log.Printf("error populating accounts for access_token %s: %v", *accessToken, err)
+		}
+
+		var accounts *[]models.Account
+		json.NewDecoder(res.Body).Decode(&accounts)
+
+		for _, account := range *accounts {
+			doc := &bson.D{
+				{Key: "user_id", Value: *userID},
+				{Key: "account_id", Value: account.AccountID},
+				{Key: "access_token", Value: account.AccessToken},
+				{Key: "type", Value: account.Type},
+				{Key: "subtype", Value: account.Subtype},
+				{Key: "status", Value: account.Status},
+				{Key: "name", Value: account.Name},
+				{Key: "institution", Value: account.Institution},
+				{Key: "balance", Value: account.Balance},
+				{Key: "created_at", Value: time.Now()},
+				{Key: "updated_at", Value: time.Now()},
+			}
+			_, err = h.Db.Accounts.InsertOne(ctx, doc)
+			if err != nil {
+				log.Printf("error populating accounts for access_token %s: %v", *accessToken, err)
+			}
+		}
+
+		if len(*accounts) > 0 {
+			count = 3
+		} else {
+			count++
+		}
+		time.Sleep(30 * time.Second)
 	}
 
-	fmt.Printf("%+v", res)
 }
 
 func (h *TellerHandler) GetEnrollments(c *gin.Context) {

@@ -13,6 +13,7 @@ import (
 )
 
 type MongoDb struct {
+	Accounts     *mongo.Collection
 	Configs      *mongo.Collection
 	Enrollments  *mongo.Collection
 	Sessions     *mongo.Collection
@@ -21,6 +22,7 @@ type MongoDb struct {
 }
 
 func (db *MongoDb) SetCollections(client *mongo.Client, dbName string) {
+	db.Accounts = client.Database(dbName).Collection("accounts")
 	db.Configs = client.Database(dbName).Collection("configs")
 	db.Enrollments = client.Database(dbName).Collection("enrollments")
 	db.Sessions = client.Database(dbName).Collection("sessions")
