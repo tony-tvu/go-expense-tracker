@@ -63,6 +63,14 @@ func (db *MongoDb) CreateUniqueConstraints(ctx context.Context) {
 	); err != nil {
 		log.Fatal(err)
 	}
+	if _, err := db.Accounts.Indexes().CreateOne(
+		ctx, mongo.IndexModel{
+			Keys:    bson.D{{Key: "account_id", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // Creates initial admin user. Account details can be specified in .env

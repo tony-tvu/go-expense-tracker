@@ -25,6 +25,20 @@ type TellerHandler struct {
 	TellerClient *http.Client
 }
 
+type TellerAccountRes struct {
+	AccountID   string `json:"id"`
+	Type        string `json:"type"`
+	Subtype     string `json:"subtype"`
+	Status      string `json:"status"`
+	Name        string `json:"name"`
+	Institution struct {
+		Name string `json:"name"`
+		ID   string `json:"id"`
+	} `json:"institution"`
+	Currency string `json:"currency"`
+	LastFour string `json:"last_four"`
+}
+
 var BASE_URL = "https://api.teller.io"
 
 func (h *TellerHandler) NewEnrollment(c *gin.Context) {
@@ -90,20 +104,20 @@ func (h *TellerHandler) populateAccounts(userID *primitive.ObjectID, accessToken
 			log.Printf("error populating accounts for access_token %s: %v", *accessToken, err)
 		}
 
-		var accounts *[]models.Account
-		json.NewDecoder(res.Body).Decode(&accounts)
+		var tellerAccounts *[]TellerAccountRes
+		json.NewDecoder(res.Body).Decode(&tellerAccounts)
 
-		for _, account := range *accounts {
+		for _, account := range *tellerAccounts {
 			doc := &bson.D{
 				{Key: "user_id", Value: *userID},
 				{Key: "account_id", Value: account.AccountID},
-				{Key: "access_token", Value: account.AccessToken},
+				{Key: "access_token", Value: *accessToken},
 				{Key: "type", Value: account.Type},
 				{Key: "subtype", Value: account.Subtype},
 				{Key: "status", Value: account.Status},
 				{Key: "name", Value: account.Name},
-				{Key: "institution", Value: account.Institution},
-				{Key: "balance", Value: account.Balance},
+				{Key: "institution", Value: account.Institution.Name},
+				{Key: "last_four", Value: account.LastFour},
 				{Key: "created_at", Value: time.Now()},
 				{Key: "updated_at", Value: time.Now()},
 			}
@@ -113,14 +127,13 @@ func (h *TellerHandler) populateAccounts(userID *primitive.ObjectID, accessToken
 			}
 		}
 
-		if len(*accounts) > 0 {
+		if len(*tellerAccounts) > 0 {
 			count = 3
 		} else {
 			count++
 		}
 		time.Sleep(30 * time.Second)
 	}
-
 }
 
 func (h *TellerHandler) GetEnrollments(c *gin.Context) {
