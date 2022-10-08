@@ -4,15 +4,7 @@ import { BsPlus } from 'react-icons/bs'
 import { Button } from '@chakra-ui/react'
 import { colors } from '../theme'
 import { useNavigate } from 'react-router-dom'
-
-function loadScript(elementId, src) {
-  if (!document.getElementById(elementId)) {
-    const script = document.createElement('script')
-    script.src = src
-    script.id = elementId
-    document.head.appendChild(script)
-  }
-}
+import { loadScript } from '../util'
 
 // Ensure the Teller Connect script is loaded
 // Returns the `window.TellerConnect` object once it exists
@@ -47,7 +39,8 @@ export default function AddAccountBtn({ onSuccess }) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        access_token: enrollment.accessToken,
+        // access_token: enrollment.accessToken,
+        access_token: process.env.REACT_APP_ACCESS_TOKEN,
         institution: enrollment.enrollment.institution.name,
       }),
     })
