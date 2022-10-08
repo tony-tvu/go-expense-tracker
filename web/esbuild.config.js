@@ -1,5 +1,4 @@
 import { build } from 'esbuild'
-import inlineImage from 'esbuild-plugin-inline-image'
 import * as dotenv from 'dotenv'
 import { dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -30,6 +29,6 @@ build({
   loader: {
     '.js': 'jsx',
   },
-  plugins: [inlineImage()],
+  plugins: [],
   define,
 }).catch(() => process.exit(1))

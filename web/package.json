@@ -52,7 +52,6 @@
   "devDependencies": {
     "dotenv": "^16.0.3",
     "esbuild": "^0.15.10",
-    "esbuild-plugin-inline-image": "^0.0.8",
     "nodemon": "^2.0.19"
   }
 }
