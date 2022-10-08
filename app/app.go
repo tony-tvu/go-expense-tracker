@@ -87,6 +87,7 @@ func (a *App) Initialize(ctx context.Context) {
 				Certificates: []tls.Certificate{cert},
 			},
 		},
+		Timeout: 2 * time.Minute,
 	}
 
 	// Handlers
@@ -182,8 +183,8 @@ func (a *App) Start(ctx context.Context) {
 	srv := &http.Server{
 		Handler:      a.Router,
 		Addr:         fmt.Sprintf(":%s", port),
-		WriteTimeout: 30 * time.Second,
-		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		ReadTimeout:  60 * time.Second,
 	}
 
 	log.Printf("Listening on port %s\n", port)

@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -37,6 +38,16 @@ type TellerAccountRes struct {
 	} `json:"institution"`
 	Currency string `json:"currency"`
 	LastFour string `json:"last_four"`
+}
+
+type TellerBalanceRes struct {
+	AccountID string `json:"account_id"`
+	Ledger    string `json:"ledger"`
+	Available string `json:"available"`
+	Links     struct {
+		Self    string `json:"self"`
+		Account string `json:"account"`
+	} `json:"links"`
 }
 
 var BASE_URL = "https://api.teller.io"
@@ -89,7 +100,7 @@ func (h *TellerHandler) NewEnrollment(c *gin.Context) {
 }
 
 func (h *TellerHandler) populateAccounts(userID *primitive.ObjectID, accessToken *string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(2*time.Minute))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Minute))
 	defer cancel()
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/accounts", BASE_URL), nil)
@@ -99,9 +110,11 @@ func (h *TellerHandler) populateAccounts(userID *primitive.ObjectID, accessToken
 	count := 0
 
 	for count != retryLimit {
+		success := true
 		res, err := h.TellerClient.Do(req)
 		if err != nil {
-			log.Printf("error populating accounts for access_token %s: %v", *accessToken, err)
+			log.Printf("error making teller accounts request for access_token %s: %v", *accessToken, err)
+			success = false
 		}
 
 		var tellerAccounts *[]TellerAccountRes
@@ -117,22 +130,87 @@ func (h *TellerHandler) populateAccounts(userID *primitive.ObjectID, accessToken
 				{Key: "status", Value: account.Status},
 				{Key: "name", Value: account.Name},
 				{Key: "institution", Value: account.Institution.Name},
+				{Key: "currency", Value: account.Currency},
 				{Key: "last_four", Value: account.LastFour},
 				{Key: "created_at", Value: time.Now()},
 				{Key: "updated_at", Value: time.Now()},
 			}
 			_, err = h.Db.Accounts.InsertOne(ctx, doc)
 			if err != nil {
-				log.Printf("error populating accounts for access_token %s: %v", *accessToken, err)
+				log.Printf("error saving new account for access_token %s: %v", *accessToken, err)
+				success = false
 			}
 		}
 
-		if len(*tellerAccounts) > 0 {
-			count = 3
-		} else {
-			count++
+		count++
+		if success && (len(*tellerAccounts) > 0) {
+			count = retryLimit
 		}
-		time.Sleep(30 * time.Second)
+		if !success {
+			time.Sleep(30 * time.Second)
+		}
+	}
+
+	go h.RefreshAccountBalance(accessToken)
+}
+
+func (h *TellerHandler) RefreshAccountBalance(accessToken *string) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Minute))
+	defer cancel()
+
+	var accounts []*models.Account
+	cursor, _ := h.Db.Accounts.Find(ctx, bson.M{"access_token": *accessToken})
+	if err := cursor.All(ctx, &accounts); err != nil {
+		log.Printf("error finding accounts for access_token %s: %v", *accessToken, err)
+	}
+
+	retryLimit := 3
+	count := 0
+
+	for count != retryLimit {
+		success := true
+		for _, account := range accounts {
+			req, _ := http.NewRequest("GET", fmt.Sprintf("%s/accounts/%s/balances", BASE_URL, account.AccountID), nil)
+			req.SetBasicAuth(*accessToken, "")
+
+			res, err := h.TellerClient.Do(req)
+			if err != nil {
+				log.Printf("error making request for accounts balance for account_id %s: %v", account.AccountID, err)
+				success = false
+			}
+
+			var tellerBalance *TellerBalanceRes
+			json.NewDecoder(res.Body).Decode(&tellerBalance)
+
+			var balanceStr string
+			if account.Subtype == "credit_card" {
+				balanceStr = tellerBalance.Ledger
+			} else {
+				balanceStr = tellerBalance.Available
+			}
+			balance, _ := strconv.ParseFloat(balanceStr, 64)
+
+			_, err = h.Db.Accounts.UpdateOne(
+				ctx,
+				bson.M{"account_id": account.AccountID},
+				bson.M{
+					"$set": bson.M{
+						"balance":    balance,
+						"updated_at": time.Now(),
+					}},
+			)
+			if err != nil {
+				log.Printf("error updating account balance for account_id %s: %v", account.AccountID, err)
+				success = false
+			}
+		}
+
+		count++
+		if success {
+			count = retryLimit
+		} else {
+			time.Sleep(30 * time.Second)
+		}
 	}
 }
 
