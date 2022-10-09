@@ -25,19 +25,19 @@ export default function Dashboard() {
         .then(async (res) => {
           if (!res) return
           const resData = await res.json().catch((err) => logger(err))
+          console.log(resData.accounts)
           if (res.status === 200 && resData.accounts) {
             setAccountsData(resData.accounts)
             let cashTotal = 0
             let creditTotal = 0
-            resData.accounts.forEach((acc) => {
-              if (acc.type === 'checking' || acc.type === 'savings') {
-                cashTotal += acc.current_balance
-              } else if (acc.type === 'credit card') {
-                creditTotal += acc.current_balance
+            resData.accounts.forEach((account) => {
+              if (account.subtype === 'credit_card') {
+                creditTotal += account.balance
+              } else {
+                cashTotal += account.balance
               }
             })
             setNetWorth(cashTotal - creditTotal)
-
             setCashTotal(cashTotal)
             creditTotal = -1 * creditTotal
             setCreditTotal(creditTotal)
@@ -45,7 +45,7 @@ export default function Dashboard() {
           }
         })
         .catch((err) => {
-          logger('error getting transactions', err)
+          logger('error fetching accounts', err)
         })
     }
   }, [accountsData, loading])

@@ -131,6 +131,7 @@ func (a *App) Initialize(ctx context.Context) {
 
 		// finances
 		api.GET("/transactions", finances.GetTransactions)
+		api.GET("/accounts", finances.GetAccounts)
 
 		// teller
 		api.POST("/enrollments", teller.NewEnrollment)

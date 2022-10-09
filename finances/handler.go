@@ -40,3 +40,29 @@ func (h *Handler) GetTransactions(c *gin.Context) {
 		"transactions": transactions,
 	})
 }
+
+func (h *Handler) GetAccounts(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
+	var accounts []*models.Account
+	cursor, err := h.Db.Accounts.Find(ctx, bson.M{"user_id": &userID}, opts)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if err = cursor.All(ctx, &accounts); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"accounts": accounts,
+	})
+}
