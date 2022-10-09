@@ -220,7 +220,20 @@ func (t *TellerClient) RefreshBalances(accessToken *string) {
 		count++
 		if success {
 			count = retryLimit
-		} else {
+		}
+		if !success {
+			if count == retryLimit {
+				t.Db.Enrollments.UpdateOne(
+					ctx,
+					bson.M{"access_token": *accessToken},
+					bson.M{
+						"$set": bson.M{
+							"disconnected": true,
+							"updated_at":   time.Now(),
+						}},
+				)
+			}
+
 			time.Sleep(30 * time.Second)
 		}
 	}
@@ -295,6 +308,18 @@ func (t *TellerClient) RefreshTransactions(accessToken *string) {
 			count = retryLimit
 		}
 		if !success {
+			if count == retryLimit {
+				t.Db.Enrollments.UpdateOne(
+					ctx,
+					bson.M{"access_token": *accessToken},
+					bson.M{
+						"$set": bson.M{
+							"disconnected": true,
+							"updated_at":   time.Now(),
+						}},
+				)
+			}
+
 			time.Sleep(30 * time.Second)
 		}
 	}

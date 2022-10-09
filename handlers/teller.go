@@ -24,6 +24,8 @@ type TellerHandler struct {
 
 func (h *TellerHandler) NewEnrollment(c *gin.Context) {
 	ctx := c.Request.Context()
+	defer c.Request.Body.Close()
+
 	userID, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
