@@ -1,4 +1,4 @@
-package handlers
+package user
 
 import (
 	"encoding/json"
@@ -17,7 +17,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserHandler struct {
+type Handler struct {
 	Db    *database.MongoDb
 	Cache *cache.Configs
 }
@@ -28,7 +28,7 @@ func init() {
 	v = validator.New()
 }
 
-func (h *UserHandler) IsLoggedIn(c *gin.Context) {
+func (h *Handler) IsLoggedIn(c *gin.Context) {
 	_, userType, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -44,7 +44,7 @@ func (h *UserHandler) IsLoggedIn(c *gin.Context) {
 	}
 }
 
-func (h *UserHandler) GetUsers(c *gin.Context) {
+func (h *Handler) GetUsers(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	if _, uType, err := auth.AuthorizeUser(c, h.Db); err != nil || *uType != models.AdminUser {
@@ -66,7 +66,7 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, users)
 }
 
-func (h *UserHandler) Login(c *gin.Context) {
+func (h *Handler) Login(c *gin.Context) {
 	ctx := c.Request.Context()
 	defer c.Request.Body.Close()
 
@@ -147,7 +147,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 	util.SetCookie(c.Writer, "goexpense_refresh", refreshToken.Value, refreshToken.ExpiresAt)
 }
 
-func (h *UserHandler) Logout(c *gin.Context) {
+func (h *Handler) Logout(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	userID, _, err := auth.AuthorizeUser(c, h.Db)
@@ -166,7 +166,7 @@ func (h *UserHandler) Logout(c *gin.Context) {
 	util.SetCookie(c.Writer, "goexpense_refresh", "", time.Now())
 }
 
-func (h *UserHandler) GetUserInfo(c *gin.Context) {
+func (h *Handler) GetUserInfo(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	userID, _, err := auth.AuthorizeUser(c, h.Db)
@@ -188,7 +188,7 @@ func (h *UserHandler) GetUserInfo(c *gin.Context) {
 	})
 }
 
-func (h *UserHandler) GetSessions(c *gin.Context) {
+func (h *Handler) GetSessions(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	if _, uType, err := auth.AuthorizeUser(c, h.Db); err != nil || *uType != models.AdminUser {
@@ -211,6 +211,6 @@ func (h *UserHandler) GetSessions(c *gin.Context) {
 }
 
 // TODO
-func (h UserHandler) RegisterUser(c *gin.Context) {
+func (h *Handler) RegisterUser(c *gin.Context) {
 	panic("not implemented")
 }

@@ -18,10 +18,11 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/cache"
 	"github.com/tony-tvu/goexpense/database"
-	"github.com/tony-tvu/goexpense/handlers"
+	"github.com/tony-tvu/goexpense/finances"
 	"github.com/tony-tvu/goexpense/jobs"
 	"github.com/tony-tvu/goexpense/middleware"
 	"github.com/tony-tvu/goexpense/teller"
+	"github.com/tony-tvu/goexpense/user"
 	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -93,9 +94,10 @@ func (a *App) Initialize(ctx context.Context) {
 	a.Jobs = jobs
 
 	// Handlers
-	users := &handlers.UserHandler{Db: a.Db}
-	teller := &handlers.TellerHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, TellerClient: tc}
-	configs := &handlers.ConfigsHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
+	cache := &cache.Handler{Db: a.Db, ConfigsCache: a.ConfigsCache}
+	finances := &finances.Handler{Db: a.Db}
+	teller := &teller.Handler{Db: a.Db, TellerClient: tc}
+	users := &user.Handler{Db: a.Db}
 
 	// Router
 	if env == Production {
@@ -122,10 +124,18 @@ func (a *App) Initialize(ctx context.Context) {
 	api := router.Group("/api", middleware.NoCache)
 	{
 		// configs
-		api.GET("/registration_enabled", configs.RegistrationEnabled)
-		api.GET("/teller_app_id", configs.TellerAppID)
-		api.GET("/configs", configs.GetConfigs)
-		api.PUT("/configs", configs.UpdateConfigs)
+		api.GET("/registration_enabled", cache.RegistrationEnabled)
+		api.GET("/teller_app_id", cache.TellerAppID)
+		api.GET("/configs", cache.GetConfigs)
+		api.PUT("/configs", cache.UpdateConfigs)
+
+		// finances
+		api.GET("/transactions", finances.GetTransactions)
+
+		// teller
+		api.POST("/enrollments", teller.NewEnrollment)
+		api.DELETE("/enrollments/:enrollment_id", teller.DeleteEnrollment)
+		api.GET("/enrollments", teller.GetEnrollments)
 
 		// users
 		api.POST("/logout", users.Logout)
@@ -133,11 +143,6 @@ func (a *App) Initialize(ctx context.Context) {
 		api.GET("/logged_in", users.IsLoggedIn)
 		api.GET("/user_info", users.GetUserInfo)
 		api.GET("/sessions", users.GetSessions)
-
-		// teller
-		api.POST("/enrollments", teller.NewEnrollment)
-		api.DELETE("/enrollments/:enrollment_id", teller.DeleteEnrollment)
-		api.GET("/enrollments", teller.GetEnrollments)
 	}
 
 	router.Use(middleware.FrontendCache, static.Serve("/", static.LocalFile("./web/build", true)))

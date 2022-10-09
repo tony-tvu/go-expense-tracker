@@ -1,4 +1,4 @@
-package handlers
+package cache
 
 import (
 	"encoding/json"
@@ -7,17 +7,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/cache"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
 )
 
-type ConfigsHandler struct {
+type Handler struct {
 	Db           *database.MongoDb
-	ConfigsCache *cache.Configs
+	ConfigsCache *Configs
 }
 
-func (h *ConfigsHandler) RegistrationEnabled(c *gin.Context) {
+func (h *Handler) RegistrationEnabled(c *gin.Context) {
 	configs, err := h.ConfigsCache.GetConfigs()
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -29,7 +28,7 @@ func (h *ConfigsHandler) RegistrationEnabled(c *gin.Context) {
 	})
 }
 
-func (h *ConfigsHandler) TellerAppID(c *gin.Context) {
+func (h *Handler) TellerAppID(c *gin.Context) {
 	if _, _, err := auth.AuthorizeUser(c, h.Db); err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -46,7 +45,7 @@ func (h *ConfigsHandler) TellerAppID(c *gin.Context) {
 	})
 }
 
-func (h *ConfigsHandler) GetConfigs(c *gin.Context) {
+func (h *Handler) GetConfigs(c *gin.Context) {
 	if _, userType, err := auth.AuthorizeUser(c, h.Db); err != nil || *userType != models.AdminUser {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -61,7 +60,7 @@ func (h *ConfigsHandler) GetConfigs(c *gin.Context) {
 	c.JSON(http.StatusOK, configs)
 }
 
-func (h *ConfigsHandler) UpdateConfigs(c *gin.Context) {
+func (h *Handler) UpdateConfigs(c *gin.Context) {
 	ctx := c.Request.Context()
 	defer c.Request.Body.Close()
 
@@ -70,7 +69,7 @@ func (h *ConfigsHandler) UpdateConfigs(c *gin.Context) {
 		return
 	}
 
-	var input *cache.ConfigsInput
+	var input *ConfigsInput
 	bodyBytes, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
