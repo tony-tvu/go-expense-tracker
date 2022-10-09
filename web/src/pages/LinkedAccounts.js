@@ -81,7 +81,7 @@ export default function LinkedAccounts() {
           {enrollment.disconnected && (
             <>
               <Tooltip
-                label={`This account is unable to connect to your financial instituion. Please remove this account and add it back to repair the connection.`}
+                label={`This account is unable to connect to your financial instituion. To resolve this issue, remove this account and add it again (your existing transactions will not be deleted)`}
                 fontSize="md"
                 bg={tooltipBg}
                 color={tooltipColor}

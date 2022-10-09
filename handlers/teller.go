@@ -158,11 +158,4 @@ func (h *TellerHandler) DeleteEnrollment(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-
-	// delete transactions belonging to enrollment
-	_, err = h.Db.Transactions.DeleteMany(ctx, bson.M{"enrollment_id": enrollmentID})
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
 }
