@@ -56,16 +56,10 @@ func (a *App) Initialize(ctx context.Context) {
 	a.ConfigsCache = &cache.Configs{}
 
 	// TellerClient
-	dirname, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
+	dirname, _ := os.Getwd()
 	certPath := path.Join(dirname, "/certificate/certificate.pem")
 	keyPath := path.Join(dirname, "/certificate/private_key.pem")
-	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
-	if err != nil {
-		log.Fatal(err)
-	}
+	cert, _ := tls.LoadX509KeyPair(certPath, keyPath)
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
