@@ -39,8 +39,8 @@ export default function AddAccountBtn({ onSuccess }) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        access_token: enrollment.accessToken,
-        // access_token: process.env.REACT_APP_ACCESS_TOKEN,
+        // access_token: enrollment.accessToken,
+        access_token: process.env.REACT_APP_ACCESS_TOKEN,
         enrollment_id: enrollment.enrollment.id,
         institution: enrollment.enrollment.institution.name,
       }),
