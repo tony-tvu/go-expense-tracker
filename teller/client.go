@@ -7,12 +7,15 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type TellerClient struct {
@@ -46,11 +49,27 @@ type TellerBalanceRes struct {
 	} `json:"links"`
 }
 
+type TellerTransactionRes struct {
+	TransactionID string `json:"id"`
+	AccountID     string `json:"account_id"`
+	Type          string `json:"type"`
+	Details       struct {
+		ProcessingStatus string `json:"processing_status"`
+		Category         string `json:"category"`
+		Counterparty     struct {
+			Type string `json:"type"`
+			Name string `json:"name"`
+		}
+	} `json:"details"`
+	Description string `json:"description"`
+	Date        string `json:"date"`
+	Amount      string `json:"amount"`
+}
+
 // Fetch all accounts for a given access_token from teller api
 func (t *TellerClient) FetchAccounts(accessToken *string) (*[]TellerAccountRes, error) {
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/accounts", BASE_URL), nil)
 	req.SetBasicAuth(*accessToken, "")
-
 	res, err := t.Client.Do(req)
 	if err != nil {
 		return nil, err
@@ -66,11 +85,11 @@ func (t *TellerClient) FetchAccounts(accessToken *string) (*[]TellerAccountRes, 
 func (t *TellerClient) FetchBalance(account *models.Account) (*float64, error) {
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/accounts/%s/balances", BASE_URL, account.AccountID), nil)
 	req.SetBasicAuth(account.AccessToken, "")
-
 	res, err := t.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}
+
 	var tellerBalance *TellerBalanceRes
 	json.NewDecoder(res.Body).Decode(&tellerBalance)
 
@@ -86,6 +105,21 @@ func (t *TellerClient) FetchBalance(account *models.Account) (*float64, error) {
 	}
 
 	return &balance, nil
+}
+
+// Fetch all transactions for a given account_id from teller api
+func (t *TellerClient) FetchTransactions(account *models.Account) (*[]TellerTransactionRes, error) {
+	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/accounts/%s/transactions", BASE_URL, account.AccountID), nil)
+	req.SetBasicAuth(account.AccessToken, "")
+	res, err := t.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var tellerTransactions *[]TellerTransactionRes
+	json.NewDecoder(res.Body).Decode(&tellerTransactions)
+
+	return tellerTransactions, nil
 }
 
 // Fetches and populates initial account information for a given access_token from teller api
@@ -104,8 +138,9 @@ func (t *TellerClient) PopulateAccounts(userID *primitive.ObjectID, accessToken 
 			success = false
 		}
 
+		var docs []interface{}
 		for _, account := range *tellerAccounts {
-			doc := &bson.D{
+			doc := bson.D{
 				{Key: "user_id", Value: *userID},
 				{Key: "account_id", Value: account.AccountID},
 				{Key: "access_token", Value: *accessToken},
@@ -114,16 +149,20 @@ func (t *TellerClient) PopulateAccounts(userID *primitive.ObjectID, accessToken 
 				{Key: "status", Value: account.Status},
 				{Key: "name", Value: account.Name},
 				{Key: "institution", Value: account.Institution.Name},
+				{Key: "balance", Value: 0},
 				{Key: "currency", Value: account.Currency},
 				{Key: "last_four", Value: account.LastFour},
 				{Key: "created_at", Value: time.Now()},
 				{Key: "updated_at", Value: time.Now()},
 			}
-			_, err = t.Db.Accounts.InsertOne(ctx, doc)
-			if err != nil {
-				log.Printf("error saving new account for access_token %s: %v", *accessToken, err)
-				success = false
-			}
+			docs = append(docs, doc)
+		}
+		_, err = t.Db.Accounts.InsertMany(ctx, docs, &options.InsertManyOptions{
+			Ordered: util.BoolPointer(false),
+		})
+		if err != nil && !strings.Contains(err.Error(), "duplicate key error") {
+			log.Printf("error saving new account for access_token %s: %v", *accessToken, err)
+			success = false
 		}
 
 		count++
@@ -136,6 +175,7 @@ func (t *TellerClient) PopulateAccounts(userID *primitive.ObjectID, accessToken 
 	}
 
 	go t.RefreshBalances(accessToken)
+	go t.RefreshTransactions(accessToken)
 }
 
 // Updates all account balances for a give access_token
@@ -181,6 +221,80 @@ func (t *TellerClient) RefreshBalances(accessToken *string) {
 		if success {
 			count = retryLimit
 		} else {
+			time.Sleep(30 * time.Second)
+		}
+	}
+}
+
+// Fetches all transactions for a give access_token and saves them to db
+func (t *TellerClient) RefreshTransactions(accessToken *string) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Minute))
+	defer cancel()
+
+	var accounts []*models.Account
+	cursor, _ := t.Db.Accounts.Find(ctx, bson.M{"access_token": *accessToken})
+	if err := cursor.All(ctx, &accounts); err != nil {
+		log.Printf("error finding accounts for access_token %s: %v", *accessToken, err)
+	}
+
+	retryLimit := 3
+	count := 0
+
+	for count != retryLimit {
+		success := true
+
+		for _, account := range accounts {
+			tellerTransactions, err := t.FetchTransactions(account)
+			if err != nil {
+				log.Printf("error making teller transactions request for access_token %s: %v", *accessToken, err)
+				success = false
+			}
+
+			// retry if there's no transactions
+			if len(*tellerTransactions) == 0 {
+				success = false
+			}
+
+			var docs []interface{}
+			for _, t := range *tellerTransactions {
+				amount, err := strconv.ParseFloat(t.Amount, 32)
+				if err != nil {
+					log.Printf("error parsing amount for transaction %v: %v", t, err)
+					success = false
+				}
+				date, err := time.Parse("2006-01-02", t.Date)
+				if err != nil {
+					log.Printf("error parsing date for transaction %v: %v", t, err)
+					success = false
+				}
+
+				doc := bson.D{
+					{Key: "transaction_id", Value: t.TransactionID},
+					{Key: "name", Value: t.Description},
+					{Key: "category", Value: t.Details.Category},
+					{Key: "amount", Value: amount},
+					{Key: "date", Value: date},
+					{Key: "user_id", Value: account.UserID},
+					{Key: "account_id", Value: account.AccountID},
+					{Key: "created_at", Value: time.Now()},
+					{Key: "updated_at", Value: time.Now()},
+				}
+				docs = append(docs, doc)
+			}
+			_, err = t.Db.Transactions.InsertMany(ctx, docs, &options.InsertManyOptions{
+				Ordered: util.BoolPointer(false),
+			})
+			if err != nil && !strings.Contains(err.Error(), "duplicate key error") {
+				log.Printf("error saving transactions for access_token %s: %v", *accessToken, err)
+				success = false
+			}
+		}
+
+		count++
+		if success {
+			count = retryLimit
+		}
+		if !success {
 			time.Sleep(30 * time.Second)
 		}
 	}

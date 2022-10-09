@@ -10,12 +10,12 @@ type Transaction struct {
 	ID     primitive.ObjectID `json:"id" bson:"_id"`
 	UserID primitive.ObjectID `json:"user_id" bson:"user_id"`
 
-	PlaidItemID   string    `json:"plaid_item_id" bson:"plaid_item_id"`
 	TransactionID string    `json:"transaction_id" bson:"transaction_id"`
+	AccountID     string    `json:"account_id" bson:"account_id"`
+	Category      string    `json:"category" bson:"category"`
+	Name          string    `json:"name" bson:"name"`
 	Date          time.Time `json:"date" bson:"date"`
 	Amount        float32   `json:"amount" bson:"amount"`
-	Category      []string  `json:"category"  bson:"category"`
-	Name          string    `json:"name" bson:"name"`
 
 	CreatedAt time.Time `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
