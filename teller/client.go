@@ -123,7 +123,7 @@ func (t *TellerClient) FetchTransactions(account *models.Account) (*[]TellerTran
 }
 
 // Fetches and populates initial account information for a given access_token from teller api
-func (t *TellerClient) PopulateAccounts(userID *primitive.ObjectID, accessToken *string) {
+func (t *TellerClient) PopulateAccounts(userID *primitive.ObjectID, accessToken, enrollmentID *string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Minute))
 	defer cancel()
 
@@ -143,6 +143,7 @@ func (t *TellerClient) PopulateAccounts(userID *primitive.ObjectID, accessToken 
 			doc := bson.D{
 				{Key: "user_id", Value: *userID},
 				{Key: "account_id", Value: account.AccountID},
+				{Key: "enrollment_id", Value: *enrollmentID},
 				{Key: "access_token", Value: *accessToken},
 				{Key: "type", Value: account.Type},
 				{Key: "subtype", Value: account.Subtype},
@@ -283,6 +284,7 @@ func (t *TellerClient) RefreshTransactions(accessToken *string) {
 
 				doc := bson.D{
 					{Key: "transaction_id", Value: t.TransactionID},
+					{Key: "enrollment_id", Value: account.EnrollmentID},
 					{Key: "name", Value: t.Description},
 					{Key: "category", Value: t.Details.Category},
 					{Key: "amount", Value: amount},

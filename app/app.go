@@ -136,6 +136,7 @@ func (a *App) Initialize(ctx context.Context) {
 
 		// teller
 		api.POST("/enrollments", teller.NewEnrollment)
+		api.DELETE("/enrollments/:enrollment_id", teller.DeleteEnrollment)
 		api.GET("/enrollments", teller.GetEnrollments)
 	}
 

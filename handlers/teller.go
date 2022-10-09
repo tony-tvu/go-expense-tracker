@@ -33,8 +33,9 @@ func (h *TellerHandler) NewEnrollment(c *gin.Context) {
 	}
 
 	type Input struct {
-		AccessToken string `json:"access_token" validate:"required"`
-		Institution string `json:"institution" validate:"required"`
+		AccessToken  string `json:"access_token" validate:"required"`
+		EnrollmentID string `json:"enrollment_id" validate:"required"`
+		Institution  string `json:"institution" validate:"required"`
 	}
 
 	var input Input
@@ -56,6 +57,7 @@ func (h *TellerHandler) NewEnrollment(c *gin.Context) {
 
 	doc := &bson.D{
 		{Key: "user_id", Value: *userID},
+		{Key: "enrollment_id", Value: input.EnrollmentID},
 		{Key: "institution", Value: input.Institution},
 		{Key: "access_token", Value: input.AccessToken},
 		{Key: "disconnected", Value: false},
@@ -68,7 +70,7 @@ func (h *TellerHandler) NewEnrollment(c *gin.Context) {
 		return
 	}
 
-	go h.TellerClient.PopulateAccounts(userID, &input.AccessToken)
+	go h.TellerClient.PopulateAccounts(userID, &input.AccessToken, &input.EnrollmentID)
 }
 
 func (h *TellerHandler) GetEnrollments(c *gin.Context) {
@@ -95,4 +97,16 @@ func (h *TellerHandler) GetEnrollments(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"enrollments": enrollments,
 	})
+}
+
+func (h *TellerHandler) DeleteEnrollment(c *gin.Context) {
+	// ctx := c.Request.Context()
+
+	// userID, _, err := auth.AuthorizeUser(c, h.Db)
+	// if err != nil {
+	// 	c.AbortWithStatus(http.StatusUnauthorized)
+	// 	return
+	// }
+
+	
 }
