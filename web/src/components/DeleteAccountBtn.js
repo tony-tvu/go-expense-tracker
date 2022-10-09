@@ -1,13 +1,6 @@
 import React from 'react'
 import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverBody,
-  PopoverArrow,
-  IconButton,
   Button,
-  Stack,
   useDisclosure,
   AlertDialog,
   AlertDialogOverlay,
@@ -16,23 +9,19 @@ import {
   AlertDialogBody,
   AlertDialogFooter,
 } from '@chakra-ui/react'
-import { BsPencil, BsTrash } from 'react-icons/bs'
 import logger from '../logger'
 import { useNavigate } from 'react-router-dom'
 
-export default function EditAccountBtn({ item, onSuccess }) {
+export default function DeleteAccountBtn({ enrollment, onSuccess }) {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const cancelRef = React.useRef()
   const navigate = useNavigate()
 
   async function deleteAccount() {
-    await fetch(
-      `${process.env.REACT_APP_API_URL}/items/${item.plaid_item_id}`,
-      {
-        method: 'DELETE',
-        credentials: 'include',
-      }
-    )
+    await fetch(`${process.env.REACT_APP_API_URL}/enrollments/${enrollment.enrollment_id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    })
       .then((res) => {
         if (res.status === 401) {
           navigate('/login')
@@ -43,37 +32,27 @@ export default function EditAccountBtn({ item, onSuccess }) {
         }
       })
       .catch((e) => {
-        logger('error setting access token', e)
+        logger('error deleting account', e)
       })
   }
 
   return (
     <>
-      <Popover placement="start-start" isLazy>
-        <PopoverTrigger>
-          <IconButton icon={<BsPencil />} variant="solid" w="fit-content" />
-        </PopoverTrigger>
-        <PopoverContent w="fit-content" _focus={{ boxShadow: 'none' }}>
-          <PopoverArrow />
-          <PopoverBody>
-            <Stack>
-              <Button
-                w="150px"
-                variant="ghost"
-                rightIcon={<BsTrash />}
-                justifyContent="space-between"
-                fontWeight="normal"
-                colorScheme="red"
-                fontSize="md"
-                as="b"
-                onClick={onOpen}
-              >
-                Delete
-              </Button>
-            </Stack>
-          </PopoverBody>
-        </PopoverContent>
-      </Popover>
+      <Button
+        variant="solid"
+        justifyContent="space-between"
+        fontWeight="normal"
+        fontSize="md"
+        as="b"
+        onClick={onOpen}
+        color={'white'}
+        bg={'#E63E3F'}
+        _hover={{
+          bg: '#AA2E2F',
+        }}
+      >
+        Delete
+      </Button>
 
       <AlertDialog
         isOpen={isOpen}
@@ -87,14 +66,22 @@ export default function EditAccountBtn({ item, onSuccess }) {
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Are you sure you want to remove {item.institution}?
+              Are you sure you want to remove {enrollment.institution}?
             </AlertDialogBody>
 
             <AlertDialogFooter>
               <Button ref={cancelRef} onClick={onClose}>
                 Cancel
               </Button>
-              <Button colorScheme="red" onClick={deleteAccount} ml={3}>
+              <Button
+                color={'white'}
+                bg={'#E63E3F'}
+                _hover={{
+                  bg: '#AA2E2F',
+                }}
+                onClick={deleteAccount}
+                ml={3}
+              >
                 Delete
               </Button>
             </AlertDialogFooter>

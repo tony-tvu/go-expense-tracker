@@ -326,3 +326,14 @@ func (t *TellerClient) RefreshTransactions(accessToken *string) {
 		}
 	}
 }
+
+func (t *TellerClient) DeleteAccount(accessToken, accountID *string) error {
+	req, _ := http.NewRequest("DELETE", fmt.Sprintf("%s/accounts/%s", BASE_URL, *accountID), nil)
+	req.SetBasicAuth(*accessToken, "")
+	_, err := t.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

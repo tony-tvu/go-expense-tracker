@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/teller"
+	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -100,13 +102,60 @@ func (h *TellerHandler) GetEnrollments(c *gin.Context) {
 }
 
 func (h *TellerHandler) DeleteEnrollment(c *gin.Context) {
-	// ctx := c.Request.Context()
+	ctx := c.Request.Context()
 
-	// userID, _, err := auth.AuthorizeUser(c, h.Db)
-	// if err != nil {
-	// 	c.AbortWithStatus(http.StatusUnauthorized)
-	// 	return
-	// }
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
 
+	enrollmentID := c.Param("enrollment_id")
+	if util.ContainsEmpty(enrollmentID) {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	// verify enrollment belongs to user
+	var enrollment *models.Enrollment
+	if err = h.Db.Enrollments.FindOne(ctx, bson.M{"enrollment_id": enrollmentID}).Decode(&enrollment); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if enrollment.UserID != *userID {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	// delete accounts
+	var accounts []*models.Account
+	cursor, err := h.Db.Enrollments.Find(ctx, bson.M{"enrollment_id": enrollmentID})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if err = cursor.All(ctx, &accounts); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	for _, account := range accounts {
+		err := h.TellerClient.DeleteAccount(&account.AccessToken, &account.AccountID)
+		if err != nil {
+			log.Printf("error making teller account delete request for accound_id %s: %v", account.AccountID, err)
+		}
+	}
 	
+	_, err = h.Db.Accounts.DeleteMany(ctx, bson.M{"enrollment_id": enrollmentID})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// delete enrollment
+	_, err = h.Db.Enrollments.DeleteOne(ctx, bson.M{"enrollment_id": enrollmentID})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 }

@@ -11,7 +11,7 @@ import {
   useColorModeValue,
   Tooltip,
 } from '@chakra-ui/react'
-import EditAccountBtn from '../components/EditAccountBtn'
+import DeleteAccountBtn from '../components/DeleteAccountBtn'
 import AddAccountBtn from '../components/AddAccountBtn'
 import { IoIosWarning } from 'react-icons/io'
 import logger from '../logger'
@@ -97,7 +97,7 @@ export default function LinkedAccounts() {
             </>
           )}
 
-          <EditAccountBtn item={enrollment} onSuccess={onSuccess} />
+          <DeleteAccountBtn enrollment={enrollment} onSuccess={onSuccess} />
         </HStack>
       )
     })
