@@ -6,33 +6,56 @@ import (
 	"time"
 
 	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/teller"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type Jobs struct {
-	Db           *database.MongoDb
-	Interval     int
-	Enabled      bool
-	TellerClient *teller.TellerClient
+	Db                   *database.MongoDb
+	Enabled              bool
+	BalancesInterval     int
+	TransactionsInterval int
+	TellerClient         *teller.TellerClient
 }
 
 func (j *Jobs) Start(ctx context.Context) {
 	if j.Enabled {
 		go j.refreshTransactionsTask(ctx)
-		go j.refreshAccountsTask(ctx)
+		go j.refreshBalancesTask(ctx)
 	}
 }
 
-func (t *Jobs) refreshAccountsTask(ctx context.Context) {
+func (t *Jobs) refreshBalancesTask(ctx context.Context) {
 	for {
-		log.Println("refresh accounts called")
-		time.Sleep(time.Duration(t.Interval) * time.Second)
+		time.Sleep(time.Duration(t.BalancesInterval) * time.Second)
+		
+		var enrollments []*models.Enrollment
+		cursor, _ := t.Db.Enrollments.Find(ctx, bson.M{})
+		if err := cursor.All(ctx, &enrollments); err != nil {
+			log.Printf("error finding enrollments in refreshBalancesTask: %v\n", err)
+		}
+
+		log.Printf("refreshing balances for %d enrollments\n", len(enrollments))
+		for _, enrollment := range enrollments {
+			t.TellerClient.RefreshBalances(&enrollment.AccessToken)
+		}
 	}
 }
 
 func (t *Jobs) refreshTransactionsTask(ctx context.Context) {
 	for {
-		log.Println("refresh transactions called")
-		time.Sleep(time.Duration(t.Interval) * time.Second)
+		time.Sleep(time.Duration(t.TransactionsInterval) * time.Second)
+
+		var enrollments []*models.Enrollment
+		cursor, _ := t.Db.Enrollments.Find(ctx, bson.M{})
+		if err := cursor.All(ctx, &enrollments); err != nil {
+			log.Printf("error finding enrollments in refreshBalancesTask: %v\n", err)
+		}
+
+		log.Printf("refreshing transactions for %d enrollments\n", len(enrollments))
+		for _, enrollment := range enrollments {
+			t.TellerClient.RefreshTransactions(&enrollment.AccessToken)
+		}
 	}
 }

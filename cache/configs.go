@@ -27,8 +27,6 @@ var PAGE_LIMIT int64 = 500
 
 type ConfigsInput struct {
 	RegistrationEnabled bool `json:"registration_enabled"`
-	QuotaEnabled        bool `json:"quota_enabled"`
-	QuotaLimit          int  `json:"quota_limit"`
 }
 
 func (c *Configs) InitConfigsCache(ctx context.Context, db *database.MongoDb) {
@@ -111,8 +109,6 @@ func (c *Configs) UpdateConfigsCache(ctx context.Context, db *database.MongoDb, 
 		bson.M{"_id": configs.ID},
 		bson.M{
 			"$set": bson.M{
-				"quota_enabled":        input.QuotaEnabled,
-				"quota_limit":          input.QuotaLimit,
 				"registration_enabled": input.RegistrationEnabled,
 				"updated_at":           time.Now(),
 			}},

@@ -84,11 +84,17 @@ func (a *App) Initialize(ctx context.Context) {
 	} else {
 		jobs.Enabled = jobsEnabled
 	}
-	jobsInterval, err := strconv.Atoi(os.Getenv("JOBS_INTERVAL"))
+	balancesInterval, err := strconv.Atoi(os.Getenv("BALANCES_INTERVAL"))
 	if err != nil {
-		jobs.Interval = 86400
+		jobs.BalancesInterval = 43200 // 12 hour default
 	} else {
-		jobs.Interval = jobsInterval
+		jobs.BalancesInterval = balancesInterval
+	}
+	transactionsInterval, err := strconv.Atoi(os.Getenv("TRANSACTIONS_INTERVAL"))
+	if err != nil {
+		jobs.TransactionsInterval = 3600 // 1 hour default
+	} else {
+		jobs.TransactionsInterval = transactionsInterval
 	}
 	a.Jobs = jobs
 
