@@ -145,7 +145,7 @@ func (h *TellerHandler) DeleteEnrollment(c *gin.Context) {
 			log.Printf("error making teller account delete request for accound_id %s: %v", account.AccountID, err)
 		}
 	}
-	
+
 	_, err = h.Db.Accounts.DeleteMany(ctx, bson.M{"enrollment_id": enrollmentID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -154,6 +154,13 @@ func (h *TellerHandler) DeleteEnrollment(c *gin.Context) {
 
 	// delete enrollment
 	_, err = h.Db.Enrollments.DeleteOne(ctx, bson.M{"enrollment_id": enrollmentID})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// delete transactions belonging to enrollment
+	_, err = h.Db.Transactions.DeleteMany(ctx, bson.M{"enrollment_id": enrollmentID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
