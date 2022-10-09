@@ -25,7 +25,6 @@ import {
 } from 'react-icons/fa'
 import { ColorModeSwitcher } from '../components/ColorModeSwitcher'
 import { colors } from '../theme'
-import { appName } from '../commons'
 import { Link as RouterLink } from 'react-router-dom'
 
 const CFcat = chakra(FaCat)
@@ -111,7 +110,7 @@ const SidebarContent = ({
             fontWeight="bold"
             color={textColor}
           >
-            {appName()}
+            {process.env.REACT_APP_NAME}
           </Text>
         </RouterLink>
         <Spacer />
@@ -271,7 +270,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
           fontWeight="bold"
           color={useColorModeValue('black', textColor)}
         >
-          {appName()}
+          {process.env.REACT_APP_NAME}
         </Text>
       </RouterLink>
     </Flex>

@@ -12,7 +12,7 @@ import (
 // Middleware logs request info
 func Logger(env string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if env != "test" {
+		if env == "development" {
 			start := time.Now()
 			defer func() {
 				since := fmt.Sprintf("%sms", strconv.FormatInt(time.Since(start).Milliseconds(), 10))

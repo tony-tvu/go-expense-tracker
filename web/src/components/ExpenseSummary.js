@@ -14,7 +14,7 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react'
-import { currency, timeSince } from '../commons'
+import { currency, timeSince } from '../util'
 import logger from '../logger'
 
 export default function ExpenseSummary() {

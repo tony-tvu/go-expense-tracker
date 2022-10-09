@@ -29,6 +29,23 @@ func (h *ConfigsHandler) RegistrationEnabled(c *gin.Context) {
 	})
 }
 
+func (h *ConfigsHandler) TellerAppID(c *gin.Context) {
+	if _, _, err := auth.AuthorizeUser(c, h.Db); err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	configs, err := h.ConfigsCache.GetConfigs()
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"teller_app_id": configs.TellerApplicationID,
+	})
+}
+
 func (h *ConfigsHandler) GetConfigs(c *gin.Context) {
 	if _, userType, err := auth.AuthorizeUser(c, h.Db); err != nil || *userType != models.AdminUser {
 		c.AbortWithStatus(http.StatusUnauthorized)
@@ -71,6 +88,6 @@ func (h *ConfigsHandler) UpdateConfigs(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, input)
 }

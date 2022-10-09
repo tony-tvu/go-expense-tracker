@@ -2,10 +2,12 @@ package app
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -14,13 +16,12 @@ import (
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/plaid/plaid-go/plaid"
 	"github.com/tony-tvu/goexpense/cache"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/handlers"
+	"github.com/tony-tvu/goexpense/jobs"
 	"github.com/tony-tvu/goexpense/middleware"
-	"github.com/tony-tvu/goexpense/plaidclient"
-	"github.com/tony-tvu/goexpense/tasks"
+	"github.com/tony-tvu/goexpense/teller"
 	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -30,7 +31,7 @@ type App struct {
 	Db           *database.MongoDb
 	ConfigsCache *cache.Configs
 	Router       *gin.Engine
-	Tasks        *tasks.Tasks
+	Jobs         *jobs.Jobs
 }
 
 const (
@@ -54,45 +55,46 @@ func (a *App) Initialize(ctx context.Context) {
 	a.Db = &database.MongoDb{}
 	a.ConfigsCache = &cache.Configs{}
 
-	// Plaid
-	var envs = map[string]plaid.Environment{
-		"sandbox":     plaid.Sandbox,
-		"development": plaid.Development,
-		"production":  plaid.Production,
+	// TellerClient
+	dirname, _ := os.Getwd()
+	certPath := path.Join(dirname, "/certificate/certificate.pem")
+	keyPath := path.Join(dirname, "/certificate/private_key.pem")
+	cert, _ := tls.LoadX509KeyPair(certPath, keyPath)
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				Certificates: []tls.Certificate{cert},
+			},
+		},
+		Timeout: 2 * time.Minute,
 	}
-	clientID := os.Getenv("PLAID_CLIENT_ID")
-	plaidSecret := os.Getenv("PLAID_SECRET")
-	plaidEnv := os.Getenv("PLAID_ENV")
-	if util.ContainsEmpty(clientID, plaidSecret, plaidEnv) {
-		log.Println("plaid env configs are missing - service will not work")
-	}
-	plaidCfg := plaid.NewConfiguration()
-	plaidCfg.AddDefaultHeader("PLAID-CLIENT-ID", clientID)
-	plaidCfg.AddDefaultHeader("PLAID-SECRET", plaidSecret)
-	plaidCfg.UseEnvironment(envs[plaidEnv])
-	pc := plaid.NewAPIClient(plaidCfg)
-	webhooksURL := os.Getenv("WEBHOOKS_URL")
-	redirectURI := os.Getenv("REDIRECT_URI")
-	plaidclient := &plaidclient.PlaidClient{
-		Client:      pc,
-		WebhooksURL: &webhooksURL,
-		RedirectURI: &redirectURI,
-	}
+	tc := &teller.TellerClient{Client: client, Db: a.Db}
 
-	// Tasks
-	tasks := &tasks.Tasks{Db: a.Db, PlaidClient: plaidclient}
-	taskInterval, err := strconv.Atoi(os.Getenv("TASK_INTERVAL"))
+	// Jobs
+	jobs := &jobs.Jobs{Db: a.Db, TellerClient: tc}
+	jobsEnabled, err := strconv.ParseBool(os.Getenv("JOBS_ENABLED"))
 	if err != nil {
-		tasks.TaskInterval = 86400
+		jobs.Enabled = false
 	} else {
-		tasks.TaskInterval = taskInterval
+		jobs.Enabled = jobsEnabled
 	}
-	a.Tasks = tasks
+	balancesInterval, err := strconv.Atoi(os.Getenv("BALANCES_INTERVAL"))
+	if err != nil {
+		jobs.BalancesInterval = 43200 // 12 hour default
+	} else {
+		jobs.BalancesInterval = balancesInterval
+	}
+	transactionsInterval, err := strconv.Atoi(os.Getenv("TRANSACTIONS_INTERVAL"))
+	if err != nil {
+		jobs.TransactionsInterval = 3600 // 1 hour default
+	} else {
+		jobs.TransactionsInterval = transactionsInterval
+	}
+	a.Jobs = jobs
 
 	// Handlers
 	users := &handlers.UserHandler{Db: a.Db}
-	items := &handlers.ItemHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, PlaidClient: plaidclient, Tasks: tasks, WebhooksURL: os.Getenv("WEBHOOKS_URL")}
-	transactions := &handlers.TransactionHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
+	teller := &handlers.TellerHandler{Db: a.Db, ConfigsCache: a.ConfigsCache, TellerClient: tc}
 	configs := &handlers.ConfigsHandler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 
 	// Router
@@ -121,6 +123,7 @@ func (a *App) Initialize(ctx context.Context) {
 	{
 		// configs
 		api.GET("/registration_enabled", configs.RegistrationEnabled)
+		api.GET("/teller_app_id", configs.TellerAppID)
 		api.GET("/configs", configs.GetConfigs)
 		api.PUT("/configs", configs.UpdateConfigs)
 
@@ -131,18 +134,10 @@ func (a *App) Initialize(ctx context.Context) {
 		api.GET("/user_info", users.GetUserInfo)
 		api.GET("/sessions", users.GetSessions)
 
-		// items
-		api.GET("/link_token", items.GetLinkToken)
-		api.GET("/update_link_token/:plaid_item_id", items.GetUpdateLinkToken)
-		api.GET("/items/:page", items.GetItems)
-		api.POST("/items", items.CreateItem)
-		api.DELETE("/items/:plaid_item_id", items.DeleteItem)
-		api.GET("/accounts", items.GetAccounts)
-		api.POST("/receive_webhooks", items.ReceiveWebooks)
-		api.PUT("/update_webhooks_url", items.UpdateItemsWebhooksURL)
-
-		// transactions
-		api.GET("/transactions/:page", transactions.GetTransactions)
+		// teller
+		api.POST("/enrollments", teller.NewEnrollment)
+		api.DELETE("/enrollments/:enrollment_id", teller.DeleteEnrollment)
+		api.GET("/enrollments", teller.GetEnrollments)
 	}
 
 	router.Use(middleware.FrontendCache, static.Serve("/", static.LocalFile("./web/build", true)))
@@ -154,7 +149,7 @@ func (a *App) Initialize(ctx context.Context) {
 
 func (a *App) Start(ctx context.Context) {
 	// Start mongodb
-	mongoURI := os.Getenv("MONGODB_URI")
+	mongoURI := os.Getenv("MONGO_URI")
 	dbName := os.Getenv("DB_NAME")
 	if util.ContainsEmpty(mongoURI, dbName) {
 		log.Fatal("env variables are missing")
@@ -168,27 +163,21 @@ func (a *App) Start(ctx context.Context) {
 			log.Println("mongo has been disconnected: ", err)
 		}
 	}()
-	a.Db.Accounts = mongoclient.Database(dbName).Collection("accounts")
-	a.Db.Configs = mongoclient.Database(dbName).Collection("configs")
-	a.Db.Items = mongoclient.Database(dbName).Collection("items")
-	a.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
-	a.Db.Transactions = mongoclient.Database(dbName).Collection("transactions")
-	a.Db.Users = mongoclient.Database(dbName).Collection("users")
-
-	database.CreateUniqueConstraints(ctx, a.Db)
+	a.Db.SetCollections(mongoclient, dbName)
+	a.Db.CreateUniqueConstraints(ctx)
 	username := os.Getenv("ADMIN_USERNAME")
 	email := os.Getenv("ADMIN_EMAIL")
 	pw := os.Getenv("ADMIN_PASSWORD")
 	if util.ContainsEmpty(username, email, pw) {
 		return
 	}
-	database.CreateInitialAdminUser(ctx, a.Db, username, email, pw)
+	a.Db.CreateInitialAdminUser(ctx, username, email, pw)
 
 	// Populate cache
 	a.ConfigsCache.InitConfigsCache(ctx, a.Db)
 
-	// Start scheduled tasks
-	a.Tasks.Start(ctx)
+	// Start scheduled jobs
+	a.Jobs.Start(ctx)
 
 	// Start server
 	port := os.Getenv("PORT")
@@ -198,8 +187,8 @@ func (a *App) Start(ctx context.Context) {
 	srv := &http.Server{
 		Handler:      a.Router,
 		Addr:         fmt.Sprintf(":%s", port),
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		ReadTimeout:  60 * time.Second,
 	}
 
 	log.Printf("Listening on port %s\n", port)

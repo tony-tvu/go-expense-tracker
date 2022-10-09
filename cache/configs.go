@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
 	"time"
 
 	"github.com/allegro/bigcache"
+	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -25,11 +27,13 @@ var PAGE_LIMIT int64 = 500
 
 type ConfigsInput struct {
 	RegistrationEnabled bool `json:"registration_enabled"`
-	QuotaEnabled        bool `json:"quota_enabled"`
-	QuotaLimit          int  `json:"quota_limit"`
 }
 
 func (c *Configs) InitConfigsCache(ctx context.Context, db *database.MongoDb) {
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("no .env file found")
+	}
+
 	cacheConfig := bigcache.Config{
 		Shards:     16,
 		LifeWindow: 0,
@@ -55,10 +59,9 @@ func (c *Configs) InitConfigsCache(ctx context.Context, db *database.MongoDb) {
 	if count == 0 {
 		// init default configs
 		doc := &bson.D{
-			{Key: "quota_enabled", Value: true},
-			{Key: "quota_limit", Value: 10},
 			{Key: "registration_enabled", Value: false},
 			{Key: "page_limit", Value: PAGE_LIMIT},
+			{Key: "teller_application_id", Value: os.Getenv("TELLER_APPLICATION_ID")},
 			{Key: "created_at", Value: time.Now()},
 			{Key: "updated_at", Value: time.Now()},
 		}
@@ -106,8 +109,6 @@ func (c *Configs) UpdateConfigsCache(ctx context.Context, db *database.MongoDb, 
 		bson.M{"_id": configs.ID},
 		bson.M{
 			"$set": bson.M{
-				"quota_enabled":        input.QuotaEnabled,
-				"quota_limit":          input.QuotaLimit,
 				"registration_enabled": input.RegistrationEnabled,
 				"updated_at":           time.Now(),
 			}},

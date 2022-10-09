@@ -11,23 +11,27 @@ import {
   useColorModeValue,
   Tooltip,
 } from '@chakra-ui/react'
-import EditAccountBtn from '../components/EditAccountBtn'
+import DeleteAccountBtn from '../components/DeleteAccountBtn'
 import AddAccountBtn from '../components/AddAccountBtn'
-import logger from '../logger'
 import { IoIosWarning } from 'react-icons/io'
+import logger from '../logger'
 
 export default function LinkedAccounts() {
   const [data, setData] = useState([])
-  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
 
   const stackBgColor = useColorModeValue('white', 'gray.900')
   const tooltipBg = useColorModeValue('white', 'gray.900')
   const tooltipColor = useColorModeValue('black', 'white')
 
+  function onSuccess() {
+    setData([])
+    setLoading(true)
+  }
+
   useEffect(() => {
     if (loading) {
-      fetch(`${process.env.REACT_APP_API_URL}/items/${page}`, {
+      fetch(`${process.env.REACT_APP_API_URL}/enrollments`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -37,28 +41,16 @@ export default function LinkedAccounts() {
         .then(async (res) => {
           if (!res) return
           const resData = await res.json().catch((err) => logger(err))
-          if (res.status === 200 && resData.items) {
-            setData((curr) => [...curr, ...resData.items])
-            if (page !== Number(resData.page_info.totalPage)) {
-              setPage(resData.page_info.next)
-            } else {
-              setLoading(false)
-            }
-          } else {
-            setLoading(false)
+          if (res.status === 200 && resData.enrollments) {
+            setData(resData.enrollments)
           }
+          setLoading(false)
         })
         .catch((err) => {
           logger('error getting items', err)
         })
     }
-  }, [page, loading])
-
-  function onSuccess() {
-    setPage(1)
-    setData([])
-    setLoading(true)
-  }
+  }, [loading])
 
   function renderAccounts() {
     if (data.length === 0 && !loading) {
@@ -69,10 +61,10 @@ export default function LinkedAccounts() {
       )
     }
 
-    return data.map((item) => {
+    return data.map((enrollment) => {
       return (
         <HStack
-          key={item.id}
+          key={enrollment.id}
           width={'100%'}
           borderWidth="1px"
           borderRadius="lg"
@@ -82,14 +74,14 @@ export default function LinkedAccounts() {
           mb={5}
         >
           <Text fontSize="xl" as="b">
-            {item.institution}
+            {enrollment.institution}
           </Text>
           <Spacer />
 
-          {(item.item_login_required) && (
+          {enrollment.disconnected && (
             <>
               <Tooltip
-                label={`This account is unable to connect to your financial instituion. Please remove this account and add it back to repair the connection.`}
+                label={`This account is unable to connect to your financial instituion. To resolve this issue, remove this account and add it again (your existing transactions will not be deleted)`}
                 fontSize="md"
                 bg={tooltipBg}
                 color={tooltipColor}
@@ -105,7 +97,7 @@ export default function LinkedAccounts() {
             </>
           )}
 
-          <EditAccountBtn item={item} onSuccess={onSuccess} />
+          <DeleteAccountBtn enrollment={enrollment} onSuccess={onSuccess} />
         </HStack>
       )
     })

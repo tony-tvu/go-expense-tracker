@@ -10,7 +10,6 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/app"
-	"github.com/tony-tvu/goexpense/database"
 	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -46,7 +45,7 @@ func TestMain(m *testing.M) {
 	testApp = &app.App{}
 	testApp.Initialize(ctx)
 
-	mongoURI := os.Getenv("MONGODB_URI")
+	mongoURI := os.Getenv("MONGO_URI")
 	dbName := os.Getenv("DB_NAME")
 	if util.ContainsEmpty(mongoURI, dbName) {
 		log.Fatal("test db configs are missing")
@@ -60,18 +59,10 @@ func TestMain(m *testing.M) {
 			log.Println("mongo has been disconnected: ", err)
 		}
 	}()
-	testApp.Db.Accounts = mongoclient.Database(dbName).Collection("accounts")
-	testApp.Db.Configs = mongoclient.Database(dbName).Collection("configs")
-	testApp.Db.Items = mongoclient.Database(dbName).Collection("items")
-	testApp.Db.Sessions = mongoclient.Database(dbName).Collection("sessions")
-	testApp.Db.Transactions = mongoclient.Database(dbName).Collection("transactions")
-	testApp.Db.Users = mongoclient.Database(dbName).Collection("users")
-
-	// Create unique constraints
-	database.CreateUniqueConstraints(ctx, testApp.Db)
+	testApp.Db.SetCollections(mongoclient, dbName)
+	testApp.Db.CreateUniqueConstraints(ctx)
 
 	// clear tables
-	testApp.Db.Items.Drop(ctx)
 	testApp.Db.Sessions.Drop(ctx)
 	testApp.Db.Transactions.Drop(ctx)
 	testApp.Db.Users.Drop(ctx)
