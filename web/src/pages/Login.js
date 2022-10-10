@@ -35,6 +35,7 @@ export default function Login() {
   const logoColor = useColorModeValue('black', colors.primary)
 
   useEffect(() => {
+    document.title = 'Login'
     Promise.all([
       fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
         method: 'GET',

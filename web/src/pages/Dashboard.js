@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    document.title = 'Dashboard'
     if (loading) {
       fetch(`${process.env.REACT_APP_API_URL}/accounts`, {
         method: 'GET',

@@ -30,6 +30,7 @@ export default function LinkedAccounts() {
   }
 
   useEffect(() => {
+    document.title = 'Accounts'
     if (loading) {
       fetch(`${process.env.REACT_APP_API_URL}/enrollments`, {
         method: 'GET',

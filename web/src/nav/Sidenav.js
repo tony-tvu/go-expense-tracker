@@ -13,6 +13,7 @@ import {
   chakra,
   Divider,
   Spacer,
+  Button,
 } from '@chakra-ui/react'
 import { FiSettings, FiMenu } from 'react-icons/fi'
 import {
@@ -26,6 +27,8 @@ import {
 import { ColorModeSwitcher } from '../components/ColorModeSwitcher'
 import { colors } from '../theme'
 import { Link as RouterLink } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import logger from '../logger'
 
 const CFcat = chakra(FaCat)
 const textColor = '#DCDCE2'
@@ -86,6 +89,24 @@ const SidebarContent = ({
   current,
   ...rest
 }) => {
+  const navigate = useNavigate()
+  function logout() {
+    fetch(`${process.env.REACT_APP_API_URL}/logout`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+      .then(async (res) => {
+        if (!res) return
+        if (res.status === 200) navigate('/login')
+      })
+      .catch((err) => {
+        logger('error logging out', err)
+      })
+  }
+
   return (
     <Box
       bg={navBgColor}
@@ -187,6 +208,7 @@ const SidebarContent = ({
           >
             Settings
           </NavItem>
+          <Button onClick={() => logout()}>Logout</Button>
         </>
       )}
     </Box>
