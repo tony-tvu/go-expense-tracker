@@ -6,6 +6,7 @@ import {
   AccordionItem,
   AccordionPanel,
   Box,
+  Center,
   Container,
   Divider,
   HStack,
@@ -18,9 +19,16 @@ import logger from '../logger'
 
 export default function TotalSquare({ total, title }) {
   return (
-    <Box bg={'pink'} w={'100%'} minH={['90px', '130px', '130px', '270px']} mb={5}>
-      {title}
-      {currency.format(total)}
+    <Box
+      bg={'pink'}
+      w={'100%'}
+      minH={['90px', '130px', '130px', '270px']}
+      mb={5}
+    >
+      <VStack>
+        <Text>{title}</Text>
+        <Text> {currency.format(total)}</Text>
+      </VStack>
     </Box>
   )
 }

@@ -8,46 +8,79 @@ import { Box } from '@chakra-ui/react'
 
 export default function Dashboard() {
   const [accountsData, setAccountsData] = useState([])
+  const [transactionsData, setTransactionsData] = useState([])
   const [cashTotal, setCashTotal] = useState(null)
   const [creditTotal, setCreditTotal] = useState(null)
-  const [netWorth, setNetWorth] = useState(null)
+  const [transactionsTotal, setTransactionsTotal] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  async function fetchAccounts() {
+    await fetch(`${process.env.REACT_APP_API_URL}/accounts`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+      .then(async (res) => {
+        if (!res) return
+        const resData = await res.json().catch((err) => logger(err))
+        console.log(resData.accounts)
+        if (res.status === 200 && resData.accounts) {
+          setAccountsData(resData.accounts)
+          let cashTotal = 0
+          let creditTotal = 0
+          resData.accounts.forEach((account) => {
+            if (account.subtype === 'credit_card') {
+              creditTotal += account.balance
+            } else {
+              cashTotal += account.balance
+            }
+          })
+          setCashTotal(cashTotal)
+          creditTotal = -1 * creditTotal
+          setCreditTotal(creditTotal)
+          setLoading(false)
+        }
+      })
+      .catch((err) => {
+        logger('error fetching accounts', err)
+      })
+  }
+
+  async function fetchTransactions() {
+    await fetch(`${process.env.REACT_APP_API_URL}/transactions`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+      .then(async (res) => {
+        if (!res) return
+        const resData = await res.json().catch((err) => logger(err))
+        console.log(resData)
+        if (res.status === 200 && resData.transactions) {
+          setAccountsData(resData.transactions)
+          let total = 0
+          resData.transactions.forEach((transaction) => {
+            console.log(`transaction: ${JSON.stringify(transaction)}`)
+            total += transaction.amount
+            console.log(total)
+          })
+          setTransactionsTotal(total)
+        }
+      })
+      .catch((err) => {
+        logger('error fetching accounts', err)
+      })
+  }
 
   useEffect(() => {
     document.title = 'Dashboard'
     if (loading) {
-      fetch(`${process.env.REACT_APP_API_URL}/accounts`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-        .then(async (res) => {
-          if (!res) return
-          const resData = await res.json().catch((err) => logger(err))
-          console.log(resData.accounts)
-          if (res.status === 200 && resData.accounts) {
-            setAccountsData(resData.accounts)
-            let cashTotal = 0
-            let creditTotal = 0
-            resData.accounts.forEach((account) => {
-              if (account.subtype === 'credit_card') {
-                creditTotal += account.balance
-              } else {
-                cashTotal += account.balance
-              }
-            })
-            setNetWorth(cashTotal - creditTotal)
-            setCashTotal(cashTotal)
-            creditTotal = -1 * creditTotal
-            setCreditTotal(creditTotal)
-            setLoading(false)
-          }
-        })
-        .catch((err) => {
-          logger('error fetching accounts', err)
-        })
+      fetchAccounts()
+      fetchTransactions()
     }
   }, [accountsData, loading])
 
@@ -59,13 +92,13 @@ export default function Dashboard() {
           {/* Totals */}
           <Row>
             <Col xs={4} sm={4} md={4}>
-              <TotalSquare total={cashTotal} title={'Total balance'} />
+              <TotalSquare total={cashTotal} title={'Cash'} />
             </Col>
             <Col xs={4} sm={4} md={4}>
-              <TotalSquare total={cashTotal} title={'Total balance'} />
+              <TotalSquare total={cashTotal} title={'Income'} />
             </Col>
             <Col xs={4} sm={4} md={4}>
-              <TotalSquare total={cashTotal} title={'Total balance'} />
+              <TotalSquare total={transactionsTotal} title={'Expenses'} />
             </Col>
           </Row>
 
