@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/auth"
+	"github.com/tony-tvu/goexpense/types"
+	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -16,35 +18,35 @@ func TestLoginAndLogout(t *testing.T) {
 	t.Parallel()
 
 	// create user
-	user, cleanup := createTestUser(t)
+	testUser, cleanup := createTestUser(t)
 	defer cleanup()
 
 	// login with wrong password
-	_, _, statusCode := logUserIn(t, user.Username, "wrong")
+	_, _, statusCode := logUserIn(t, testUser.Username, "wrong")
 
 	// should return 403
 	assert.Equal(t, http.StatusForbidden, statusCode)
 
 	// login with unknown username
-	_, _, statusCode = logUserIn(t, "userNameDoesntExist", user.Password)
+	_, _, statusCode = logUserIn(t, "userNameDoesntExist", testUser.Password)
 
 	// should return 404
 	assert.Equal(t, http.StatusNotFound, statusCode)
 
 	// login with correct credentials
 	body := map[string]string{
-		"username": user.Username,
-		"password": user.Password,
+		"username": testUser.Username,
+		"password": testUser.Password,
 	}
 	res := makeRequest(t, "POST", "/api/login", nil, nil, body)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// should have user session saved in db
-	var s *models.Session
-	if err := testApp.Db.Sessions.FindOne(ctx, bson.M{"user_id": user.ID}).Decode(&s); err != nil {
+	var s *auth.Session
+	if err := testApp.Db.Sessions.FindOne(ctx, bson.M{"user_id": testUser.ID}).Decode(&s); err != nil {
 		t.FailNow()
 	}
-	assert.Equal(t, user.ID, s.UserID)
+	assert.Equal(t, testUser.ID, s.UserID)
 
 	// logout
 	cookies := getCookies(t, res.Cookies())
@@ -54,7 +56,7 @@ func TestLoginAndLogout(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// should no longer have user session saved after logging out
-	count, err := testApp.Db.Sessions.CountDocuments(ctx, bson.M{"user_id": user.ID})
+	count, err := testApp.Db.Sessions.CountDocuments(ctx, bson.M{"user_id": testUser.ID})
 	if err != nil {
 		t.FailNow()
 	}
@@ -66,22 +68,22 @@ func TestUserInfo(t *testing.T) {
 	t.Parallel()
 
 	// create user
-	user, cleanup := createTestUser(t)
+	testUser, cleanup := createTestUser(t)
 	defer cleanup()
 
-	accessToken, refreshToken, _ := logUserIn(t, user.Username, user.Password)
+	accessToken, refreshToken, _ := logUserIn(t, testUser.Username, testUser.Password)
 	res := makeRequest(t, "GET", "/api/user_info", &accessToken, &refreshToken)
 
 	// should return 200
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// should have correct user info returned
-	var u *models.User
+	var u *user.User
 	json.NewDecoder(res.Body).Decode(&u)
-	assert.Equal(t, user.Username, u.Username)
-	assert.Equal(t, user.Email, u.Email)
+	assert.Equal(t, testUser.Username, u.Username)
+	assert.Equal(t, testUser.Email, u.Email)
 	assert.Equal(t, "", u.Password)
-	assert.Equal(t, models.RegularUser, u.Type)
+	assert.Equal(t, types.RegularUser, u.UserType)
 }
 
 // IsLoggedIn route should return correct values
@@ -127,7 +129,7 @@ func TestIsAdminRoute(t *testing.T) {
 		bson.M{"username": user.Username},
 		bson.M{
 			"$set": bson.M{
-				"type":       models.AdminUser,
+				"user_type":  types.AdminUser,
 				"updated_at": time.Now(),
 			}},
 	)

@@ -1,16 +1,10 @@
-package models
+package user
 
 import (
 	"time"
 
+	"github.com/tony-tvu/goexpense/types"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-)
-
-type Type string
-
-const (
-	AdminUser   Type = "ADMIN"
-	RegularUser Type = "REGULAR"
 )
 
 type User struct {
@@ -18,16 +12,8 @@ type User struct {
 	Username string             `json:"username" bson:"username"`
 	Email    string             `json:"email" bson:"email"`
 	Password string
-	Type     Type `json:"type" bson:"type"`
+	UserType types.UserType `json:"user_type" bson:"user_type"`
 
 	CreatedAt time.Time `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
-}
-
-func GetUserType(s string) Type {
-	if s == "ADMIN" {
-		return AdminUser
-	} else {
-		return RegularUser
-	}
 }

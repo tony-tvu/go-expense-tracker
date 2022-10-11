@@ -1,11 +1,10 @@
-package database
+package db
 
 import (
 	"context"
 	"log"
 	"time"
 
-	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -73,7 +72,7 @@ func (db *MongoDb) CreateUniqueConstraints(ctx context.Context) {
 	}
 }
 
-// Creates initial admin user. Account details can be specified in .env
+// Creates initial admin user Account details can be specified in .env
 func (db *MongoDb) CreateInitialAdminUser(ctx context.Context, username, email, password string) {
 	// check if admin already exists
 	count, err := db.Users.CountDocuments(ctx, bson.M{"username": username})
@@ -92,7 +91,7 @@ func (db *MongoDb) CreateInitialAdminUser(ctx context.Context, username, email, 
 		{Key: "username", Value: username},
 		{Key: "email", Value: email},
 		{Key: "password", Value: string(hash)},
-		{Key: "type", Value: models.AdminUser},
+		{Key: "type", Value: "ADMIN"},
 		{Key: "created_at", Value: time.Now()},
 		{Key: "updated_at", Value: time.Now()},
 	}

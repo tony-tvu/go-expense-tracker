@@ -5,14 +5,14 @@ import (
 	"log"
 	"time"
 
-	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/db"
 	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/teller"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 type Jobs struct {
-	Db                   *database.MongoDb
+	Db                   *db.MongoDb
 	Enabled              bool
 	BalancesInterval     int
 	TransactionsInterval int

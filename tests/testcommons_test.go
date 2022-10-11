@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/types"
+	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
@@ -51,7 +52,7 @@ func logUserIn(t *testing.T, username, password string) (string, string, int) {
 }
 
 // Save a new user to db
-func createTestUser(t *testing.T) (*models.User, func()) {
+func createTestUser(t *testing.T) (*user.User, func()) {
 	t.Helper()
 
 	username := fmt.Sprint(time.Now().UnixNano())
@@ -60,18 +61,18 @@ func createTestUser(t *testing.T) (*models.User, func()) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	require.NoError(t, err)
 
-	user := &models.User{
+	testUser := &user.User{
 		Username: username,
 		Email:    fmt.Sprintf("%v@email.com", username),
 		Password: string(hash),
-		Type:     models.RegularUser,
+		UserType: types.RegularUser,
 	}
 
 	doc := &bson.D{
 		{Key: "username", Value: username},
 		{Key: "email", Value: fmt.Sprintf("%v@email.com", username)},
 		{Key: "password", Value: string(hash)},
-		{Key: "type", Value: models.RegularUser},
+		{Key: "user_type", Value: types.RegularUser},
 		{Key: "created_at", Value: time.Now()},
 		{Key: "updated_at", Value: time.Now()},
 	}
@@ -80,16 +81,15 @@ func createTestUser(t *testing.T) (*models.User, func()) {
 		t.FailNow()
 	}
 
-	user.ID = res.InsertedID.(primitive.ObjectID)
-	user.Password = password
-	return user, func() {
+	testUser.ID = res.InsertedID.(primitive.ObjectID)
+	testUser.Password = password
+	return testUser, func() {
 		deleteUser(t, username)
 	}
 }
 
 func deleteUser(t *testing.T, username string) {
 	t.Helper()
-
 
 	_, err := testApp.Db.Users.DeleteOne(ctx, bson.M{"username": username})
 	if err != nil {

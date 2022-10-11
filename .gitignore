@@ -55,7 +55,6 @@ mongodb
 commands.txt
 .vscode
 gin-bin
-db
 app.yaml
 tmp/main
 web/.env

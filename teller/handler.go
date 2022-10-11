@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/db"
 	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
@@ -18,7 +18,7 @@ import (
 )
 
 type Handler struct {
-	Db           *database.MongoDb
+	Db           *db.MongoDb
 	TellerClient *TellerClient
 }
 

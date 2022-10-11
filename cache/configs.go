@@ -9,7 +9,7 @@ import (
 
 	"github.com/allegro/bigcache"
 	"github.com/joho/godotenv"
-	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/db"
 	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -29,7 +29,7 @@ type ConfigsInput struct {
 	RegistrationEnabled bool `json:"registration_enabled"`
 }
 
-func (c *Configs) InitConfigsCache(ctx context.Context, db *database.MongoDb) {
+func (c *Configs) InitConfigsCache(ctx context.Context, db *db.MongoDb) {
 	if err := godotenv.Load(".env"); err != nil {
 		log.Println("no .env file found")
 	}
@@ -99,7 +99,7 @@ func (c *Configs) GetConfigs() (*models.Config, error) {
 	return &configs, nil
 }
 
-func (c *Configs) UpdateConfigsCache(ctx context.Context, db *database.MongoDb, input *ConfigsInput) error {
+func (c *Configs) UpdateConfigsCache(ctx context.Context, db *db.MongoDb, input *ConfigsInput) error {
 	var configs *models.Config
 	if err := db.Configs.FindOne(ctx, bson.M{}).Decode(&configs); err != nil {
 		return err

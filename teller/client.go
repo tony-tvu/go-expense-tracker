@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/db"
 	"github.com/tony-tvu/goexpense/models"
 	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
@@ -20,7 +20,7 @@ import (
 
 type TellerClient struct {
 	Client *http.Client
-	Db     *database.MongoDb
+	Db     *db.MongoDb
 }
 
 var BASE_URL = "https://api.teller.io"

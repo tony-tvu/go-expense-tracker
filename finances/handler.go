@@ -5,14 +5,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/db"
 	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Handler struct {
-	Db *database.MongoDb
+	Db *db.MongoDb
 }
 
 func (h *Handler) GetTransactions(c *gin.Context) {

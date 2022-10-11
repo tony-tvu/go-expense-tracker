@@ -17,7 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/tony-tvu/goexpense/cache"
-	"github.com/tony-tvu/goexpense/database"
+	"github.com/tony-tvu/goexpense/db"
 	"github.com/tony-tvu/goexpense/finances"
 	"github.com/tony-tvu/goexpense/jobs"
 	"github.com/tony-tvu/goexpense/middleware"
@@ -29,7 +29,7 @@ import (
 )
 
 type App struct {
-	Db           *database.MongoDb
+	Db           *db.MongoDb
 	ConfigsCache *cache.Configs
 	Router       *gin.Engine
 	Jobs         *jobs.Jobs
@@ -53,7 +53,7 @@ func (a *App) Initialize(ctx context.Context) {
 	if env == "" {
 		log.Fatal("ENV is not set")
 	}
-	a.Db = &database.MongoDb{}
+	a.Db = &db.MongoDb{}
 	a.ConfigsCache = &cache.Configs{}
 
 	// TellerClient

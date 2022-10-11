@@ -5,17 +5,27 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tony-tvu/goexpense/database"
-	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/db"
+	"github.com/tony-tvu/goexpense/types"
 	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type Session struct {
+	ID           primitive.ObjectID `json:"id" bson:"_id"`
+	UserID       primitive.ObjectID `json:"user_id" bson:"user_id"`
+	RefreshToken string             `json:"refresh_token" bson:"refresh_token"`
+	ExpiresAt    time.Time          `json:"expires_at" bson:"expires_at"`
+	CreatedAt    time.Time          `json:"created_at" bson:"created_at"`
+	UpdatedAt    time.Time          `json:"updated_at" bson:"updated_at"`
+}
+
+
 // Function verifies if user is logged in and tokens are valid
 // Refreshes access token if it has expired and extends sessions
 // Returns user ID and type
-func AuthorizeUser(c *gin.Context, db *database.MongoDb) (*primitive.ObjectID, *models.Type, error) {
+func AuthorizeUser(c *gin.Context, db *db.MongoDb) (*primitive.ObjectID, *types.UserType, error) {
 	ctx := c.Request.Context()
 	var userIDHex string
 	var userTypeStr string
@@ -44,7 +54,7 @@ func AuthorizeUser(c *gin.Context, db *database.MongoDb) (*primitive.ObjectID, *
 	if err != nil {
 
 		// find existing session
-		var session *models.Session
+		var session *Session
 		if err = db.Sessions.FindOne(ctx, bson.M{"user_id": objID}).Decode(&session); err != nil {
 			return nil, nil, errors.New("not authorized")
 		}
@@ -85,6 +95,6 @@ func AuthorizeUser(c *gin.Context, db *database.MongoDb) (*primitive.ObjectID, *
 		util.SetCookie(c.Writer, "goexpense_refresh", renewedRefresh.Value, renewedRefresh.ExpiresAt)
 	}
 
-	userType := models.GetUserType(userTypeStr)
+	userType := types.GetUserType(userTypeStr)
 	return &objID, &userType, nil
 }

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/types"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -14,9 +14,9 @@ func TestAuthTokens(t *testing.T) {
 	t.Parallel()
 
 	// create user and login
-	user, cleanup := createTestUser(t)
+	testUser, cleanup := createTestUser(t)
 	defer cleanup()
-	accessToken, refreshToken, _ := logUserIn(t, user.Username, user.Password)
+	accessToken, refreshToken, _ := logUserIn(t, testUser.Username, testUser.Password)
 
 	// make request to endpoint where user must be logged in
 	res := makeRequest(t, "GET", "/api/user_info", &accessToken, &refreshToken)
@@ -40,9 +40,9 @@ func TestAuthRevokeTokens(t *testing.T) {
 	t.Parallel()
 
 	// create user and login
-	user, cleanup := createTestUser(t)
+	testUser, cleanup := createTestUser(t)
 	defer cleanup()
-	accessToken, refreshToken, _ := logUserIn(t, user.Username, user.Password)
+	accessToken, refreshToken, _ := logUserIn(t, testUser.Username, testUser.Password)
 
 	// make request to endpoint where user must be logged in
 	res := makeRequest(t, "GET", "/api/user_info", &accessToken, &refreshToken)
@@ -53,7 +53,7 @@ func TestAuthRevokeTokens(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// revoke token
-	_, err := testApp.Db.Sessions.DeleteMany(ctx, bson.M{"user_id": user.ID})
+	_, err := testApp.Db.Sessions.DeleteMany(ctx, bson.M{"user_id": testUser.ID})
 	if err != nil {
 		t.FailNow()
 	}
@@ -124,7 +124,7 @@ func TestAuthAdminRestricted(t *testing.T) {
 		bson.M{"username": user.Username},
 		bson.M{
 			"$set": bson.M{
-				"type": models.AdminUser,
+				"user_type": types.AdminUser,
 			}},
 	)
 	if err != nil {

@@ -7,12 +7,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/database"
-	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/db"
+	"github.com/tony-tvu/goexpense/types"
 )
 
 type Handler struct {
-	Db           *database.MongoDb
+	Db           *db.MongoDb
 	ConfigsCache *Configs
 }
 
@@ -46,7 +46,7 @@ func (h *Handler) TellerAppID(c *gin.Context) {
 }
 
 func (h *Handler) GetConfigs(c *gin.Context) {
-	if _, userType, err := auth.AuthorizeUser(c, h.Db); err != nil || *userType != models.AdminUser {
+	if _, userType, err := auth.AuthorizeUser(c, h.Db); err != nil || *userType != types.AdminUser {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
@@ -64,7 +64,7 @@ func (h *Handler) UpdateConfigs(c *gin.Context) {
 	ctx := c.Request.Context()
 	defer c.Request.Body.Close()
 
-	if _, userType, err := auth.AuthorizeUser(c, h.Db); err != nil || *userType != models.AdminUser {
+	if _, userType, err := auth.AuthorizeUser(c, h.Db); err != nil || *userType != types.AdminUser {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
