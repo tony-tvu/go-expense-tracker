@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/tony-tvu/goexpense/db"
-	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/finances"
 	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -82,7 +82,7 @@ func (t *TellerClient) FetchAccounts(accessToken *string) (*[]TellerAccountRes, 
 }
 
 // Fetch account balance for a given account_id from teller api
-func (t *TellerClient) FetchBalance(account *models.Account) (*float64, error) {
+func (t *TellerClient) FetchBalance(account *finances.Account) (*float64, error) {
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/accounts/%s/balances", BASE_URL, account.AccountID), nil)
 	req.SetBasicAuth(account.AccessToken, "")
 	res, err := t.Client.Do(req)
@@ -108,7 +108,7 @@ func (t *TellerClient) FetchBalance(account *models.Account) (*float64, error) {
 }
 
 // Fetch all transactions for a given account_id from teller api
-func (t *TellerClient) FetchTransactions(account *models.Account) (*[]TellerTransactionRes, error) {
+func (t *TellerClient) FetchTransactions(account *finances.Account) (*[]TellerTransactionRes, error) {
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/accounts/%s/transactions", BASE_URL, account.AccountID), nil)
 	req.SetBasicAuth(account.AccessToken, "")
 	res, err := t.Client.Do(req)
@@ -145,7 +145,7 @@ func (t *TellerClient) PopulateAccounts(userID *primitive.ObjectID, accessToken,
 				{Key: "account_id", Value: account.AccountID},
 				{Key: "enrollment_id", Value: *enrollmentID},
 				{Key: "access_token", Value: *accessToken},
-				{Key: "type", Value: account.Type},
+				{Key: "account_type", Value: account.Type},
 				{Key: "subtype", Value: account.Subtype},
 				{Key: "status", Value: account.Status},
 				{Key: "name", Value: account.Name},
@@ -184,7 +184,7 @@ func (t *TellerClient) RefreshBalances(accessToken *string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Minute))
 	defer cancel()
 
-	var accounts []*models.Account
+	var accounts []*finances.Account
 	cursor, _ := t.Db.Accounts.Find(ctx, bson.M{"access_token": *accessToken})
 	if err := cursor.All(ctx, &accounts); err != nil {
 		log.Printf("error finding accounts for access_token %s: %v", *accessToken, err)
@@ -245,7 +245,7 @@ func (t *TellerClient) RefreshTransactions(accessToken *string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Minute))
 	defer cancel()
 
-	var accounts []*models.Account
+	var accounts []*finances.Account
 	cursor, _ := t.Db.Accounts.Find(ctx, bson.M{"access_token": *accessToken})
 	if err := cursor.All(ctx, &accounts); err != nil {
 		log.Printf("error finding accounts for access_token %s: %v", *accessToken, err)

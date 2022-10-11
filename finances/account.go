@@ -1,4 +1,4 @@
-package models
+package finances
 
 import (
 	"time"
@@ -14,7 +14,7 @@ type Account struct {
 	AccountID    string    `json:"account_id" bson:"account_id"`
 	EnrollmentID string    `json:"enrollment_id" bson:"enrollment_id"`
 	AccessToken  string    `json:"access_token" bson:"access_token"`
-	Type         string    `json:"type" bson:"type"`
+	AccountType  string    `json:"account_type" bson:"account_type"`
 	Subtype      string    `json:"subtype" bson:"subtype"`
 	Status       string    `json:"status" bson:"status"`
 	Name         string    `json:"name" bson:"name"`

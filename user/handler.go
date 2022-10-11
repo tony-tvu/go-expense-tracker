@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/cache"
 	"github.com/tony-tvu/goexpense/db"
 	"github.com/tony-tvu/goexpense/types"
 	"github.com/tony-tvu/goexpense/util"
@@ -18,8 +17,7 @@ import (
 )
 
 type Handler struct {
-	Db    *db.MongoDb
-	Cache *cache.Configs
+	Db *db.MongoDb
 }
 
 var v *validator.Validate

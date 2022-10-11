@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/db"
-	"github.com/tony-tvu/goexpense/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -25,7 +24,7 @@ func (h *Handler) GetTransactions(c *gin.Context) {
 	}
 
 	opts := options.Find().SetSort(bson.D{{Key: "date", Value: 1}})
-	var transactions []*models.Transaction
+	var transactions []*Transaction
 	cursor, err := h.Db.Transactions.Find(ctx, bson.M{"user_id": &userID}, opts)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -51,7 +50,7 @@ func (h *Handler) GetAccounts(c *gin.Context) {
 	}
 
 	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
-	var accounts []*models.Account
+	var accounts []*Account
 	cursor, err := h.Db.Accounts.Find(ctx, bson.M{"user_id": &userID}, opts)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)

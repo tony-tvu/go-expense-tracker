@@ -11,7 +11,7 @@ import (
 	"github.com/go-playground/validator"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/db"
-	"github.com/tony-tvu/goexpense/models"
+	"github.com/tony-tvu/goexpense/finances"
 	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -89,7 +89,7 @@ func (h *Handler) GetEnrollments(c *gin.Context) {
 	}
 
 	opts := options.Find().SetSort(bson.D{{Key: "institution", Value: 1}})
-	var enrollments []*models.Enrollment
+	var enrollments []*Enrollment
 	cursor, err := h.Db.Enrollments.Find(ctx, bson.M{"user_id": &userID}, opts)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -121,7 +121,7 @@ func (h *Handler) DeleteEnrollment(c *gin.Context) {
 	}
 
 	// verify enrollment belongs to user
-	var enrollment *models.Enrollment
+	var enrollment *Enrollment
 	if err = h.Db.Enrollments.FindOne(ctx, bson.M{"enrollment_id": enrollmentID}).Decode(&enrollment); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -132,7 +132,7 @@ func (h *Handler) DeleteEnrollment(c *gin.Context) {
 	}
 
 	// delete accounts
-	var accounts []*models.Account
+	var accounts []*finances.Account
 	cursor, err := h.Db.Enrollments.Find(ctx, bson.M{"enrollment_id": enrollmentID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)

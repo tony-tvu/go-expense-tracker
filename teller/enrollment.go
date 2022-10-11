@@ -1,4 +1,4 @@
-package models
+package teller
 
 import (
 	"time"

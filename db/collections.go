@@ -91,7 +91,7 @@ func (db *MongoDb) CreateInitialAdminUser(ctx context.Context, username, email, 
 		{Key: "username", Value: username},
 		{Key: "email", Value: email},
 		{Key: "password", Value: string(hash)},
-		{Key: "type", Value: "ADMIN"},
+		{Key: "user_type", Value: "ADMIN"},
 		{Key: "created_at", Value: time.Now()},
 		{Key: "updated_at", Value: time.Now()},
 	}

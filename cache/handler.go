@@ -13,7 +13,7 @@ import (
 
 type Handler struct {
 	Db           *db.MongoDb
-	ConfigsCache *Configs
+	ConfigsCache *ConfigsCache
 }
 
 func (h *Handler) RegistrationEnabled(c *gin.Context) {

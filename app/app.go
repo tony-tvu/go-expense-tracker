@@ -30,7 +30,7 @@ import (
 
 type App struct {
 	Db           *db.MongoDb
-	ConfigsCache *cache.Configs
+	ConfigsCache *cache.ConfigsCache
 	Router       *gin.Engine
 	Jobs         *jobs.Jobs
 }
@@ -54,7 +54,7 @@ func (a *App) Initialize(ctx context.Context) {
 		log.Fatal("ENV is not set")
 	}
 	a.Db = &db.MongoDb{}
-	a.ConfigsCache = &cache.Configs{}
+	a.ConfigsCache = &cache.ConfigsCache{}
 
 	// TellerClient
 	dirname, _ := os.Getwd()
