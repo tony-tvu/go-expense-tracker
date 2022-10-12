@@ -30,4 +30,4 @@ start:
 
 test:
 	go clean -testcache
-	go test ./tests -v
+	go test ./tests/... -v
