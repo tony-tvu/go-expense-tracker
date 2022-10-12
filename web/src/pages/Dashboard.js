@@ -64,7 +64,7 @@ export default function Dashboard() {
           setAccountsData(resData.transactions)
           let total = 0
           resData.transactions.forEach((transaction) => {
-            console.log(`transaction: ${JSON.stringify(transaction)}`)
+            console.log(`transaction: ${JSON.stringify(transaction.amount)}`)
             total += transaction.amount
             console.log(total)
           })

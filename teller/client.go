@@ -276,6 +276,10 @@ func (t *TellerClient) RefreshTransactions(accessToken *string) {
 					log.Printf("error parsing amount for transaction %v: %v", t, err)
 					success = false
 				}
+				if account.Subtype == "credit_card" {
+					amount = -1 * amount
+				}
+
 				date, err := time.Parse("2006-01-02", t.Date)
 				if err != nil {
 					log.Printf("error parsing date for transaction %v: %v", t, err)

@@ -27,8 +27,6 @@ func (j *Jobs) Start(ctx context.Context) {
 
 func (t *Jobs) refreshBalancesTask(ctx context.Context) {
 	for {
-		time.Sleep(time.Duration(t.BalancesInterval) * time.Second)
-
 		var enrollments []*teller.Enrollment
 		cursor, _ := t.Db.Enrollments.Find(ctx, bson.M{})
 		if err := cursor.All(ctx, &enrollments); err != nil {
@@ -39,13 +37,14 @@ func (t *Jobs) refreshBalancesTask(ctx context.Context) {
 		for _, enrollment := range enrollments {
 			t.TellerClient.RefreshBalances(&enrollment.AccessToken)
 		}
+
+		time.Sleep(time.Duration(t.BalancesInterval) * time.Second)
+
 	}
 }
 
 func (t *Jobs) refreshTransactionsTask(ctx context.Context) {
 	for {
-		time.Sleep(time.Duration(t.TransactionsInterval) * time.Second)
-
 		var enrollments []*teller.Enrollment
 		cursor, _ := t.Db.Enrollments.Find(ctx, bson.M{})
 		if err := cursor.All(ctx, &enrollments); err != nil {
@@ -56,5 +55,8 @@ func (t *Jobs) refreshTransactionsTask(ctx context.Context) {
 		for _, enrollment := range enrollments {
 			t.TellerClient.RefreshTransactions(&enrollment.AccessToken)
 		}
+
+		time.Sleep(time.Duration(t.TransactionsInterval) * time.Second)
+
 	}
 }
