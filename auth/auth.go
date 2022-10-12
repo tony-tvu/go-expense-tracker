@@ -15,12 +15,12 @@ import (
 type Session struct {
 	ID           primitive.ObjectID `json:"id" bson:"_id"`
 	UserID       primitive.ObjectID `json:"user_id" bson:"user_id"`
+	Username     string             `json:"username" bson:"username"`
 	RefreshToken string             `json:"refresh_token" bson:"refresh_token"`
 	ExpiresAt    time.Time          `json:"expires_at" bson:"expires_at"`
 	CreatedAt    time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt    time.Time          `json:"updated_at" bson:"updated_at"`
 }
-
 
 // Function verifies if user is logged in and tokens are valid
 // Refreshes access token if it has expired and extends sessions

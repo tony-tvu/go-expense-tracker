@@ -123,6 +123,7 @@ func (h *Handler) Login(c *gin.Context) {
 	// save new session
 	doc := bson.D{
 		{Key: "user_id", Value: u.ID},
+		{Key: "username", Value: u.Username},
 		{Key: "refresh_token", Value: refreshToken.Value},
 		{Key: "expires_at", Value: refreshToken.ExpiresAt},
 		{Key: "created_at", Value: time.Now()},
