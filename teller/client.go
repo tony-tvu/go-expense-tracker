@@ -64,6 +64,7 @@ type TellerTransactionRes struct {
 	Description string `json:"description"`
 	Date        string `json:"date"`
 	Amount      string `json:"amount"`
+	Status      string `json:"status"`
 }
 
 // Fetch all accounts for a given access_token from teller api
@@ -271,6 +272,9 @@ func (t *TellerClient) RefreshTransactions(accessToken *string) {
 
 			var docs []interface{}
 			for _, t := range *tellerTransactions {
+				if t.Status != "posted" {
+					continue
+				}
 				amount, err := strconv.ParseFloat(t.Amount, 32)
 				if err != nil {
 					log.Printf("error parsing amount for transaction %v: %v", t, err)
