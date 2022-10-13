@@ -29,7 +29,7 @@ export default function ExpensesTable({ transactionsData }) {
               className="d-flex align-items-center justify-content-center"
             >
               <Text alignItems={'center'}>
-                {DateTime.fromISO(transaction.date).toLocaleString()}
+                {DateTime.fromISO(transaction.date, {zone: 'UTC'}).toFormat('LL/dd/yyyy')}
               </Text>
             </Col>
             <Col xs={3} sm={3} md={5} className="d-flex align-items-center">
