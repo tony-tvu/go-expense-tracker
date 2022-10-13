@@ -7,6 +7,7 @@ import Col from 'react-bootstrap/Col'
 import { Box } from '@chakra-ui/react'
 import MonthYearPicker from '../components/MonthYearPicker'
 import { DateTime } from 'luxon'
+import ExpensesTable from '../components/ExpensesTable'
 
 export default function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState(DateTime.now().month)
@@ -114,13 +115,11 @@ export default function Dashboard() {
               />
             </Col>
           </Row>
-
-          {/* Monthly overview */}
-          <Row>
-            <Col xs={12} sm={12} md={12}>
-              <Box bg={'red'} h={'400px'}></Box>
-            </Col>
-          </Row>
+        </Col>
+      </Row>
+      <Row>
+        <Col xs={12} sm={12} md={12}>
+          <ExpensesTable transactionsData={transactionsData ?? null} />
         </Col>
       </Row>
     </Container>
