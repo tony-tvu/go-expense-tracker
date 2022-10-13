@@ -5,8 +5,13 @@ import Container from 'react-bootstrap/Container'
 import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import { Box } from '@chakra-ui/react'
+import MonthYearPicker from '../components/MonthYearPicker'
+import { DateTime } from 'luxon'
 
 export default function Dashboard() {
+  const [selectedMonth, setSelectedMonth] = useState(`${DateTime.now().month}`)
+  const [selectedYear, setSelectedYear] = useState(`${DateTime.now().year}`)
+
   const [accountsData, setAccountsData] = useState([])
   const [transactionsData, setTransactionsData] = useState([])
   const [cashTotal, setCashTotal] = useState(null)
@@ -25,7 +30,6 @@ export default function Dashboard() {
       .then(async (res) => {
         if (!res) return
         const resData = await res.json().catch((err) => logger(err))
-        console.log(resData.accounts)
         if (res.status === 200 && resData.accounts) {
           setAccountsData(resData.accounts)
           let cashTotal = 0
@@ -59,14 +63,11 @@ export default function Dashboard() {
       .then(async (res) => {
         if (!res) return
         const resData = await res.json().catch((err) => logger(err))
-        console.log(resData)
         if (res.status === 200 && resData.transactions) {
           setAccountsData(resData.transactions)
           let total = 0
           resData.transactions.forEach((transaction) => {
-            console.log(`transaction: ${JSON.stringify(transaction.amount)}`)
             total += transaction.amount
-            console.log(total)
           })
           setTransactionsTotal(total)
         }
@@ -88,31 +89,34 @@ export default function Dashboard() {
     <Container style={{ paddingLeft: 0, paddingRight: 0 }}>
       <Row style={{ paddingLeft: 0, paddingRight: 0 }}>
         {/* Main Col 1 - Totals and Monthly overview */}
-        <Col xs={12} sm={12} md={8}>
+        <Col xs={12} sm={12} md={12}>
           {/* Totals */}
           <Row>
-            <Col xs={4} sm={4} md={4}>
-              <TotalSquare total={cashTotal} title={'Cash'} />
-            </Col>
-            <Col xs={4} sm={4} md={4}>
+            <Col xs={4} sm={4} md={3}>
               <TotalSquare total={cashTotal} title={'Income'} />
             </Col>
-            <Col xs={4} sm={4} md={4}>
+            <Col xs={4} sm={4} md={3}>
               <TotalSquare total={transactionsTotal} title={'Expenses'} />
+            </Col>
+            <Col xs={4} sm={4} md={3}>
+              <TotalSquare total={transactionsTotal} title={'Profit'} />
+            </Col>
+            <Col xs={12} sm={12} md={3}>
+              <MonthYearPicker
+                selectedMonth={selectedMonth}
+                setSelectedMonth={setSelectedMonth}
+                selectedYear={selectedYear}
+                setSelectedYear={setSelectedYear}
+              />
             </Col>
           </Row>
 
           {/* Monthly overview */}
           <Row>
             <Col xs={12} sm={12} md={12}>
-              <Box bg={'red'} h={'300px'}></Box>
+              <Box bg={'red'} h={'400px'}></Box>
             </Col>
           </Row>
-        </Col>
-
-        {/* Main Col 2 - Activity */}
-        <Col xs={12} sm={12} md={4}>
-          <Box bg={'green'} minH={['100px', '100px', '130px', '650px']}></Box>
         </Col>
       </Row>
     </Container>

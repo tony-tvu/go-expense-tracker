@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import logger from '../logger'
-import Navbar from './Navbar'
 import Sidenav from './Sidenav'
 
 export default function Protected({ adminOnly, current, children }) {
