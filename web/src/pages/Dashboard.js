@@ -9,11 +9,11 @@ import MonthYearPicker from '../components/MonthYearPicker'
 import { DateTime } from 'luxon'
 
 export default function Dashboard() {
-  const [selectedMonth, setSelectedMonth] = useState(`${DateTime.now().month}`)
-  const [selectedYear, setSelectedYear] = useState(`${DateTime.now().year}`)
+  const [selectedMonth, setSelectedMonth] = useState(DateTime.now().month)
+  const [selectedYear, setSelectedYear] = useState(DateTime.now().year)
 
   const [accountsData, setAccountsData] = useState([])
-  const [transactionsData, setTransactionsData] = useState([])
+  const [transactionsData, setTransactionsData] = useState(null)
   const [cashTotal, setCashTotal] = useState(null)
   const [creditTotal, setCreditTotal] = useState(null)
   const [transactionsTotal, setTransactionsTotal] = useState(null)
@@ -64,7 +64,7 @@ export default function Dashboard() {
         if (!res) return
         const resData = await res.json().catch((err) => logger(err))
         if (res.status === 200 && resData.transactions) {
-          setAccountsData(resData.transactions)
+          setTransactionsData(resData.transactions)
           let total = 0
           resData.transactions.forEach((transaction) => {
             total += transaction.amount
@@ -84,6 +84,9 @@ export default function Dashboard() {
       fetchTransactions()
     }
   }, [accountsData, loading])
+
+  console.log(selectedMonth)
+  console.log(selectedYear)
 
   return (
     <Container style={{ paddingLeft: 0, paddingRight: 0 }}>
@@ -107,6 +110,7 @@ export default function Dashboard() {
                 setSelectedMonth={setSelectedMonth}
                 selectedYear={selectedYear}
                 setSelectedYear={setSelectedYear}
+                transactionsData={transactionsData ?? null}
               />
             </Col>
           </Row>
