@@ -2,13 +2,16 @@ package finances
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/db"
+	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -60,13 +63,42 @@ func (h *Handler) GetTransactions(c *gin.Context) {
 		return
 	}
 
-	opts := options.Find().SetSort(bson.D{{Key: "date", Value: -1}})
-	var transactions []*Transaction
-	cursor, err := h.Db.Transactions.Find(ctx, bson.M{"user_id": &userID}, opts)
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
+	monthStr := c.Query("month")
+	yearStr := c.Query("year")
+	month := -1
+	year := -1
+	if !util.ContainsEmpty(monthStr, yearStr) {
+		month, err = strconv.Atoi(monthStr)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		year, err = strconv.Atoi(yearStr)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
 	}
+
+	var transactions []*Transaction
+	var cursor *mongo.Cursor
+	opts := options.Find().SetSort(bson.D{{Key: "date", Value: -1}})
+	if month != -1 && year != -1 {
+		fromDate := time.Date(year, util.GetMonth(month), 0, 0, 0, 0, 0, time.UTC)
+		toDate := time.Date(year, util.GetMonth(month+1), 0, 0, 0, 0, 0, time.UTC)
+		cursor, _ = h.Db.Transactions.Find(ctx, bson.M{
+			"user_id": &userID,
+			"date": bson.M{
+				"$gt": fromDate,
+				"$lt":  toDate,
+			},
+		}, opts)
+	} else {
+		cursor, _ = h.Db.Transactions.Find(ctx, bson.M{
+			"user_id": &userID,
+		}, opts)
+	}
+
 	if err = cursor.All(ctx, &transactions); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
