@@ -90,7 +90,7 @@ func (h *Handler) GetEnrollments(c *gin.Context) {
 
 	opts := options.Find().SetSort(bson.D{{Key: "institution", Value: 1}})
 	var enrollments []*Enrollment
-	cursor, err := h.Db.Enrollments.Find(ctx, bson.M{"user_id": &userID}, opts)
+	cursor, err := h.Db.Enrollments.Find(ctx, bson.M{"user_id": *userID}, opts)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -120,20 +120,9 @@ func (h *Handler) DeleteEnrollment(c *gin.Context) {
 		return
 	}
 
-	// verify enrollment belongs to user
-	var enrollment *Enrollment
-	if err = h.Db.Enrollments.FindOne(ctx, bson.M{"enrollment_id": enrollmentID}).Decode(&enrollment); err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	if enrollment.UserID != *userID {
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-
 	// delete accounts
 	var accounts []*finances.Account
-	cursor, err := h.Db.Enrollments.Find(ctx, bson.M{"enrollment_id": enrollmentID})
+	cursor, err := h.Db.Enrollments.Find(ctx, bson.M{"enrollment_id": enrollmentID, "user_id": *userID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -150,14 +139,14 @@ func (h *Handler) DeleteEnrollment(c *gin.Context) {
 		}
 	}
 
-	_, err = h.Db.Accounts.DeleteMany(ctx, bson.M{"enrollment_id": enrollmentID})
+	_, err = h.Db.Accounts.DeleteMany(ctx, bson.M{"enrollment_id": enrollmentID, "user_id": *userID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	// delete enrollment
-	_, err = h.Db.Enrollments.DeleteOne(ctx, bson.M{"enrollment_id": enrollmentID})
+	_, err = h.Db.Enrollments.DeleteOne(ctx, bson.M{"enrollment_id": enrollmentID, "user_id": *userID})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

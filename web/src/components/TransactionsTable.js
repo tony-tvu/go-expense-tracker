@@ -1,10 +1,8 @@
 import {
   Box,
-  Center,
   Divider,
   HStack,
   Select,
-  Spinner,
   Text,
   useColorModeValue,
 } from '@chakra-ui/react'
@@ -18,7 +16,7 @@ import { useNavigate } from 'react-router-dom'
 import logger from '../logger'
 import { FaCircle } from 'react-icons/fa'
 
-export default function ExpensesTable({ transactionsData, onSuccess }) {
+export default function TransactionsTable({ transactionsData, onSuccess }) {
   const selectorBg = useColorModeValue('gray.100', '#1E1E1E')
   const navigate = useNavigate()
 

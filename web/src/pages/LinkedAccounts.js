@@ -21,6 +21,7 @@ export default function LinkedAccounts() {
   const [loading, setLoading] = useState(true)
 
   const stackBgColor = useColorModeValue('white', 'gray.900')
+  const bgColor = useColorModeValue('white', '#252526')
   const tooltipBg = useColorModeValue('white', 'gray.900')
   const tooltipColor = useColorModeValue('black', 'white')
 
@@ -48,18 +49,14 @@ export default function LinkedAccounts() {
           setLoading(false)
         })
         .catch((err) => {
-          logger('error getting items', err)
+          logger('error getting enrollments', err)
         })
     }
   }, [loading])
 
   function renderAccounts() {
     if (data.length === 0 && !loading) {
-      return (
-        <Text fontSize="l" pl={1}>
-          You have not linked any accounts.
-        </Text>
-      )
+      return null
     }
 
     return data.map((enrollment) => {
@@ -106,7 +103,7 @@ export default function LinkedAccounts() {
 
   return (
     <VStack>
-      <Container maxW="container.md" centerContent>
+      <Container maxW="container.md" centerContent bg={bgColor} mb={5}>
         <HStack alignItems="end" width="100%" mt={5} mb={5}>
           <Text fontSize="3xl" as="b" pl={1}>
             Accounts
@@ -114,7 +111,28 @@ export default function LinkedAccounts() {
           <Spacer />
           <AddAccountBtn onSuccess={onSuccess} />
         </HStack>
+        <VStack alignItems="start" width="100%" mb={10}>
+          <Text fontSize="md" pl={1} mb={5}>
+            Add an account to begin tracking your expenses. This application
+            pulls in new transactions every hour. Checking and savings account
+            balances are refreshed every 12 hours.
+          </Text>
+          <HStack>
+            <IoIosWarning size={'150px'} color={'red'} />
+            <Text>
+              When you delete an account, your existing transactions will not be
+              deleted. This is to prevent you from needing to re-categorize the
+              transactions you've already categorized. Whenever your account
+              gets disconnected from this application, you'll need to remove
+              that account and add it back again to resolve the issue. To remove
+              existing transactions, you will need to completely wipe all
+              transactions.
+            </Text>
+          </HStack>
+        </VStack>
+      </Container>
 
+      <Container maxW="container.md" p={0} centerContent minH={'100px'}>
         {loading ? (
           <Center pt={10}>
             <Spinner

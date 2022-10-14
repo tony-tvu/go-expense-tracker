@@ -1,10 +1,13 @@
 package finances
 
 import (
+	"context"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -56,6 +59,14 @@ type Transaction struct {
 	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
 }
 
+type Rule struct {
+	ID        primitive.ObjectID `json:"id" bson:"_id"`
+	UserID    primitive.ObjectID `json:"user_id" bson:"user_id"`
+	Substring string             `json:"substring" bson:"substring"`
+	Category  string             `json:"category" bson:"category"`
+	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
+}
+
 var Categories = []string{
 	"bills",
 	"entertainment",
@@ -72,6 +83,159 @@ var v *validator.Validate
 
 func init() {
 	v = validator.New()
+}
+
+func (h *Handler) CreateRule(c *gin.Context) {
+	ctx := c.Request.Context()
+	defer c.Request.Body.Close()
+
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	type Input struct {
+		Substring string `json:"substring" validate:"required"`
+		Category  string `json:"category" validate:"required"`
+	}
+
+	var input *Input
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	err = json.Unmarshal(bodyBytes, &input)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	err = v.Struct(input)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	if util.ContainsEmpty(input.Substring) {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	if !util.Contains(&Categories, input.Category) {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	doc := &bson.D{
+		{Key: "user_id", Value: *userID},
+		{Key: "substring", Value: input.Substring},
+		{Key: "category", Value: input.Category},
+		{Key: "created_at", Value: time.Now()},
+	}
+	_, err = h.Db.Rules.InsertOne(ctx, doc)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	// update all transactions with rules
+	if !h.applyRules(ctx, userID) {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *Handler) applyRules(ctx context.Context, userID *primitive.ObjectID) bool {
+	success := true
+	var transactions []*Transaction
+	cursor, _ := h.Db.Transactions.Find(ctx, bson.M{"user_id": *userID})
+	if err := cursor.All(ctx, &transactions); err != nil {
+		log.Printf("error updating transaction with new rule: %v", err)
+		success = false
+	}
+
+	var rules []*Rule
+	cursor, _ = h.Db.Rules.Find(ctx, bson.M{"user_id": *userID})
+	if err := cursor.All(ctx, &rules); err != nil {
+		log.Printf("error updating transaction with new rule: %v", err)
+		success = false
+	}
+
+	for _, transaction := range transactions {
+		for _, rule := range rules {
+			if strings.Contains(transaction.Name, rule.Substring) {
+				amount := transaction.Amount
+
+				// make transaction amount positive if category to changed to 'income'
+				if rule.Category == "income" && transaction.Amount < 0 {
+					amount = -1 * transaction.Amount
+				}
+				// make transaction amount negative if category is not 'income'/'ignore'
+				if rule.Category != "income" && rule.Category != "ignore" && transaction.Amount > 0 {
+					amount = -1 * transaction.Amount
+				}
+
+				filter := bson.M{"transaction_id": transaction.TransactionID, "user_id": *userID}
+				update := bson.M{"$set": bson.M{"category": rule.Category, "amount": amount}}
+				_, err := h.Db.Transactions.UpdateOne(ctx, filter, update)
+				if err != nil {
+					log.Printf("error updating transaction with new rule: %v", err)
+					success = false
+				}
+			}
+		}
+	}
+
+	return success
+}
+
+func (h *Handler) DeleteRule(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	ruleIDHex := c.Param("rule_id")
+	if util.ContainsEmpty(ruleIDHex) {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	ruleObjID, err := primitive.ObjectIDFromHex(ruleIDHex)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	_, err = h.Db.Rules.DeleteOne(ctx, bson.M{"_id": ruleObjID, "user_id": *userID})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *Handler) GetRules(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	var rules []*Rule
+	opts := options.Find().SetSort(bson.D{{Key: "substring", Value: -1}})
+	cursor, _ := h.Db.Rules.Find(ctx, bson.M{
+		"user_id": *userID,
+	}, opts)
+	if err = cursor.All(ctx, &rules); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"rules": rules,
+	})
 }
 
 func (h *Handler) GetTransactions(c *gin.Context) {
@@ -104,7 +268,7 @@ func (h *Handler) GetTransactions(c *gin.Context) {
 	var transactions []*Transaction
 	opts := options.Find().SetSort(bson.D{{Key: "date", Value: -1}})
 	cursor, _ := h.Db.Transactions.Find(ctx, bson.M{
-		"user_id": &userID,
+		"user_id": *userID,
 	}, opts)
 	if err = cursor.All(ctx, &transactions); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -167,13 +331,11 @@ func (h *Handler) UpdateTransaction(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-
 	err = json.Unmarshal(bodyBytes, &input)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-
 	err = v.Struct(input)
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
@@ -188,7 +350,7 @@ func (h *Handler) UpdateTransaction(c *gin.Context) {
 	var update primitive.M
 	var transaction *Transaction
 	if err = h.Db.Transactions.
-		FindOne(ctx, bson.M{"user_id": userID, "transaction_id": input.TransactionID}).
+		FindOne(ctx, bson.M{"user_id": *userID, "transaction_id": input.TransactionID}).
 		Decode(&transaction); err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
@@ -224,7 +386,7 @@ func (h *Handler) GetAccounts(c *gin.Context) {
 
 	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
 	var accounts []*Account
-	cursor, err := h.Db.Accounts.Find(ctx, bson.M{"user_id": &userID}, opts)
+	cursor, err := h.Db.Accounts.Find(ctx, bson.M{"user_id": *userID}, opts)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

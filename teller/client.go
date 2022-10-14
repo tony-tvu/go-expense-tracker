@@ -177,7 +177,7 @@ func (t *TellerClient) PopulateAccounts(userID *primitive.ObjectID, accessToken,
 	}
 
 	go t.RefreshBalances(accessToken)
-	go t.RefreshTransactions(accessToken)
+	go t.RefreshTransactions(userID, accessToken)
 }
 
 // Updates all account balances for a give access_token
@@ -242,7 +242,7 @@ func (t *TellerClient) RefreshBalances(accessToken *string) {
 }
 
 // Fetches all transactions for a given access_token and saves them to db
-func (t *TellerClient) RefreshTransactions(accessToken *string) {
+func (t *TellerClient) RefreshTransactions(userID *primitive.ObjectID, accessToken *string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Minute))
 	defer cancel()
 
@@ -250,6 +250,12 @@ func (t *TellerClient) RefreshTransactions(accessToken *string) {
 	cursor, _ := t.Db.Accounts.Find(ctx, bson.M{"access_token": *accessToken})
 	if err := cursor.All(ctx, &accounts); err != nil {
 		log.Printf("error finding accounts for access_token %s: %v", *accessToken, err)
+	}
+
+	var rules []*finances.Rule
+	cursor, _ = t.Db.Rules.Find(ctx, bson.M{"user_id": userID})
+	if err := cursor.All(ctx, &rules); err != nil {
+		log.Printf("error finding rules for access_token %s: %v", *accessToken, err)
 	}
 
 	retryLimit := 3
@@ -265,7 +271,7 @@ func (t *TellerClient) RefreshTransactions(accessToken *string) {
 				success = false
 			}
 
-			// retry if there's no transactions
+			// retry if there are no transactions
 			if len(*tellerTransactions) == 0 {
 				success = false
 			}
@@ -295,10 +301,28 @@ func (t *TellerClient) RefreshTransactions(accessToken *string) {
 					category = t.Details.Category
 				}
 
+				// apply rules
+				name := t.Description
+				for _, rule := range rules {
+					if strings.Contains(name, rule.Substring) {
+
+						// make transaction amount positive if category to changed to 'income'
+						if rule.Category == "income" && amount < 0 {
+							amount = -1 * amount
+						}
+						// make transaction amount negative if category is not 'income'/'ignore'
+						if rule.Category != "income" && rule.Category != "ignore" && amount > 0 {
+							amount = -1 * amount
+						}
+
+						category = rule.Category
+					}
+				}
+
 				doc := bson.D{
 					{Key: "transaction_id", Value: t.TransactionID},
 					{Key: "enrollment_id", Value: account.EnrollmentID},
-					{Key: "name", Value: t.Description},
+					{Key: "name", Value: name},
 					{Key: "category", Value: category},
 					{Key: "amount", Value: amount},
 					{Key: "date", Value: date},

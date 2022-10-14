@@ -53,7 +53,7 @@ func (t *Jobs) refreshTransactionsTask(ctx context.Context) {
 
 		log.Printf("refreshing transactions for %d enrollments\n", len(enrollments))
 		for _, enrollment := range enrollments {
-			t.TellerClient.RefreshTransactions(&enrollment.AccessToken)
+			t.TellerClient.RefreshTransactions(&enrollment.UserID, &enrollment.AccessToken)
 		}
 
 		time.Sleep(time.Duration(t.TransactionsInterval) * time.Second)

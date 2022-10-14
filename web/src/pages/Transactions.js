@@ -6,9 +6,10 @@ import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import MonthYearPicker from '../components/MonthYearPicker'
 import { DateTime } from 'luxon'
-import ExpensesTable from '../components/ExpensesTable'
+import ExpensesTable from '../components/TransactionsTable'
+import { Flex } from '@chakra-ui/react'
 
-export default function Expenses() {
+export default function Transactions() {
   const [selectedMonth, setSelectedMonth] = useState(DateTime.now().month)
   const [selectedYear, setSelectedYear] = useState(DateTime.now().year)
   const [transactionsData, setTransactionsData] = useState(null)
@@ -74,39 +75,37 @@ export default function Expenses() {
   }, [fetchTransactions, selectedMonth, selectedYear])
 
   return (
-    <Container style={{ paddingLeft: 0, paddingRight: 0 }}>
-      <Row style={{ paddingLeft: 0, paddingRight: 0 }}>
-        <Col xs={12} sm={12} md={12}>
-          <Row>
-            <Col xs={4} sm={4} md={3}>
-              <TotalSquare total={incomeTotal ?? null} title={'Income'} />
-            </Col>
-            <Col xs={4} sm={4} md={3}>
-              <TotalSquare total={expensesTotal ?? null} title={'Expenses'} />
-            </Col>
-            <Col xs={4} sm={4} md={3}>
-              <TotalSquare total={profit ?? null} title={'Profit'} />
-            </Col>
-            <Col xs={12} sm={12} md={3}>
-              <MonthYearPicker
-                selectedMonth={selectedMonth}
-                setSelectedMonth={setSelectedMonth}
-                selectedYear={selectedYear}
-                setSelectedYear={setSelectedYear}
-                availableYears={availableYears ?? null}
-              />
-            </Col>
-          </Row>
-        </Col>
-      </Row>
-      <Row>
-        <Col xs={12} sm={12} md={12}>
-          <ExpensesTable
-            transactionsData={transactionsData ?? null}
-            onSuccess={fetchTransactions}
-          />
-        </Col>
-      </Row>
-    </Container>
+    <Flex>
+      <Container>
+        <Row s>
+          <Col xs={4} sm={4} md={3}>
+            <TotalSquare total={incomeTotal ?? null} title={'Income'} />
+          </Col>
+          <Col xs={4} sm={4} md={3}>
+            <TotalSquare total={expensesTotal ?? null} title={'Expenses'} />
+          </Col>
+          <Col xs={4} sm={4} md={3}>
+            <TotalSquare total={profit ?? null} title={'Profit'} />
+          </Col>
+          <Col xs={12} sm={12} md={3}>
+            <MonthYearPicker
+              selectedMonth={selectedMonth}
+              setSelectedMonth={setSelectedMonth}
+              selectedYear={selectedYear}
+              setSelectedYear={setSelectedYear}
+              availableYears={availableYears ?? null}
+            />
+          </Col>
+        </Row>
+        <Row>
+          <Col xs={12} sm={12} md={12}>
+            <ExpensesTable
+              transactionsData={transactionsData ?? null}
+              onSuccess={fetchTransactions}
+            />
+          </Col>
+        </Row>
+      </Container>
+    </Flex>
   )
 }

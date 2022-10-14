@@ -144,22 +144,31 @@ const SidebarContent = ({
             MANAGE
           </Text>
           <NavItem
-            to="/expenses"
+            to="/transactions"
             icon={FaMoneyBill}
-            bgColor={current === 'expenses' ? hoverBgColor : navBgColor}
-            iconColor={current === 'expenses' ? colors.primary : textColor}
+            bgColor={current === 'transactions' ? hoverBgColor : navBgColor}
+            iconColor={current === 'transactions' ? colors.primary : textColor}
           >
-            Expenses
+            Transactions
           </NavItem>
           <NavItem
-            to="/analytics"
+            to="/rules"
             icon={FaThLarge}
-            bgColor={current === 'analytics' ? hoverBgColor : navBgColor}
-            iconColor={current === 'analytics' ? colors.primary : textColor}
+            bgColor={current === 'rules' ? hoverBgColor : navBgColor}
+            iconColor={current === 'rules' ? colors.primary : textColor}
           >
-            Analytics
+            Rules
           </NavItem>
-
+          <NavItem
+            to="/accounts"
+            icon={FaListUl}
+            bgColor={current === 'linked_accounts' ? hoverBgColor : navBgColor}
+            iconColor={
+              current === 'linked_accounts' ? colors.primary : textColor
+            }
+          >
+            Accounts
+          </NavItem>
           <Divider mt={5} borderColor={'#464646'} />
         </>
       )}
@@ -180,16 +189,6 @@ const SidebarContent = ({
 
       {isLoggedIn && (
         <>
-          <NavItem
-            to="/accounts"
-            icon={FaListUl}
-            bgColor={current === 'linked_accounts' ? hoverBgColor : navBgColor}
-            iconColor={
-              current === 'linked_accounts' ? colors.primary : textColor
-            }
-          >
-            Accounts
-          </NavItem>
           {isAdmin && (
             <NavItem
               to="/admin"
@@ -200,14 +199,6 @@ const SidebarContent = ({
               Admin
             </NavItem>
           )}
-          <NavItem
-            to="/settings"
-            icon={FiSettings}
-            bgColor={current === 'settings' ? hoverBgColor : navBgColor}
-            iconColor={current === 'settings' ? colors.primary : textColor}
-          >
-            Settings
-          </NavItem>
           <Button onClick={() => logout()}>Logout</Button>
         </>
       )}

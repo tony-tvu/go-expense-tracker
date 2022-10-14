@@ -1,12 +1,12 @@
 import React from 'react'
 import { ChakraProvider, theme } from '@chakra-ui/react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import Dashboard from './pages/Dashboard'
 import LinkedAccounts from './pages/LinkedAccounts'
 import Admin from './pages/Admin'
 import Login from './pages/Login'
 import Protected from './nav/Protected'
-import Expenses from './pages/Expenses'
+import Transactions from './pages/Transactions'
+import Rules from './pages/Rules'
 
 export default function App() {
   return (
@@ -17,8 +17,16 @@ export default function App() {
           <Route
             path="/"
             element={
-              <Protected current="expenses">
-                <Expenses />
+              <Protected current="transactions">
+                <Transactions />
+              </Protected>
+            }
+          />
+          <Route
+            path="/rules"
+            element={
+              <Protected current="rules">
+                <Rules />
               </Protected>
             }
           />
@@ -27,14 +35,6 @@ export default function App() {
             element={
               <Protected current="linked_accounts">
                 <LinkedAccounts />
-              </Protected>
-            }
-          />
-          <Route
-            path="/analytics"
-            element={
-              <Protected current="analytics">
-                <Dashboard />
               </Protected>
             }
           />
