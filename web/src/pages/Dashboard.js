@@ -16,7 +16,6 @@ export default function Dashboard() {
   const [accountsData, setAccountsData] = useState([])
   const [transactionsData, setTransactionsData] = useState(null)
   const [cashTotal, setCashTotal] = useState(null)
-  const [creditTotal, setCreditTotal] = useState(null)
   const [transactionsTotal, setTransactionsTotal] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -34,17 +33,12 @@ export default function Dashboard() {
         if (res.status === 200 && resData.accounts) {
           setAccountsData(resData.accounts)
           let cashTotal = 0
-          let creditTotal = 0
           resData.accounts.forEach((account) => {
-            if (account.subtype === 'credit_card') {
-              creditTotal += account.balance
-            } else {
+            if (account.subtype !== 'credit_card') {
               cashTotal += account.balance
             }
           })
           setCashTotal(cashTotal)
-          creditTotal = -1 * creditTotal
-          setCreditTotal(creditTotal)
           setLoading(false)
         }
       })
@@ -54,7 +48,9 @@ export default function Dashboard() {
   }
 
   async function fetchTransactions() {
-    await fetch(`${process.env.REACT_APP_API_URL}/transactions`, {
+    setTransactionsData(null)
+    setLoading(true)
+    await fetch(`${process.env.REACT_APP_API_URL}/transactions?month=${selectedMonth}&year=${selectedYear}`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -86,8 +82,11 @@ export default function Dashboard() {
     }
   }, [accountsData, loading])
 
-  console.log(selectedMonth)
-  console.log(selectedYear)
+  useEffect(() => {
+    document.title = 'Dashboard'
+    fetchTransactions()
+  }, [selectedMonth, selectedYear])
+
 
   return (
     <Container style={{ paddingLeft: 0, paddingRight: 0 }}>
