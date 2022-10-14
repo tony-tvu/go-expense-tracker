@@ -46,9 +46,7 @@ export default function AddAccountBtn({ onSuccess }) {
       }),
     })
       .then((res) => {
-        if (res.status === 401) {
-          navigate('/login')
-        }
+        if (res.status === 401) navigate('/login')
         if (res.status === 200) onSuccess()
       })
       .catch((e) => {
@@ -65,9 +63,7 @@ export default function AddAccountBtn({ onSuccess }) {
       },
     })
       .then(async (res) => {
-        if (res.status === 401) {
-          navigate('/login')
-        }
+        if (res.status === 401) navigate('/login')
         if (!res) return
         const resData = await res.json().catch((err) => logger(err))
         return resData.teller_app_id

@@ -112,7 +112,7 @@ func (a *App) Initialize(ctx context.Context) {
 	router.Use(middleware.CorsHeaders(allowedOriginsArr))
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOriginsArr,
-		AllowMethods:     []string{"GET", "PUT", "POST", "DELETE"},
+		AllowMethods:     []string{"GET", "PUT", "PATCH", "POST", "DELETE"},
 		AllowCredentials: true,
 		MaxAge:           5 * time.Minute,
 	}))
@@ -127,10 +127,11 @@ func (a *App) Initialize(ctx context.Context) {
 		api.GET("/registration_enabled", cache.RegistrationEnabled)
 		api.GET("/teller_app_id", cache.TellerAppID)
 		api.GET("/configs", cache.GetConfigs)
-		api.PUT("/configs", cache.UpdateConfigs)
+		api.PATCH("/configs", cache.UpdateConfigs)
 
 		// finances
 		api.GET("/transactions", finances.GetTransactions)
+		api.PATCH("/transactions", finances.UpdateTransaction)
 		api.GET("/accounts", finances.GetAccounts)
 
 		// teller

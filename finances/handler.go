@@ -1,11 +1,14 @@
 package finances
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/db"
 	"github.com/tony-tvu/goexpense/util"
@@ -51,6 +54,24 @@ type Transaction struct {
 
 	CreatedAt time.Time `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
+}
+
+var Categories = []string{
+	"bills",
+	"entertainment",
+	"groceries",
+	"ignore",
+	"income",
+	"restaurant",
+	"transportation",
+	"vacation",
+	"uncategorized",
+}
+
+var v *validator.Validate
+
+func init() {
+	v = validator.New()
 }
 
 func (h *Handler) GetTransactions(c *gin.Context) {
@@ -122,6 +143,73 @@ func (h *Handler) GetTransactions(c *gin.Context) {
 			"count":        len(transactions),
 			"years":        years,
 		})
+	}
+}
+
+func (h *Handler) UpdateTransaction(c *gin.Context) {
+	ctx := c.Request.Context()
+	defer c.Request.Body.Close()
+
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	type Input struct {
+		TransactionID string `json:"transaction_id" validate:"required"`
+		Category      string `json:"category" validate:"required"`
+	}
+
+	var input *Input
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	err = json.Unmarshal(bodyBytes, &input)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	err = v.Struct(input)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	if !util.Contains(&Categories, input.Category) {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	var update primitive.M
+	var transaction *Transaction
+	if err = h.Db.Transactions.
+		FindOne(ctx, bson.M{"user_id": userID, "transaction_id": input.TransactionID}).
+		Decode(&transaction); err != nil {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	amount := transaction.Amount
+
+	// make transaction amount positive if category to changed to 'income'
+	if input.Category == "income" && transaction.Amount < 0 {
+		amount = -1 * transaction.Amount
+	}
+	// make transaction amount negative if category is not 'income'/'ignore'
+	if input.Category != "income" && input.Category != "ignore" && transaction.Amount > 0 {
+		amount = -1 * transaction.Amount
+	}
+
+	filter := bson.M{"transaction_id": input.TransactionID, "user_id": *userID}
+	update = bson.M{"$set": bson.M{"category": input.Category, "amount": amount}}
+	_, err = h.Db.Transactions.UpdateOne(ctx, filter, update)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
 	}
 }
 

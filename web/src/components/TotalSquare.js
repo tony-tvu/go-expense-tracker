@@ -1,26 +1,35 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import {
-  Accordion,
-  AccordionButton,
-  AccordionIcon,
-  AccordionItem,
-  AccordionPanel,
   Box,
-  Center,
-  Container,
-  Divider,
-  HStack,
-  Spacer,
   Text,
   VStack,
   useColorModeValue,
+  Center,
+  Spinner,
 } from '@chakra-ui/react'
-import { currency, timeSince } from '../util'
-import logger from '../logger'
+import { currency } from '../util'
 
 export default function TotalSquare({ total, title }) {
   const bgColor = useColorModeValue('white', '#252526')
   const textColor = useColorModeValue('black', '#DCDCE2')
+
+  if (!total && total !== 0) {
+    return (
+      <Center
+        w={'100%'}
+        minH={['90px', '120px', '120px', '130px']}
+        bg={bgColor}
+      >
+        <Spinner
+          thickness="4px"
+          speed="0.65s"
+          emptyColor="gray.200"
+          color="blue.500"
+          size="xl"
+        />
+      </Center>
+    )
+  }
 
   return (
     <Box

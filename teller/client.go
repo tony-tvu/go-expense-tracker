@@ -241,7 +241,7 @@ func (t *TellerClient) RefreshBalances(accessToken *string) {
 	}
 }
 
-// Fetches all transactions for a give access_token and saves them to db
+// Fetches all transactions for a given access_token and saves them to db
 func (t *TellerClient) RefreshTransactions(accessToken *string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5*time.Minute))
 	defer cancel()
@@ -290,11 +290,16 @@ func (t *TellerClient) RefreshTransactions(accessToken *string) {
 					success = false
 				}
 
+				category := "uncategorized"
+				if util.Contains(&finances.Categories, t.Details.Category) {
+					category = t.Details.Category
+				}
+
 				doc := bson.D{
 					{Key: "transaction_id", Value: t.TransactionID},
 					{Key: "enrollment_id", Value: account.EnrollmentID},
 					{Key: "name", Value: t.Description},
-					{Key: "category", Value: t.Details.Category},
+					{Key: "category", Value: category},
 					{Key: "amount", Value: amount},
 					{Key: "date", Value: date},
 					{Key: "user_id", Value: account.UserID},

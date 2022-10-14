@@ -11,14 +11,14 @@ import ExpensesTable from '../components/ExpensesTable'
 export default function Expenses() {
   const [selectedMonth, setSelectedMonth] = useState(DateTime.now().month)
   const [selectedYear, setSelectedYear] = useState(DateTime.now().year)
-
   const [transactionsData, setTransactionsData] = useState(null)
-  const [transactionsTotal, setTransactionsTotal] = useState(null)
+  const [expensesTotal, setExpensesTotal] = useState(null)
+  const [incomeTotal, setIncomeTotal] = useState(null)
+  const [profit, setProfit] = useState(null)
   const [availableYears, setAvailableYears] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const fetchTransactions = useCallback(async () => {
-    setTransactionsData(null)
     setLoading(true)
     await fetch(
       `${process.env.REACT_APP_API_URL}/transactions?month=${selectedMonth}&year=${selectedYear}`,
@@ -36,11 +36,25 @@ export default function Expenses() {
         if (res.status === 200 && resData.transactions) {
           setTransactionsData(resData.transactions)
           setAvailableYears(resData.years)
-          let total = 0
+
+          let calculatedExpenses = 0
+          let calculatedIncome = 0
           resData.transactions.forEach((transaction) => {
-            total += transaction.amount
+            if (
+              transaction.category !== 'ignore' &&
+              transaction.category !== 'income'
+            ) {
+              calculatedExpenses += transaction.amount
+            } else if (
+              transaction.category !== 'ignore' &&
+              transaction.category === 'income'
+            ) {
+              calculatedIncome += transaction.amount
+            }
           })
-          setTransactionsTotal(total)
+          setExpensesTotal(calculatedExpenses)
+          setIncomeTotal(calculatedIncome)
+          setProfit(calculatedIncome + calculatedExpenses)
         }
       })
       .catch((err) => {
@@ -65,13 +79,13 @@ export default function Expenses() {
         <Col xs={12} sm={12} md={12}>
           <Row>
             <Col xs={4} sm={4} md={3}>
-              <TotalSquare total={transactionsTotal} title={'Expenses'} />
+              <TotalSquare total={incomeTotal ?? null} title={'Income'} />
             </Col>
             <Col xs={4} sm={4} md={3}>
-              <TotalSquare total={1} title={'Income'} />
+              <TotalSquare total={expensesTotal ?? null} title={'Expenses'} />
             </Col>
             <Col xs={4} sm={4} md={3}>
-              <TotalSquare total={transactionsTotal} title={'Profit'} />
+              <TotalSquare total={profit ?? null} title={'Profit'} />
             </Col>
             <Col xs={12} sm={12} md={3}>
               <MonthYearPicker
@@ -87,7 +101,10 @@ export default function Expenses() {
       </Row>
       <Row>
         <Col xs={12} sm={12} md={12}>
-          <ExpensesTable transactionsData={transactionsData ?? null} />
+          <ExpensesTable
+            transactionsData={transactionsData ?? null}
+            onSuccess={fetchTransactions}
+          />
         </Col>
       </Row>
     </Container>
