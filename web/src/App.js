@@ -17,8 +17,8 @@ export default function App() {
           <Route
             path="/"
             element={
-              <Protected current="dashboard">
-                <Dashboard />
+              <Protected current="expenses">
+                <Expenses />
               </Protected>
             }
           />
@@ -31,10 +31,10 @@ export default function App() {
             }
           />
           <Route
-            path="/expenses"
+            path="/analytics"
             element={
-              <Protected current="expenses">
-                <Expenses />
+              <Protected current="analytics">
+                <Dashboard />
               </Protected>
             }
           />

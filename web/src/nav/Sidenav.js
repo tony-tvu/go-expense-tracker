@@ -144,20 +144,20 @@ const SidebarContent = ({
             MANAGE
           </Text>
           <NavItem
-            to="/"
-            icon={FaThLarge}
-            bgColor={current === 'dashboard' ? hoverBgColor : navBgColor}
-            iconColor={current === 'dashboard' ? colors.primary : textColor}
-          >
-            Dashboard
-          </NavItem>
-          <NavItem
             to="/expenses"
             icon={FaMoneyBill}
             bgColor={current === 'expenses' ? hoverBgColor : navBgColor}
             iconColor={current === 'expenses' ? colors.primary : textColor}
           >
             Expenses
+          </NavItem>
+          <NavItem
+            to="/analytics"
+            icon={FaThLarge}
+            bgColor={current === 'analytics' ? hoverBgColor : navBgColor}
+            iconColor={current === 'analytics' ? colors.primary : textColor}
+          >
+            Analytics
           </NavItem>
 
           <Divider mt={5} borderColor={'#464646'} />

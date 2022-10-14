@@ -7,32 +7,18 @@ import {
   Spinner,
   useColorModeValue,
 } from '@chakra-ui/react'
-import { DateTime } from 'luxon'
 
 export default function MonthYearPicker({
   selectedMonth,
   setSelectedMonth,
   selectedYear,
   setSelectedYear,
-  transactionsData,
+  availableYears,
 }) {
   const bgColor = useColorModeValue('white', '#252526')
 
-  function getYears(transactions) {
-    const years = [selectedYear]
-    transactions.forEach((transaction) => {
-      const year = DateTime.fromISO(transaction.date).year
-      if (!years.includes(year)) {
-        years.push(year)
-      }
-    })
-
-    years.sort().reverse()
-    return years
-  }
-
   function renderYearSelection() {
-    const years = getYears(transactionsData)
+    const years = availableYears.sort().reverse()
     return (
       <Select
         defaultValue={selectedYear}
@@ -46,7 +32,7 @@ export default function MonthYearPicker({
     )
   }
 
-  if (!transactionsData) {
+  if (!availableYears) {
     return (
       <Center
         w={'100%'}

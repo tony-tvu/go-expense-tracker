@@ -11,7 +11,6 @@ import (
 	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -56,17 +55,17 @@ type Transaction struct {
 
 func (h *Handler) GetTransactions(c *gin.Context) {
 	ctx := c.Request.Context()
-
 	userID, _, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
+	hasFilter := false
 	monthStr := c.Query("month")
 	yearStr := c.Query("year")
-	month := -1
-	year := -1
+	month := 0
+	year := 0
 	if !util.ContainsEmpty(monthStr, yearStr) {
 		month, err = strconv.Atoi(monthStr)
 		if err != nil {
@@ -78,35 +77,52 @@ func (h *Handler) GetTransactions(c *gin.Context) {
 			c.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
+		hasFilter = true
 	}
 
 	var transactions []*Transaction
-	var cursor *mongo.Cursor
 	opts := options.Find().SetSort(bson.D{{Key: "date", Value: -1}})
-	if month != -1 && year != -1 {
-		fromDate := time.Date(year, util.GetMonth(month), 0, 0, 0, 0, 0, time.UTC)
-		toDate := time.Date(year, util.GetMonth(month+1), 0, 0, 0, 0, 0, time.UTC)
-		cursor, _ = h.Db.Transactions.Find(ctx, bson.M{
-			"user_id": &userID,
-			"date": bson.M{
-				"$gt": fromDate,
-				"$lt":  toDate,
-			},
-		}, opts)
-	} else {
-		cursor, _ = h.Db.Transactions.Find(ctx, bson.M{
-			"user_id": &userID,
-		}, opts)
-	}
-
+	cursor, _ := h.Db.Transactions.Find(ctx, bson.M{
+		"user_id": &userID,
+	}, opts)
 	if err = cursor.All(ctx, &transactions); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"transactions": transactions,
-	})
+	fromDate := time.Now()
+	toDate := time.Now()
+	if hasFilter {
+		fromDate = time.Date(year, util.GetMonth(month), 0, 0, 0, 0, 0, time.UTC)
+		toDate = time.Date(year, util.GetMonth(month+1), 0, 0, 0, 0, 0, time.UTC)
+	}
+
+	filtered := []*Transaction{}
+	years := []int{}
+	for _, t := range transactions {
+		if hasFilter && t.Date.After(fromDate) && t.Date.Before(toDate) {
+			filtered = append(filtered, t)
+		}
+
+		year := t.Date.Year()
+		if !util.ContainsInt(&years, year) {
+			years = append(years, year)
+		}
+	}
+
+	if hasFilter {
+		c.JSON(http.StatusOK, gin.H{
+			"transactions": filtered,
+			"count":        len(filtered),
+			"years":        years,
+		})
+	} else {
+		c.JSON(http.StatusOK, gin.H{
+			"transactions": transactions,
+			"count":        len(transactions),
+			"years":        years,
+		})
+	}
 }
 
 func (h *Handler) GetAccounts(c *gin.Context) {
