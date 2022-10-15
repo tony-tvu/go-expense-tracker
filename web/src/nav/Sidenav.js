@@ -13,16 +13,17 @@ import {
   chakra,
   Divider,
   Spacer,
-  Button,
 } from '@chakra-ui/react'
-import { FiSettings, FiMenu } from 'react-icons/fi'
+import { FiMenu } from 'react-icons/fi'
+import { HiLibrary } from 'react-icons/hi'
+
 import {
   FaCat,
-  FaThLarge,
   FaPen,
-  FaMugHot,
-  FaMoneyBill,
-  FaListUl,
+  FaDollarSign,
+  FaRegArrowAltCircleLeft,
+  FaChartPie,
+  FaSitemap,
 } from 'react-icons/fa'
 import { ColorModeSwitcher } from '../components/ColorModeSwitcher'
 import { colors } from '../theme'
@@ -145,15 +146,23 @@ const SidebarContent = ({
           </Text>
           <NavItem
             to="/transactions"
-            icon={FaMoneyBill}
+            icon={FaDollarSign}
             bgColor={current === 'transactions' ? hoverBgColor : navBgColor}
             iconColor={current === 'transactions' ? colors.primary : textColor}
           >
             Transactions
           </NavItem>
           <NavItem
+            to="/analytics"
+            icon={FaChartPie}
+            bgColor={current === 'analytics' ? hoverBgColor : navBgColor}
+            iconColor={current === 'analytics' ? colors.primary : textColor}
+          >
+            Analytics
+          </NavItem>
+          <NavItem
             to="/rules"
-            icon={FaThLarge}
+            icon={FaSitemap}
             bgColor={current === 'rules' ? hoverBgColor : navBgColor}
             iconColor={current === 'rules' ? colors.primary : textColor}
           >
@@ -161,7 +170,7 @@ const SidebarContent = ({
           </NavItem>
           <NavItem
             to="/accounts"
-            icon={FaListUl}
+            icon={HiLibrary}
             bgColor={current === 'linked_accounts' ? hoverBgColor : navBgColor}
             iconColor={
               current === 'linked_accounts' ? colors.primary : textColor
@@ -181,15 +190,11 @@ const SidebarContent = ({
           <Divider mt={5} borderColor={'#464646'} />
         </>
       )}
-
-      <Text pl={3} pt={3} color={'#79797C'} fontWeight={'600'} fontSize={'sm'}>
-        PREFERENCES
-      </Text>
       <ColorModeSwitcher justifySelf="flex-end" color={textColor} />
 
       {isLoggedIn && (
         <>
-          {isAdmin && (
+          {/* {isAdmin && (
             <NavItem
               to="/admin"
               icon={FaMugHot}
@@ -198,8 +203,16 @@ const SidebarContent = ({
             >
               Admin
             </NavItem>
-          )}
-          <Button onClick={() => logout()}>Logout</Button>
+          )} */}
+          <NavItem
+            to="/logout"
+            icon={FaRegArrowAltCircleLeft}
+            onClick={() => logout()}
+            bgColor={current === 'admin' ? hoverBgColor : navBgColor}
+            iconColor={current === 'admin' ? colors.primary : textColor}
+          >
+            Logout
+          </NavItem>
         </>
       )}
     </Box>

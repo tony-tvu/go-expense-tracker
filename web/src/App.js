@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Protected from './nav/Protected'
 import Transactions from './pages/Transactions'
 import Rules from './pages/Rules'
+import Analytics from './pages/Analytics'
 
 export default function App() {
   return (
@@ -35,6 +36,14 @@ export default function App() {
             element={
               <Protected current="linked_accounts">
                 <LinkedAccounts />
+              </Protected>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <Protected current="analytics">
+                <Analytics />
               </Protected>
             }
           />
