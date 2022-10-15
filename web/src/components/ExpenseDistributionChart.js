@@ -101,37 +101,37 @@ export default function ExpenseDistributionChart({ transactionsData }) {
       {
         name: 'Bills',
         total: -1 * bills,
-        color: 'red',
+        color: '#004CA3',
       },
       {
         name: 'Entertainment',
         total: -1 * entertainment,
-        color: 'yellow',
+        color: '#8A51A5',
       },
       {
         name: 'Groceries',
         total: -1 * groceries,
-        color: 'blue',
+        color: '#CB5E99',
       },
       {
         name: 'Restaurant',
         total: -1 * restaurant,
-        color: 'purple',
+        color: '#F47B89',
       },
       {
         name: 'Transportation',
         total: -1 * transportation,
-        color: 'pink',
+        color: '#FFA47E',
       },
       {
         name: 'Vacation',
         total: -1 * vacation,
-        color: 'brown',
+        color: '#FFD286',
       },
       {
         name: 'Uncategorized',
         total: -1 * uncategorized,
-        color: 'red',
+        color: '#FFFFA6',
       },
     ]
   }

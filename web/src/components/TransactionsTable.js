@@ -48,23 +48,23 @@ export default function TransactionsTable({ transactionsData, onSuccess }) {
   function getCategoryColor(category) {
     switch (category) {
       case 'bills':
-        return 'orange'
+        return '#004CA3'
       case 'entertainment':
-        return 'yellow'
+        return '#8A51A5'
       case 'groceries':
-        return 'blue'
+        return '#CB5E99'
       case 'ignore':
         return 'grey'
       case 'income':
         return 'green'
       case 'restaurant':
-        return 'purple'
+        return '#F47B89'
       case 'transportation':
-        return 'pink'
+        return '#FFA47E'
       case 'vacation':
-        return 'brown'
+        return '#FFD286'
       case 'uncategorized':
-        return 'red'
+        return '#FFFFA6'
       default:
         return 'black'
     }
