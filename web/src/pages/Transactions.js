@@ -8,6 +8,7 @@ import MonthYearPicker from '../components/MonthYearPicker'
 import { DateTime } from 'luxon'
 import ExpensesTable from '../components/TransactionsTable'
 import { Flex } from '@chakra-ui/react'
+import ExpenseDistributionChart from '../components/ExpenseDistributionChart'
 
 export default function Transactions() {
   const [selectedMonth, setSelectedMonth] = useState(DateTime.now().month)
@@ -97,6 +98,13 @@ export default function Transactions() {
             />
           </Col>
         </Row>
+
+        <Row style={{height: '500px', marginTop: '25px', marginBottom: '25px'}}>
+          <Col xs={12} sm={12} md={12}>
+            <ExpenseDistributionChart transactionsData={transactionsData ?? null}/>
+          </Col>
+        </Row>
+
         <Row>
           <Col xs={12} sm={12} md={12}>
             <ExpensesTable
