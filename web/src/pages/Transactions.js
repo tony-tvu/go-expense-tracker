@@ -9,6 +9,7 @@ import { DateTime } from 'luxon'
 import ExpensesTable from '../components/TransactionsTable'
 import { Flex } from '@chakra-ui/react'
 import ExpenseDistributionChart from '../components/ExpenseDistributionChart'
+import { useNavigate } from 'react-router-dom'
 
 export default function Transactions() {
   const [selectedMonth, setSelectedMonth] = useState(DateTime.now().month)
@@ -19,6 +20,7 @@ export default function Transactions() {
   const [profit, setProfit] = useState(null)
   const [availableYears, setAvailableYears] = useState(null)
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true)
@@ -35,6 +37,7 @@ export default function Transactions() {
       .then(async (res) => {
         if (!res) return
         const resData = await res.json().catch((err) => logger(err))
+        if (res.status === 401) navigate('/login')
         if (res.status === 200 && resData.transactions) {
           setTransactionsData(resData.transactions)
           setAvailableYears(resData.years)
@@ -62,18 +65,12 @@ export default function Transactions() {
       .catch((err) => {
         logger('error fetching accounts', err)
       })
-  }, [selectedMonth, selectedYear])
+  }, [navigate, selectedMonth, selectedYear])
 
   useEffect(() => {
     document.title = 'Expenses'
-    if (loading) {
-      fetchTransactions()
-    }
-  }, [fetchTransactions, loading])
-
-  useEffect(() => {
     fetchTransactions()
-  }, [fetchTransactions, selectedMonth, selectedYear])
+  }, [fetchTransactions, loading, selectedMonth, selectedYear])
 
   return (
     <Flex>
@@ -95,13 +92,18 @@ export default function Transactions() {
               selectedYear={selectedYear}
               setSelectedYear={setSelectedYear}
               availableYears={availableYears ?? null}
+              fetchTransactions={fetchTransactions}
             />
           </Col>
         </Row>
 
-        <Row style={{height: '500px', marginTop: '25px', marginBottom: '25px'}}>
+        <Row
+          style={{ height: '500px', marginTop: '25px', marginBottom: '25px' }}
+        >
           <Col xs={12} sm={12} md={12}>
-            <ExpenseDistributionChart transactionsData={transactionsData ?? null}/>
+            <ExpenseDistributionChart
+              transactionsData={transactionsData ?? null}
+            />
           </Col>
         </Row>
 
