@@ -13,6 +13,7 @@ import {
   FormHelperText,
   InputRightElement,
   useColorModeValue,
+  useToast,
 } from '@chakra-ui/react'
 import { FaUserAlt, FaLock, FaCat } from 'react-icons/fa'
 import { colors } from '../theme'
@@ -31,6 +32,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const handleShowClick = () => setShowPassword(!showPassword)
   const navigate = useNavigate()
+  const toast = useToast()
 
   const logoColor = useColorModeValue('black', colors.primary)
 
@@ -82,9 +84,29 @@ export default function Login() {
     })
       .then((res) => {
         if (res.status === 200) navigate('/')
+        if (res.status === 404 || res.status === 403) {
+          toast({
+            title: 'Login failed',
+            description: 'Email or password is incorrect',
+            status: 'error',
+            position: 'top-right',
+            duration: 5000,
+            isClosable: true,
+          })
+        }
+        if (res.status === 429) {
+          toast({
+            title: 'Too many login attemps!',
+            description: 'Try again in 1 minute',
+            status: 'error',
+            position: 'top-right',
+            duration: 5000,
+            isClosable: true,
+          })
+        }
       })
       .catch((e) => {
-        logger('error setting access token', e)
+        logger('error logging in', e)
       })
   }
 

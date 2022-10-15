@@ -13,12 +13,12 @@ import {
   Input,
   Select,
   Spinner,
+  useToast,
 } from '@chakra-ui/react'
 import logger from '../logger'
 import { BsPlus } from 'react-icons/bs'
 import { useNavigate } from 'react-router-dom'
 import { colors } from '../theme'
-import { useToast } from '@chakra-ui/react'
 
 export default function CreateRuleBtn({ onSuccess }) {
   const [loading, setLoading] = useState(false)
@@ -36,7 +36,7 @@ export default function CreateRuleBtn({ onSuccess }) {
         description: 'Substring cannot be empty',
         status: 'error',
         position: 'top-right',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       })
       setLoading(false)
