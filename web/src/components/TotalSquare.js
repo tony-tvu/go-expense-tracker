@@ -17,8 +17,9 @@ export default function TotalSquare({ total, title }) {
     return (
       <Center
         w={'100%'}
-        minH={['90px', '120px', '120px', '130px']}
+        minH={['50px', '50px', '145px', '145px']}
         bg={bgColor}
+        borderRadius="7"
       >
         <Spinner
           thickness="4px"
@@ -35,15 +36,16 @@ export default function TotalSquare({ total, title }) {
     <Box
       bg={bgColor}
       w={'100%'}
-      minH={['50px', '50px', '132px', '132px']}
+      minH={['50px', '50px', '145px', '145px']}
       mb={5}
+      borderRadius="7"
     >
       <VStack alignItems={'start'} p={5}>
         <Text
-        pl={'2px'}
+          pl={'2px'}
           fontSize={{
-            base: '14px',
-            sm: '14px',
+            base: '8px',
+            sm: '10px',
             md: '18px',
             lg: '18px',
           }}
@@ -53,7 +55,7 @@ export default function TotalSquare({ total, title }) {
         </Text>
         <Text
           fontSize={{
-            base: '18px',
+            base: '8px',
             sm: '24px',
             md: '30px',
             lg: '36px',

@@ -79,8 +79,9 @@ export default function MonthYearPicker({ availableYears }) {
     return (
       <Center
         w={'100%'}
-        minH={['90px', '120px', '120px', '130px']}
+        minH={['50px', '50px', '145px', '145px']}
         bg={bgColor}
+        borderRadius="7"
       >
         <Spinner
           thickness="4px"
@@ -97,8 +98,9 @@ export default function MonthYearPicker({ availableYears }) {
     <Box
       bg={bgColor}
       w={'100%'}
-      minH={['90px', '120px', '120px', '130px']}
+      minH={['50px', '50px', '145px', '145px']}
       mb={5}
+      borderRadius="7"
     >
       <FormControl p={5}>
         {renderYearSelection()}
