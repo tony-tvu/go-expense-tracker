@@ -34,8 +34,7 @@ logs
 
 node_modules
 bower_components
-web/build/static/app.css
-web/build/static/app.js
+web/build
 *.sublime*
 
 psd

@@ -11,11 +11,13 @@
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
     "bootstrap": "^5.2.1",
+    "date-fns": "^2.29.3",
     "framer-motion": "^7.2.1",
     "graphql": "^16.6.0",
     "luxon": "^3.0.4",
     "react": "^18.2.0",
     "react-bootstrap": "^2.5.0",
+    "react-datepicker": "^4.8.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.4.0",
     "react-plaid-link": "^3.3.2",
@@ -24,12 +26,9 @@
     "recharts": "^2.1.15",
     "web-vitals": "^2.1.4"
   },
-  "type": "module",
   "scripts": {
-    "dev": "npm run watch & npm run sync",
-    "sync": "browser-sync start --files 'build/static/app.js' '../**/*.go' --serveStatic 'build' --reload-delay 200 --proxy 'http://localhost:8080' --no-open",
-    "watch": "nodemon --exec 'npm run build' --watch src/ --ignore node_modules/ --ignore build/",
-    "build": "node esbuild.config.js",
+    "start": "BROWSER=none react-scripts start",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -52,8 +51,6 @@
     ]
   },
   "devDependencies": {
-    "dotenv": "^16.0.3",
-    "esbuild": "^0.15.10",
-    "nodemon": "^2.0.19"
+    "dotenv": "^16.0.3"
   }
 }

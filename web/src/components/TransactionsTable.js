@@ -1,10 +1,13 @@
 import {
   Box,
+  Button,
   Divider,
   HStack,
   Select,
+  Spacer,
   Text,
   useColorModeValue,
+  useDisclosure,
 } from '@chakra-ui/react'
 import React from 'react'
 import { currency } from '../util'
@@ -15,9 +18,15 @@ import { DateTime } from 'luxon'
 import { useNavigate } from 'react-router-dom'
 import logger from '../logger'
 import { FaCircle } from 'react-icons/fa'
+import { BsPlus } from 'react-icons/bs'
+import { colors } from '../theme'
+import AddTransactionBtn from './AddTransactionBtn'
 
 export default function TransactionsTable({ transactionsData, onSuccess }) {
   const selectorBg = useColorModeValue('gray.100', '#1E1E1E')
+  const bgColor = useColorModeValue('white', '#252526')
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const cancelRef = React.useRef()
   const navigate = useNavigate()
 
   async function updateCategory(transactionId, category) {
@@ -126,8 +135,12 @@ export default function TransactionsTable({ transactionsData, onSuccess }) {
   }
 
   return (
-    <Container style={{ paddingLeft: 0, paddingRight: 0 }}>
+    <Container style={{ padding: '20px', backgroundColor: bgColor, borderRadius: '10px' }}>
       <Box mb={2}>
+        <HStack mb={5}>
+          <Spacer />
+          <AddTransactionBtn onSuccess={onSuccess}/>
+        </HStack>
         <Row>
           <Col xs={3} sm={3} md={1} className="d-flex align-items-center">
             <Text fontWeight={'600'} fontSize={'lg'}>

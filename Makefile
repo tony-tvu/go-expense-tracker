@@ -16,17 +16,11 @@ api:
 	go run main.go
 
 client:
-	cd web && npm run dev	
-
-watch: 
-	cd web && npm run dev
+	cd web && npm start
 
 # requires air installed globally: `go install github.com/cosmtrek/air@latest`
 air:
 	air
-
-start: 
-	make -j 2 air watch
 
 test:
 	go clean -testcache
