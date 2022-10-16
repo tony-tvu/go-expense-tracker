@@ -1,5 +1,7 @@
 package util
 
+import "regexp"
+
 func ContainsEmpty(ss ...string) bool {
 	for _, s := range ss {
 		if s == "" {
@@ -16,4 +18,9 @@ func Contains(arr *[]string, find string) bool {
 		}
 	}
 	return false
+}
+
+func RemoveDuplicateWhitespace(s string) string {
+	space := regexp.MustCompile(`\s+`)
+	return space.ReplaceAllString(s, " ")
 }

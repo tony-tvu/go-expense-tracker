@@ -319,7 +319,7 @@ func (t *TellerClient) RefreshTransactions(userID *primitive.ObjectID, accessTok
 				doc := bson.D{
 					{Key: "transaction_id", Value: t.TransactionID},
 					{Key: "enrollment_id", Value: account.EnrollmentID},
-					{Key: "name", Value: name},
+					{Key: "name", Value: util.RemoveDuplicateWhitespace(name)},
 					{Key: "category", Value: category},
 					{Key: "amount", Value: amount},
 					{Key: "date", Value: date},
