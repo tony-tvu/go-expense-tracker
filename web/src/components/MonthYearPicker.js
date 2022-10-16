@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import {
   Box,
   Center,
@@ -8,14 +8,14 @@ import {
   useColorModeValue,
 } from '@chakra-ui/react'
 import { DateTime } from 'luxon'
+import { AppStateContext } from '../hooks/AppStateProvider'
 
 export default function MonthYearPicker({
   selectedMonth,
-  setSelectedMonth,
   selectedYear,
-  setSelectedYear,
   availableYears,
 }) {
+  const [appState, setAppState] = useContext(AppStateContext)
   const bgColor = useColorModeValue('white', '#252526')
 
   function renderYearSelection() {
@@ -25,7 +25,10 @@ export default function MonthYearPicker({
       <Select
         defaultValue={selectedYear}
         mb={3}
-        onChange={(event) => setSelectedYear(Number(event.target.value))}
+        onChange={(event) => setAppState({
+          selectedMonth: appState.selectedMonth,
+          selectedYear: Number(event.target.value)
+        })}
       >
         {years.map((year) => {
           return <option value={year}>{year}</option>
@@ -63,7 +66,10 @@ export default function MonthYearPicker({
         {renderYearSelection()}
         <Select
           defaultValue={selectedMonth}
-          onChange={(event) => setSelectedMonth(Number(event.target.value))}
+          onChange={(event) => setAppState({
+            selectedMonth: Number(event.target.value),
+            selectedYear: appState.selectedYear
+          })}
         >
           <option value={1}>January</option>
           <option value={2}>February</option>

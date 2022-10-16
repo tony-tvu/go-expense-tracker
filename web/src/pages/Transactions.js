@@ -1,19 +1,18 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useState } from 'react'
 import logger from '../logger'
 import TotalSquare from '../components/TotalSquare'
 import Container from 'react-bootstrap/Container'
 import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import MonthYearPicker from '../components/MonthYearPicker'
-import { DateTime } from 'luxon'
 import ExpensesTable from '../components/TransactionsTable'
 import { Flex } from '@chakra-ui/react'
 import ExpenseDistributionChart from '../components/ExpenseDistributionChart'
 import { useNavigate } from 'react-router-dom'
+import { AppStateContext } from '../hooks/AppStateProvider'
 
 export default function Transactions() {
-  const [selectedMonth, setSelectedMonth] = useState(DateTime.now().month)
-  const [selectedYear, setSelectedYear] = useState(DateTime.now().year)
+  const [appState] = useContext(AppStateContext)
   const [transactionsData, setTransactionsData] = useState(null)
   const [expensesTotal, setExpensesTotal] = useState(null)
   const [incomeTotal, setIncomeTotal] = useState(null)
@@ -25,7 +24,7 @@ export default function Transactions() {
   const fetchTransactions = useCallback(async () => {
     setLoading(true)
     await fetch(
-      `${process.env.REACT_APP_API_URL}/transactions?month=${selectedMonth}&year=${selectedYear}`,
+      `${process.env.REACT_APP_API_URL}/transactions?month=${appState.selectedMonth}&year=${appState.selectedYear}`,
       {
         method: 'GET',
         credentials: 'include',
@@ -65,12 +64,12 @@ export default function Transactions() {
       .catch((err) => {
         logger('error fetching accounts', err)
       })
-  }, [navigate, selectedMonth, selectedYear])
+  }, [navigate, appState])
 
   useEffect(() => {
     document.title = 'Expenses'
     fetchTransactions()
-  }, [fetchTransactions, loading, selectedMonth, selectedYear])
+  }, [fetchTransactions, loading, appState])
 
   return (
     <Flex>
@@ -87,10 +86,8 @@ export default function Transactions() {
           </Col>
           <Col xs={12} sm={12} md={3}>
             <MonthYearPicker
-              selectedMonth={selectedMonth}
-              setSelectedMonth={setSelectedMonth}
-              selectedYear={selectedYear}
-              setSelectedYear={setSelectedYear}
+              selectedMonth={appState.selectedMonth}
+              selectedYear={appState.selectedYear}
               availableYears={availableYears ?? null}
               fetchTransactions={fetchTransactions}
             />

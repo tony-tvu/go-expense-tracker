@@ -8,57 +8,60 @@ import Protected from './nav/Protected'
 import Transactions from './pages/Transactions'
 import Rules from './pages/Rules'
 import Analytics from './pages/Analytics'
+import AppStateProvider from './hooks/AppStateProvider'
 
 export default function App() {
   return (
-    <ChakraProvider theme={theme}>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/"
-            element={
-              <Protected current="transactions">
-                <Transactions />
-              </Protected>
-            }
-          />
-          <Route
-            path="/rules"
-            element={
-              <Protected current="rules">
-                <Rules />
-              </Protected>
-            }
-          />
-          <Route
-            path="/accounts"
-            element={
-              <Protected current="linked_accounts">
-                <LinkedAccounts />
-              </Protected>
-            }
-          />
-          <Route
-            path="/analytics"
-            element={
-              <Protected current="analytics">
-                <Analytics />
-              </Protected>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <Protected adminOnly={true} current="admin">
-                <Admin />
-              </Protected>
-            }
-          />
+    <AppStateProvider>
+      <ChakraProvider theme={theme}>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/"
+              element={
+                <Protected current="transactions">
+                  <Transactions />
+                </Protected>
+              }
+            />
+            <Route
+              path="/rules"
+              element={
+                <Protected current="rules">
+                  <Rules />
+                </Protected>
+              }
+            />
+            <Route
+              path="/accounts"
+              element={
+                <Protected current="linked_accounts">
+                  <LinkedAccounts />
+                </Protected>
+              }
+            />
+            <Route
+              path="/analytics"
+              element={
+                <Protected current="analytics">
+                  <Analytics />
+                </Protected>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <Protected adminOnly={true} current="admin">
+                  <Admin />
+                </Protected>
+              }
+            />
 
-          <Route path="*" element={<Login />} />
-        </Routes>
-      </Router>
-    </ChakraProvider>
+            <Route path="*" element={<Login />} />
+          </Routes>
+        </Router>
+      </ChakraProvider>
+    </AppStateProvider>
   )
 }
