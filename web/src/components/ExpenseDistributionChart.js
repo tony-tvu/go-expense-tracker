@@ -1,3 +1,4 @@
+import { Box, Text, useColorModeValue, VStack } from '@chakra-ui/react'
 import React, { useCallback, useEffect, useState } from 'react'
 import {
   BarChart,
@@ -9,9 +10,32 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import logger from '../logger'
+import { currency } from '../util'
+
+const CustomTooltip = ({ active, payload, label }) => {
+  const bgColor = useColorModeValue('#EDF2F6', 'black')
+
+  if (active && payload && payload.length) {
+    return (
+      <Box p={5} bg={bgColor}  borderRadius="7">
+        <VStack>
+          <Text fontSize={'xl'} as="b">
+            {label}
+          </Text>
+          <Text fontSize={'xl'} as="b">
+            {currency.format(payload[0].value)}
+          </Text>
+        </VStack>
+      </Box>
+    )
+  }
+
+  return null
+}
 
 export default function ExpenseDistributionChart({ transactionsData }) {
   const [data, setData] = useState(null)
+  const bgColor = useColorModeValue('white', '#252526')
 
   const calculateExpenseDistribution = useCallback(async () => {
     if (!transactionsData) return
@@ -52,7 +76,7 @@ export default function ExpenseDistributionChart({ transactionsData }) {
         color: '#FFFFA6',
       },
     }
-    
+
     transactionsData.forEach((transaction) => {
       switch (transaction.category) {
         case 'bills':
@@ -106,10 +130,14 @@ export default function ExpenseDistributionChart({ transactionsData }) {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart width={500} height={300} data={data}>
+      <BarChart
+        width={500}
+        height={300}
+        data={data}
+        style={{ backgroundColor: bgColor, borderRadius: '10px' }}
+      >
         <XAxis dataKey="name" />
-        <YAxis />
-        <Tooltip />
+        <Tooltip cursor={false} content={<CustomTooltip />} />
         <Bar dataKey="total">
           {data.map((entry, index) => (
             <Cell fill={data[index].color} />

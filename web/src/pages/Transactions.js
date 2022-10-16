@@ -92,7 +92,7 @@ export default function Transactions() {
         </Row>
 
         <Row
-          style={{ height: '500px', marginTop: '25px', marginBottom: '25px' }}
+          style={{ height: '500px', marginTop: '5px', marginBottom: '25px' }}
         >
           <Col xs={12} sm={12} md={12}>
             <ExpenseDistributionChart
