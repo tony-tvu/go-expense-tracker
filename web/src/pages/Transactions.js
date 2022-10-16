@@ -86,10 +86,7 @@ export default function Transactions() {
           </Col>
           <Col xs={12} sm={12} md={3}>
             <MonthYearPicker
-              selectedMonth={appState.selectedMonth}
-              selectedYear={appState.selectedYear}
               availableYears={availableYears ?? null}
-              fetchTransactions={fetchTransactions}
             />
           </Col>
         </Row>

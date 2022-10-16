@@ -10,29 +10,67 @@ import {
 import { DateTime } from 'luxon'
 import { AppStateContext } from '../hooks/AppStateProvider'
 
-export default function MonthYearPicker({
-  selectedMonth,
-  selectedYear,
-  availableYears,
-}) {
+export default function MonthYearPicker({ availableYears }) {
   const [appState, setAppState] = useContext(AppStateContext)
   const bgColor = useColorModeValue('white', '#252526')
 
   function renderYearSelection() {
-    let years = availableYears.sort().reverse()
+    let years = availableYears.sort()
     if (years.length === 0) years = [DateTime.now().year]
     return (
       <Select
-        defaultValue={selectedYear}
+        defaultValue={appState.selectedYear}
         mb={3}
-        onChange={(event) => setAppState({
-          selectedMonth: appState.selectedMonth,
-          selectedYear: Number(event.target.value)
-        })}
+        onChange={(event) =>
+          setAppState({
+            selectedMonth: appState.selectedMonth,
+            selectedYear: Number(event.target.value),
+          })
+        }
       >
         {years.map((year) => {
           return <option value={year}>{year}</option>
         })}
+      </Select>
+    )
+  }
+
+  function renderMonthSelection() {
+    const monthMap = {
+      1: 'January',
+      2: 'February',
+      3: 'March',
+      4: 'April',
+      5: 'May',
+      6: 'June',
+      7: 'July',
+      8: 'August',
+      9: 'September',
+      10: 'October',
+      11: 'November',
+      12: 'December',
+    }
+
+    return (
+      <Select
+        defaultValue={appState.selectedMonth}
+        mb={3}
+        onChange={(event) => {
+          setAppState({
+            selectedMonth: Number(event.target.value),
+            selectedYear: appState.selectedYear,
+          })
+        }}
+      >
+        {appState.selectedYear === DateTime.now().year
+          ? Object.keys(monthMap)
+              .filter((key) => key <= DateTime.now().month)
+              .map((key) => {
+                return <option value={key}>{monthMap[key]}</option>
+              })
+          : Object.keys(monthMap).map((key) => {
+              return <option value={key}>{monthMap[key]}</option>
+            })}
       </Select>
     )
   }
@@ -64,26 +102,7 @@ export default function MonthYearPicker({
     >
       <FormControl p={5}>
         {renderYearSelection()}
-        <Select
-          defaultValue={selectedMonth}
-          onChange={(event) => setAppState({
-            selectedMonth: Number(event.target.value),
-            selectedYear: appState.selectedYear
-          })}
-        >
-          <option value={1}>January</option>
-          <option value={2}>February</option>
-          <option value={3}>March</option>
-          <option value={4}>April</option>
-          <option value={5}>May</option>
-          <option value={6}>June</option>
-          <option value={7}>July</option>
-          <option value={8}>August</option>
-          <option value={9}>September</option>
-          <option value={10}>October</option>
-          <option value={11}>November</option>
-          <option value={12}>December</option>
-        </Select>
+        {renderMonthSelection()}
       </FormControl>
     </Box>
   )

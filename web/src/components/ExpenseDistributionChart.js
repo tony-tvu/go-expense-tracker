@@ -35,6 +35,10 @@ export default function ExpenseDistributionChart({ transactionsData }) {
         case 'groceries':
           groceries += transaction.amount
           break
+        case 'income':
+          break
+        case 'ignore':
+          break
         case 'restaurant':
           restaurant += transaction.amount
           break
@@ -48,7 +52,7 @@ export default function ExpenseDistributionChart({ transactionsData }) {
           uncategorized += transaction.amount
           break
         default:
-          logger('unknown expense category')
+          logger('unknown expense category: ', transaction.category)
       }
     })
 
