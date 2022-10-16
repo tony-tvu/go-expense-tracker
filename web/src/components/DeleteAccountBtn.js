@@ -18,10 +18,13 @@ export default function DeleteAccountBtn({ enrollment, onSuccess }) {
   const navigate = useNavigate()
 
   async function deleteAccount() {
-    await fetch(`${process.env.REACT_APP_API_URL}/enrollments/${enrollment.enrollment_id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    })
+    await fetch(
+      `${process.env.REACT_APP_API_URL}/enrollments/${enrollment.enrollment_id}`,
+      {
+        method: 'DELETE',
+        credentials: 'include',
+      }
+    )
       .then((res) => {
         if (res.status === 401) {
           navigate('/login')
@@ -39,11 +42,8 @@ export default function DeleteAccountBtn({ enrollment, onSuccess }) {
   return (
     <>
       <Button
+        type="button"
         variant="solid"
-        justifyContent="space-between"
-        fontWeight="normal"
-        fontSize="md"
-        as="b"
         onClick={onOpen}
         color={'white'}
         bg={'#E63E3F'}

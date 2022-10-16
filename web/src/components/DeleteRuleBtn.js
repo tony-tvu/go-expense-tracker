@@ -1,9 +1,11 @@
 import React from 'react'
-import { Button } from '@chakra-ui/react'
+import { AlertDialog, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogOverlay, Button, useDisclosure } from '@chakra-ui/react'
 import logger from '../logger'
 import { useNavigate } from 'react-router-dom'
 
 export default function DeleteRuleBtn({ rule, onSuccess }) {
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const cancelRef = React.useRef()
   const navigate = useNavigate()
 
   async function deleteAccount() {
@@ -25,13 +27,11 @@ export default function DeleteRuleBtn({ rule, onSuccess }) {
   }
 
   return (
+    <>
     <Button
       variant="solid"
-      justifyContent="space-between"
-      fontWeight="normal"
-      fontSize="md"
-      as="b"
-      onClick={async () => await deleteAccount()}
+      type="button"
+      onClick={onOpen}
       color={'white'}
       bg={'#E63E3F'}
       _hover={{
@@ -40,5 +40,40 @@ export default function DeleteRuleBtn({ rule, onSuccess }) {
     >
       Delete
     </Button>
+    <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Delete Account
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Are you sure you want to remove "{rule.substring}"={rule.category}?
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                color={'white'}
+                bg={'#E63E3F'}
+                _hover={{
+                  bg: '#AA2E2F',
+                }}
+                onClick={async () => await deleteAccount()}
+                ml={3}
+              >
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </>
   )
 }
