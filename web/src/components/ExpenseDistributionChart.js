@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   BarChart,
   Bar,
@@ -11,9 +11,10 @@ import {
 import logger from '../logger'
 
 export default function ExpenseDistributionChart({ transactionsData }) {
-  if (!transactionsData) return null
+  const [data, setData] = useState(null)
 
-  function calculateExpenseDistribution() {
+  const calculateExpenseDistribution = useCallback(async () => {
+    if (!transactionsData) return
     const expenseMap = {
       bills: {
         name: 'Bills',
@@ -51,7 +52,7 @@ export default function ExpenseDistributionChart({ transactionsData }) {
         color: '#FFFFA6',
       },
     }
-
+    
     transactionsData.forEach((transaction) => {
       switch (transaction.category) {
         case 'bills':
@@ -85,30 +86,33 @@ export default function ExpenseDistributionChart({ transactionsData }) {
     })
 
     let graphData = []
-
     Object.keys(expenseMap).forEach((key) => {
       expenseMap[key].total = -1 * expenseMap[key].total
     })
-
     Object.keys(expenseMap)
       .filter((key) => expenseMap[key].total !== 0)
       .map((key) => {
         return graphData.push(expenseMap[key])
       })
 
-    return graphData
-  }
+    setData(graphData)
+  }, [transactionsData])
 
-  // TODO: set up state/useEffect to avoid calling calculateExpenseDistribution 3 times
+  useEffect(() => {
+    calculateExpenseDistribution()
+  }, [calculateExpenseDistribution])
+
+  if (!data || !transactionsData) return null
+
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart width={500} height={300} data={calculateExpenseDistribution()}>
+      <BarChart width={500} height={300} data={data}>
         <XAxis dataKey="name" />
         <YAxis />
         <Tooltip />
         <Bar dataKey="total">
-          {calculateExpenseDistribution().map((entry, index) => (
-            <Cell fill={calculateExpenseDistribution()[index].color} />
+          {data.map((entry, index) => (
+            <Cell fill={data[index].color} />
           ))}
         </Bar>
       </BarChart>
