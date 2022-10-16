@@ -82,7 +82,7 @@ export default function TransactionsTable({ transactionsData, onSuccess }) {
   function renderRows() {
     return transactionsData.map((transaction) => {
       return (
-        <Box mb={2} borderColor={'#464646'}>
+        <Box key={transaction.id} mb={2} borderColor={'#464646'}>
           <Row key={transaction.id}>
             <Col
               xs={3}

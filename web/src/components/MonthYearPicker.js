@@ -29,7 +29,11 @@ export default function MonthYearPicker({ availableYears }) {
         }
       >
         {years.map((year) => {
-          return <option value={year}>{year}</option>
+          return (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          )
         })}
       </Select>
     )
@@ -66,10 +70,18 @@ export default function MonthYearPicker({ availableYears }) {
           ? Object.keys(monthMap)
               .filter((key) => key <= DateTime.now().month)
               .map((key) => {
-                return <option value={key}>{monthMap[key]}</option>
+                return (
+                  <option key={key} value={key}>
+                    {monthMap[key]}
+                  </option>
+                )
               })
           : Object.keys(monthMap).map((key) => {
-              return <option value={key}>{monthMap[key]}</option>
+              return (
+                <option key={key} value={key}>
+                  {monthMap[key]}
+                </option>
+              )
             })}
       </Select>
     )

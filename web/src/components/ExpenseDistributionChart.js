@@ -137,7 +137,7 @@ export default function ExpenseDistributionChart({ transactionsData }) {
         <Tooltip cursor={false} content={<CustomTooltip />} />
         <Bar dataKey="total">
           {data.map((entry, index) => (
-            <Cell fill={data[index].color} />
+            <Cell key={index} fill={data[index].color} />
           ))}
         </Bar>
       </BarChart>
