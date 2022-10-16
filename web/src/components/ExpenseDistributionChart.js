@@ -5,7 +5,6 @@ import {
   Bar,
   Cell,
   XAxis,
-  YAxis,
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
@@ -131,8 +130,6 @@ export default function ExpenseDistributionChart({ transactionsData }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart
-        width={500}
-        height={300}
         data={data}
         style={{ backgroundColor: bgColor, borderRadius: '10px' }}
       >
