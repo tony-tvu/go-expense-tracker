@@ -5,9 +5,7 @@ import {
   Cell,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from 'recharts'
 import logger from '../logger'
@@ -16,98 +14,95 @@ export default function ExpenseDistributionChart({ transactionsData }) {
   if (!transactionsData) return null
 
   function calculateExpenseDistribution() {
-    let bills = 0
-    let entertainment = 0
-    let groceries = 0
-    let restaurant = 0
-    let transportation = 0
-    let vacation = 0
-    let uncategorized = 0
+    const expenseMap = {
+      bills: {
+        name: 'Bills',
+        total: 0,
+        color: '#004CA3',
+      },
+      entertainment: {
+        name: 'Entertainment',
+        total: 0,
+        color: '#8A51A5',
+      },
+      groceries: {
+        name: 'Groceries',
+        total: 0,
+        color: '#CB5E99',
+      },
+      restaurant: {
+        name: 'Restaurant',
+        total: 0,
+        color: '#F47B89',
+      },
+      transportation: {
+        name: 'Transportation',
+        total: 0,
+        color: '#FFA47E',
+      },
+      vacation: {
+        name: 'Vacation',
+        total: 0,
+        color: '#FFD286',
+      },
+      uncategorized: {
+        name: 'Uncategorized',
+        total: 0,
+        color: '#FFFFA6',
+      },
+    }
 
     transactionsData.forEach((transaction) => {
       switch (transaction.category) {
         case 'bills':
-          bills += transaction.amount
+          expenseMap['bills'].total += transaction.amount
           break
         case 'entertainment':
-          entertainment += transaction.amount
+          expenseMap['entertainment'].total += transaction.amount
           break
         case 'groceries':
-          groceries += transaction.amount
+          expenseMap['groceries'].total += transaction.amount
           break
         case 'income':
           break
         case 'ignore':
           break
         case 'restaurant':
-          restaurant += transaction.amount
+          expenseMap['restaurant'].total += transaction.amount
           break
         case 'transportation':
-          transportation += transaction.amount
+          expenseMap['transportation'].total += transaction.amount
           break
         case 'vacation':
-          vacation += transaction.amount
+          expenseMap['vacation'].total += transaction.amount
           break
         case 'uncategorized':
-          uncategorized += transaction.amount
+          expenseMap['uncategorized'].total += transaction.amount
           break
         default:
           logger('unknown expense category: ', transaction.category)
       }
     })
 
-    return [
-      {
-        name: 'Bills',
-        total: -1 * bills,
-        color: '#004CA3',
-      },
-      {
-        name: 'Entertainment',
-        total: -1 * entertainment,
-        color: '#8A51A5',
-      },
-      {
-        name: 'Groceries',
-        total: -1 * groceries,
-        color: '#CB5E99',
-      },
-      {
-        name: 'Restaurant',
-        total: -1 * restaurant,
-        color: '#F47B89',
-      },
-      {
-        name: 'Transportation',
-        total: -1 * transportation,
-        color: '#FFA47E',
-      },
-      {
-        name: 'Vacation',
-        total: -1 * vacation,
-        color: '#FFD286',
-      },
-      {
-        name: 'Uncategorized',
-        total: -1 * uncategorized,
-        color: '#FFFFA6',
-      },
-    ]
+    let graphData = []
+
+    Object.keys(expenseMap).forEach((key) => {
+      expenseMap[key].total = -1 * expenseMap[key].total
+    })
+
+    Object.keys(expenseMap)
+      .filter((key) => expenseMap[key].total !== 0)
+      .map((key) => {
+        return graphData.push(expenseMap[key])
+      })
+
+    return graphData
   }
 
+  // TODO: set up state/useEffect to avoid calling calculateExpenseDistribution 3 times
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart
-        width={500}
-        height={300}
-        data={calculateExpenseDistribution()}
-        margin={{
-          top: 5,
-          right: 30,
-          left: 20,
-          bottom: 5,
-        }}
-      >
+      <BarChart width={500} height={300} data={calculateExpenseDistribution()}>
         <XAxis dataKey="name" />
         <YAxis />
         <Tooltip />
