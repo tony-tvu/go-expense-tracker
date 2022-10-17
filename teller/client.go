@@ -302,7 +302,7 @@ func (t *TellerClient) RefreshTransactions(userID *primitive.ObjectID, accessTok
 				}
 
 				// apply rules
-				name := t.Description
+				name := util.RemoveDuplicateWhitespace(t.Description) 
 				for _, rule := range rules {
 					if strings.Contains(name, rule.Substring) {
 
@@ -322,7 +322,7 @@ func (t *TellerClient) RefreshTransactions(userID *primitive.ObjectID, accessTok
 				doc := bson.D{
 					{Key: "transaction_id", Value: t.TransactionID},
 					{Key: "enrollment_id", Value: account.EnrollmentID},
-					{Key: "name", Value: util.RemoveDuplicateWhitespace(name)},
+					{Key: "name", Value: name},
 					{Key: "category", Value: category},
 					{Key: "amount", Value: amount},
 					{Key: "date", Value: date},
