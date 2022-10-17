@@ -279,7 +279,7 @@ func (h *Handler) GetTransactions(c *gin.Context) {
 	toDate := time.Now()
 	if hasFilter {
 		fromDate = time.Date(year, util.GetMonth(month), 0, 0, 0, 0, 0, time.UTC)
-		toDate = time.Date(year, util.GetMonth(month+1), 0, 0, 0, 0, 0, time.UTC)
+		toDate = time.Date(year, util.GetMonth(month+1), 1, 0, 0, 0, 0, time.UTC)
 	}
 
 	filtered := []*Transaction{}

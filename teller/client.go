@@ -278,6 +278,9 @@ func (t *TellerClient) RefreshTransactions(userID *primitive.ObjectID, accessTok
 
 			var docs []interface{}
 			for _, t := range *tellerTransactions {
+				if t.Status != "posted" {
+					continue
+				}
 				amount, err := strconv.ParseFloat(t.Amount, 32)
 				if err != nil {
 					log.Printf("error parsing amount for transaction %v: %v", t, err)
