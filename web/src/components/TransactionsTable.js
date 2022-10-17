@@ -26,7 +26,6 @@ export default function TransactionsTable({
   onSuccess,
   forceRefresh,
 }) {
-  const selectorBg = useColorModeValue('white', '#1E1E1E')
   const bgColor = useColorModeValue('white', '#252526')
   const navigate = useNavigate()
 
@@ -100,7 +99,7 @@ export default function TransactionsTable({
                 <FaCircle color={getCategoryColor(transaction.category)} />
                 <Select
                   defaultValue={transaction.category}
-                  borderColor={selectorBg}
+                  borderColor={bgColor}
                   onChange={async (event) => {
                     await updateCategory(
                       transaction.transaction_id,

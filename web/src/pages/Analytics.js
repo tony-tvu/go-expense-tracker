@@ -1,11 +1,7 @@
-import React, { useState } from 'react'
-import DatePicker from 'react-datepicker'
-
+import { Text } from '@chakra-ui/react'
+import React from 'react'
 
 export default function Analytics() {
-  const [date, setDate] = useState(new Date())
 
-  return (
-    <DatePicker selected={date} onChange={(date) => setDate(date)} />
-  )
+  return <Text fontSize={'xl'}>Coming soon!</Text>
 }
