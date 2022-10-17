@@ -40,13 +40,13 @@ export default function Protected({ adminOnly, current, children }) {
     return null
   }
 
-  // if (!isLoggedIn) {
-  //   return <Navigate to="/login" replace />
-  // }
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />
+  }
 
-  // if (adminOnly && !isAdmin) {
-  //   return <Navigate to="/" replace />
-  // }
+  if (adminOnly && !isAdmin) {
+    return <Navigate to="/" replace />
+  }
 
   return (
     <Sidenav isLoggedIn={isLoggedIn} isAdmin={isAdmin} current={current}>
