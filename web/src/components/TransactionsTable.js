@@ -1,13 +1,11 @@
 import {
   Box,
-  Button,
   Divider,
   HStack,
   Select,
   Spacer,
   Text,
   useColorModeValue,
-  useDisclosure,
 } from '@chakra-ui/react'
 import React from 'react'
 import { currency } from '../util'
@@ -17,10 +15,15 @@ import Col from 'react-bootstrap/Col'
 import { DateTime } from 'luxon'
 import { useNavigate } from 'react-router-dom'
 import logger from '../logger'
-import { FaCircle } from 'react-icons/fa'
+import { FaCircle, FaSitemap, FaDollarSign } from 'react-icons/fa'
 import AddTransactionBtn from './AddTransactionBtn'
+import CreateRuleBtn from './CreateRuleBtn'
 
-export default function TransactionsTable({ transactionsData, onSuccess }) {
+export default function TransactionsTable({
+  transactionsData,
+  onSuccess,
+  forceRefresh,
+}) {
   const selectorBg = useColorModeValue('white', '#1E1E1E')
   const bgColor = useColorModeValue('white', '#252526')
   const navigate = useNavigate()
@@ -131,11 +134,22 @@ export default function TransactionsTable({ transactionsData, onSuccess }) {
   }
 
   return (
-    <Container style={{ padding: '20px', backgroundColor: bgColor, borderRadius: '10px' }}>
+    <Container
+      style={{
+        padding: '20px',
+        backgroundColor: bgColor,
+        borderRadius: '10px',
+      }}
+    >
       <Box mb={2}>
         <HStack mb={5}>
           <Spacer />
-          <AddTransactionBtn onSuccess={onSuccess}/>
+          <CreateRuleBtn
+            onSuccess={onSuccess}
+            forceRefresh={forceRefresh}
+            icon={<FaSitemap />}
+          />
+          <AddTransactionBtn onSuccess={onSuccess} icon={<FaDollarSign />} />
         </HStack>
         <Row>
           <Col xs={3} sm={3} md={1} className="d-flex align-items-center">

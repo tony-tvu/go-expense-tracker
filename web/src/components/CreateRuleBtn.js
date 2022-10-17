@@ -20,7 +20,7 @@ import { BsPlus } from 'react-icons/bs'
 import { useNavigate } from 'react-router-dom'
 import { colors } from '../theme'
 
-export default function CreateRuleBtn({ onSuccess }) {
+export default function CreateRuleBtn({ onSuccess, forceRefresh, icon }) {
   const [loading, setLoading] = useState(false)
   const [substring, setSubstring] = useState(null)
   const [category, setCategory] = useState('bills')
@@ -62,6 +62,9 @@ export default function CreateRuleBtn({ onSuccess }) {
           if (res.status === 200) {
             onClose()
             onSuccess()
+            if (forceRefresh) {
+              forceRefresh()
+            }
             setLoading(false)
           }
         })
@@ -74,7 +77,7 @@ export default function CreateRuleBtn({ onSuccess }) {
   return (
     <>
       <Button
-        leftIcon={<BsPlus />}
+        leftIcon={icon ? icon : <BsPlus />}
         type="button"
         variant="solid"
         onClick={onOpen}

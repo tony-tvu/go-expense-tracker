@@ -5,7 +5,7 @@ import Container from 'react-bootstrap/Container'
 import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import MonthYearPicker from '../components/MonthYearPicker'
-import ExpensesTable from '../components/TransactionsTable'
+import TransactionsTable from '../components/TransactionsTable'
 import { Flex } from '@chakra-ui/react'
 import ExpenseDistributionChart from '../components/ExpenseDistributionChart'
 import { useNavigate } from 'react-router-dom'
@@ -71,6 +71,10 @@ export default function Transactions() {
     fetchTransactions()
   }, [fetchTransactions, loading, appState])
 
+  function forceRefresh() {
+    setTransactionsData(null)
+  }
+
   return (
     <Flex>
       <Container>
@@ -85,15 +89,11 @@ export default function Transactions() {
             <TotalSquare total={profit ?? null} title={'Profit'} />
           </Col>
           <Col xs={12} sm={12} md={3}>
-            <MonthYearPicker
-              availableYears={availableYears ?? null}
-            />
+            <MonthYearPicker availableYears={availableYears ?? null} />
           </Col>
         </Row>
 
-        <Row
-          style={{ height: '300px', marginBottom: '25px' }}
-        >
+        <Row style={{ height: '300px', marginBottom: '25px' }}>
           <Col xs={12} sm={12} md={12}>
             <ExpenseDistributionChart
               transactionsData={transactionsData ?? null}
@@ -103,9 +103,10 @@ export default function Transactions() {
 
         <Row>
           <Col xs={12} sm={12} md={12}>
-            <ExpensesTable
+            <TransactionsTable
               transactionsData={transactionsData ?? null}
               onSuccess={fetchTransactions}
+              forceRefresh={forceRefresh}
             />
           </Col>
         </Row>

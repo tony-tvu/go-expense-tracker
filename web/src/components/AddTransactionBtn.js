@@ -23,7 +23,7 @@ import { useNavigate } from 'react-router-dom'
 import { colors } from '../theme'
 import DatePicker from './Datepicker'
 
-export default function AddTransactionBtn({ onSuccess }) {
+export default function AddTransactionBtn({ onSuccess, icon }) {
   const [loading, setLoading] = useState(false)
   const [date, setDate] = useState(new Date())
   const [name, setName] = useState(null)
@@ -46,8 +46,7 @@ export default function AddTransactionBtn({ onSuccess }) {
       })
       setLoading(false)
       return
-    }
-    else if (!name) {
+    } else if (!name) {
       toast({
         title: 'Name required',
         description: 'Cannot be blank',
@@ -120,7 +119,7 @@ export default function AddTransactionBtn({ onSuccess }) {
   return (
     <>
       <Button
-        leftIcon={<BsPlus />}
+        leftIcon={icon ? icon : <BsPlus />}
         type="button"
         variant="solid"
         onClick={onOpen}
@@ -194,10 +193,13 @@ export default function AddTransactionBtn({ onSuccess }) {
                   mr={5}
                 />
               )}
-              <Button ref={cancelRef} onClick={() => {
-                onClose()
-                setLoading(false)
-              }}>
+              <Button
+                ref={cancelRef}
+                onClick={() => {
+                  onClose()
+                  setLoading(false)
+                }}
+              >
                 Cancel
               </Button>
               <Button
