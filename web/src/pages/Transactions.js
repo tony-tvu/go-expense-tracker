@@ -67,7 +67,7 @@ export default function Transactions() {
   }, [navigate, appState])
 
   useEffect(() => {
-    document.title = 'Expenses'
+    document.title = 'Transactions'
     fetchTransactions()
   }, [fetchTransactions, loading, appState])
 
