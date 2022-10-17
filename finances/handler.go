@@ -148,17 +148,14 @@ func (h *Handler) CreateRule(c *gin.Context) {
 func (h *Handler) applyNewRule(ctx context.Context, userID *primitive.ObjectID, substring, category string) bool {
 	success := true
 	var transactions []*Transaction
-	cursor, _ := h.Db.Transactions.Find(ctx, bson.M{
-		"user_id": *userID,
-		"name":    primitive.Regex{Pattern: substring, Options: ""}},
-	)
+	cursor, _ := h.Db.Transactions.Find(ctx, bson.M{"user_id": *userID})
 	if err := cursor.All(ctx, &transactions); err != nil {
 		log.Printf("error updating transaction with new rule: %v", err)
 		success = false
 	}
 
 	for _, transaction := range transactions {
-		if strings.Contains(transaction.Name, substring) {
+		if strings.Contains(util.RemoveDuplicateWhitespace(transaction.Name), substring) {
 			amount := NormalizeAmount(transaction.Amount, category)
 
 			filter := bson.M{"transaction_id": transaction.TransactionID, "user_id": *userID}
