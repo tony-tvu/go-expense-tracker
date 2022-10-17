@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
+	"github.com/google/uuid"
 	"github.com/tony-tvu/goexpense/auth"
 	"github.com/tony-tvu/goexpense/db"
 	"github.com/tony-tvu/goexpense/util"
@@ -163,16 +164,7 @@ func (h *Handler) applyRules(ctx context.Context, userID *primitive.ObjectID) bo
 	for _, transaction := range transactions {
 		for _, rule := range rules {
 			if strings.Contains(transaction.Name, rule.Substring) {
-				amount := transaction.Amount
-
-				// make transaction amount positive if category to changed to 'income'
-				if rule.Category == "income" && transaction.Amount < 0 {
-					amount = -1 * transaction.Amount
-				}
-				// make transaction amount negative if category is not 'income'/'ignore'
-				if rule.Category != "income" && rule.Category != "ignore" && transaction.Amount > 0 {
-					amount = -1 * transaction.Amount
-				}
+				amount := NormalizeAmount(transaction.Amount, rule.Category)
 
 				filter := bson.M{"transaction_id": transaction.TransactionID, "user_id": *userID}
 				update := bson.M{"$set": bson.M{"category": rule.Category, "amount": amount}}
@@ -310,7 +302,91 @@ func (h *Handler) GetTransactions(c *gin.Context) {
 	}
 }
 
-func (h *Handler) UpdateTransaction(c *gin.Context) {
+func (h *Handler) CreateTransaction(c *gin.Context) {
+	ctx := c.Request.Context()
+	defer c.Request.Body.Close()
+
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	type Input struct {
+		Date     string `json:"date" validate:"required"`
+		Name     string `json:"name" validate:"required"`
+		Category string `json:"category" validate:"required"`
+		Amount   string `json:"amount" validate:"required"`
+	}
+
+	var input *Input
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	err = json.Unmarshal(bodyBytes, &input)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	err = v.Struct(input)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	if !util.Contains(&Categories, input.Category) {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	parsedAmount, err := strconv.ParseFloat(strings.Replace(input.Amount, "-", "", -1), 32)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	if parsedAmount == 0 {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	transactionDate, err := time.Parse(time.RFC1123, input.Date)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if time.Now().Before(transactionDate) {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	amount := NormalizeAmount(float32(parsedAmount), input.Category)
+	transactionID := uuid.New().String()
+
+	doc := bson.D{
+		{Key: "transaction_id", Value: transactionID},
+		{Key: "enrollment_id", Value: "user_created"},
+		{Key: "name", Value: util.RemoveDuplicateWhitespace(input.Name)},
+		{Key: "category", Value: input.Category},
+		{Key: "amount", Value: amount},
+		{Key: "date", Value: transactionDate},
+		{Key: "user_id", Value: *userID},
+		{Key: "account_id", Value: "user_created"},
+		{Key: "created_at", Value: time.Now()},
+		{Key: "updated_at", Value: time.Now()},
+	}
+
+	_, err = h.Db.Transactions.InsertOne(ctx, doc)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *Handler) UpdateCategory(c *gin.Context) {
 	ctx := c.Request.Context()
 	defer c.Request.Body.Close()
 
@@ -355,16 +431,7 @@ func (h *Handler) UpdateTransaction(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
-	amount := transaction.Amount
-
-	// make transaction amount positive if category to changed to 'income'
-	if input.Category == "income" && transaction.Amount < 0 {
-		amount = -1 * transaction.Amount
-	}
-	// make transaction amount negative if category is not 'income'/'ignore'
-	if input.Category != "income" && input.Category != "ignore" && transaction.Amount > 0 {
-		amount = -1 * transaction.Amount
-	}
+	amount := NormalizeAmount(transaction.Amount, input.Category)
 
 	filter := bson.M{"transaction_id": input.TransactionID, "user_id": *userID}
 	update = bson.M{"$set": bson.M{"category": input.Category, "amount": amount}}
@@ -399,4 +466,17 @@ func (h *Handler) GetAccounts(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"accounts": accounts,
 	})
+}
+
+// make transaction amount positive if category to changed to 'income'
+// make transaction amount negative if category is not 'income'/'ignore'
+func NormalizeAmount(amount float32, category string) float32 {
+	normalized := amount
+	if category == "income" && amount < 0 {
+		normalized = -1 * amount
+	}
+	if category != "income" && category != "ignore" && amount > 0 {
+		normalized = -1 * amount
+	}
+	return normalized
 }

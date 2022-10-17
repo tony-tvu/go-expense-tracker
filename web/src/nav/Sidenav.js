@@ -142,7 +142,7 @@ const SidebarContent = ({
       {isLoggedIn && (
         <>
           <Text p={3} color={'#79797C'} fontWeight={'600'} fontSize={'sm'}>
-            MANAGE
+            FINANCES
           </Text>
           <NavItem
             to="/transactions"

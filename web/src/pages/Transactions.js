@@ -74,7 +74,7 @@ export default function Transactions() {
   return (
     <Flex>
       <Container>
-        <Row s>
+        <Row>
           <Col xs={4} sm={4} md={3}>
             <TotalSquare total={incomeTotal ?? null} title={'Income'} />
           </Col>

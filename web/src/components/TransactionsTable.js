@@ -18,19 +18,15 @@ import { DateTime } from 'luxon'
 import { useNavigate } from 'react-router-dom'
 import logger from '../logger'
 import { FaCircle } from 'react-icons/fa'
-import { BsPlus } from 'react-icons/bs'
-import { colors } from '../theme'
 import AddTransactionBtn from './AddTransactionBtn'
 
 export default function TransactionsTable({ transactionsData, onSuccess }) {
-  const selectorBg = useColorModeValue('gray.100', '#1E1E1E')
+  const selectorBg = useColorModeValue('white', '#1E1E1E')
   const bgColor = useColorModeValue('white', '#252526')
-  const { isOpen, onOpen, onClose } = useDisclosure()
-  const cancelRef = React.useRef()
   const navigate = useNavigate()
 
   async function updateCategory(transactionId, category) {
-    await fetch(`${process.env.REACT_APP_API_URL}/transactions`, {
+    await fetch(`${process.env.REACT_APP_API_URL}/transactions/category`, {
       method: 'PATCH',
       credentials: 'include',
       headers: {

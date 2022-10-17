@@ -131,7 +131,8 @@ func (a *App) Initialize(ctx context.Context) {
 
 		// finances
 		api.GET("/transactions", finances.GetTransactions)
-		api.PATCH("/transactions", finances.UpdateTransaction)
+		api.PATCH("/transactions/category", finances.UpdateCategory)
+		api.POST("/transactions", finances.CreateTransaction)
 		api.GET("/accounts", finances.GetAccounts)
 		api.GET("/rules", finances.GetRules)
 		api.POST("/rules", finances.CreateRule)
