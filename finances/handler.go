@@ -148,7 +148,10 @@ func (h *Handler) CreateRule(c *gin.Context) {
 func (h *Handler) applyNewRule(ctx context.Context, userID *primitive.ObjectID, substring, category string) bool {
 	success := true
 	var transactions []*Transaction
-	cursor, _ := h.Db.Transactions.Find(ctx, bson.M{"user_id": *userID})
+	cursor, _ := h.Db.Transactions.Find(ctx, bson.M{
+		"user_id": *userID,
+		"name":    primitive.Regex{Pattern: substring, Options: ""}},
+	)
 	if err := cursor.All(ctx, &transactions); err != nil {
 		log.Printf("error updating transaction with new rule: %v", err)
 		success = false
