@@ -97,7 +97,7 @@ func (a *App) Initialize(ctx context.Context) {
 	cache := &cache.Handler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 	finances := &finances.Handler{Db: a.Db}
 	teller := &teller.Handler{Db: a.Db, TellerClient: tc}
-	users := &user.Handler{Db: a.Db}
+	users := &user.Handler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 
 	// Router
 	if env == Production {
@@ -124,7 +124,6 @@ func (a *App) Initialize(ctx context.Context) {
 	api := router.Group("/api", middleware.NoCache)
 	{
 		// configs
-		api.GET("/registration_enabled", cache.RegistrationEnabled)
 		api.GET("/teller_app_id", cache.TellerAppID)
 		api.GET("/configs", cache.GetConfigs)
 		api.PATCH("/configs", cache.UpdateConfigs)

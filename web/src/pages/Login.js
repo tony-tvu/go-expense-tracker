@@ -46,28 +46,13 @@ export default function Login() {
         .then(async (res) => {
           if (!res) return
           const data = await res.json().catch((err) => logger(err))
+          setRegistrationEnabled(data ? data.registration_enabled : false)
           if (data && data.logged_in) {
             navigate('/')
           }
         })
         .catch((err) => {
           logger('error verifying login state', err)
-        }),
-      fetch(`${process.env.REACT_APP_API_URL}/registration_enabled`, {
-        method: 'GET',
-        credentials: 'include',
-      })
-        .then(async (res) => {
-          if (!res) return
-          const data = await res.json().catch((err) => logger(err))
-          if (data && data.registration_enabled) {
-            setRegistrationEnabled(true)
-          } else {
-            setRegistrationEnabled(false)
-          }
-        })
-        .catch((err) => {
-          logger('error getting registration_enabled', err)
         }),
     ])
   }, [navigate])
@@ -123,10 +108,7 @@ export default function Login() {
               <Stack
                 spacing={4}
                 p="1rem"
-                backgroundColor={useColorModeValue(
-                  'whiteAlpha.800',
-                  '#252526'
-                )}
+                backgroundColor={useColorModeValue('whiteAlpha.800', '#252526')}
                 boxShadow={'2xl'}
                 borderWidth="1px"
               >

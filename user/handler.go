@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
 	"github.com/tony-tvu/goexpense/auth"
+	"github.com/tony-tvu/goexpense/cache"
 	"github.com/tony-tvu/goexpense/db"
 	"github.com/tony-tvu/goexpense/types"
 	"github.com/tony-tvu/goexpense/util"
@@ -17,7 +18,8 @@ import (
 )
 
 type Handler struct {
-	Db *db.MongoDb
+	Db           *db.MongoDb
+	ConfigsCache *cache.ConfigsCache
 }
 
 var v *validator.Validate
@@ -27,17 +29,25 @@ func init() {
 }
 
 func (h *Handler) IsLoggedIn(c *gin.Context) {
+	configs, err := h.ConfigsCache.GetConfigs()
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
 	_, userType, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
-			"logged_in": false,
-			"is_admin":  false,
+			"logged_in":            false,
+			"is_admin":             false,
+			"registration_enabled": configs.RegistrationEnabled,
 		})
 	} else {
 		isAdmin := *userType == types.AdminUser
 		c.JSON(http.StatusOK, gin.H{
-			"logged_in": true,
-			"is_admin":  isAdmin,
+			"logged_in":            true,
+			"is_admin":             isAdmin,
+			"registration_enabled": configs.RegistrationEnabled,
 		})
 	}
 }

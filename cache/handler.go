@@ -16,18 +16,6 @@ type Handler struct {
 	ConfigsCache *ConfigsCache
 }
 
-func (h *Handler) RegistrationEnabled(c *gin.Context) {
-	configs, err := h.ConfigsCache.GetConfigs()
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"registration_enabled": configs.RegistrationEnabled,
-	})
-}
-
 func (h *Handler) TellerAppID(c *gin.Context) {
 	if _, _, err := auth.AuthorizeUser(c, h.Db); err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)

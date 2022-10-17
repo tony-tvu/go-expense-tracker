@@ -145,7 +145,7 @@ const SidebarContent = ({
             FINANCES
           </Text>
           <NavItem
-            to="/transactions"
+            to="/"
             icon={FaDollarSign}
             bgColor={current === 'transactions' ? hoverBgColor : navBgColor}
             iconColor={current === 'transactions' ? colors.primary : textColor}
