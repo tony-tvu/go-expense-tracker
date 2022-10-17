@@ -158,12 +158,16 @@ export default function TransactionsTable({
       <Box mb={2}>
         <HStack mb={5}>
           <Spacer />
-          <CreateRuleBtn
-            onSuccess={onSuccess}
-            forceRefresh={forceRefresh}
-            icon={<FaSitemap />}
-          />
-          <AddTransactionBtn onSuccess={onSuccess} icon={<FaDollarSign />} />
+          <Box>
+            <CreateRuleBtn
+              onSuccess={onSuccess}
+              forceRefresh={forceRefresh}
+              icon={<FaSitemap />}
+            />
+          </Box>
+          <Box pl={3}>
+            <AddTransactionBtn onSuccess={onSuccess} icon={<FaDollarSign />} />
+          </Box>
         </HStack>
         <Row>
           <Col xs={3} sm={3} md={1} className="d-flex align-items-center">

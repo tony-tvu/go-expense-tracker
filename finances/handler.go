@@ -139,13 +139,13 @@ func (h *Handler) CreateRule(c *gin.Context) {
 	}
 
 	// update all transactions with rules
-	if !h.applyRules(ctx, userID) {
+	if !h.applyNewRule(ctx, userID, input.Substring, input.Category) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 }
 
-func (h *Handler) applyRules(ctx context.Context, userID *primitive.ObjectID) bool {
+func (h *Handler) applyNewRule(ctx context.Context, userID *primitive.ObjectID, substring, category string) bool {
 	success := true
 	var transactions []*Transaction
 	cursor, _ := h.Db.Transactions.Find(ctx, bson.M{"user_id": *userID})
@@ -154,25 +154,16 @@ func (h *Handler) applyRules(ctx context.Context, userID *primitive.ObjectID) bo
 		success = false
 	}
 
-	var rules []*Rule
-	cursor, _ = h.Db.Rules.Find(ctx, bson.M{"user_id": *userID})
-	if err := cursor.All(ctx, &rules); err != nil {
-		log.Printf("error updating transaction with new rule: %v", err)
-		success = false
-	}
-
 	for _, transaction := range transactions {
-		for _, rule := range rules {
-			if strings.Contains(transaction.Name, rule.Substring) {
-				amount := NormalizeAmount(transaction.Amount, rule.Category)
+		if strings.Contains(transaction.Name, substring) {
+			amount := NormalizeAmount(transaction.Amount, category)
 
-				filter := bson.M{"transaction_id": transaction.TransactionID, "user_id": *userID}
-				update := bson.M{"$set": bson.M{"category": rule.Category, "amount": amount}}
-				_, err := h.Db.Transactions.UpdateOne(ctx, filter, update)
-				if err != nil {
-					log.Printf("error updating transaction with new rule: %v", err)
-					success = false
-				}
+			filter := bson.M{"transaction_id": transaction.TransactionID, "user_id": *userID}
+			update := bson.M{"$set": bson.M{"category": category, "amount": amount}}
+			_, err := h.Db.Transactions.UpdateOne(ctx, filter, update)
+			if err != nil {
+				log.Printf("error updating transaction with new rule: %v", err)
+				success = false
 			}
 		}
 	}
