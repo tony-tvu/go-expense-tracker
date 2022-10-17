@@ -18,6 +18,8 @@ import logger from '../logger'
 import { FaCircle, FaSitemap, FaDollarSign } from 'react-icons/fa'
 import AddTransactionBtn from './AddTransactionBtn'
 import CreateRuleBtn from './CreateRuleBtn'
+import EditTransactionBtn from './EditTransactionBtn'
+import DeleteTransactionBtn from './DeleteTransactionBtn'
 
 export default function TransactionsTable({
   transactionsData,
@@ -83,15 +85,10 @@ export default function TransactionsTable({
       return (
         <Box key={transaction.id} mb={2} borderColor={'#464646'}>
           <Row key={transaction.id}>
-            <Col
-              xs={3}
-              sm={3}
-              md={1}
-              className="d-flex align-items-center justify-content-center"
-            >
+            <Col xs={3} sm={3} md={1} className="d-flex align-items-center">
               <Text alignItems={'center'}>
                 {DateTime.fromISO(transaction.date, { zone: 'UTC' }).toFormat(
-                  'LL/dd/yyyy'
+                  'LL/dd/yy'
                 )}
               </Text>
             </Col>
@@ -123,8 +120,26 @@ export default function TransactionsTable({
                 </Select>
               </HStack>
             </Col>
-            <Col xs={3} sm={3} md={3} className="d-flex align-items-center">
+            <Col xs={3} sm={3} md={2} className="d-flex align-items-center">
               <Text>{currency.format(transaction.amount)}</Text>
+            </Col>
+            <Col xs={1} sm={1} md={1} className="d-flex align-items-center">
+              <HStack>
+                <EditTransactionBtn
+                  onSuccess={onSuccess}
+                  forceRefresh={forceRefresh}
+                  transaction={transaction}
+                />
+                {transaction.enrollment_id === 'user_created' ? (
+                  <DeleteTransactionBtn
+                    onSuccess={onSuccess}
+                    forceRefresh={forceRefresh}
+                    transaction={transaction}
+                  />
+                ) : (
+                  <></>
+                )}
+              </HStack>
             </Col>
           </Row>
           <Divider mt={2} />
@@ -167,11 +182,12 @@ export default function TransactionsTable({
               Category
             </Text>
           </Col>
-          <Col xs={3} sm={3} md={3} className="d-flex align-items-center">
+          <Col xs={3} sm={3} md={2} className="d-flex align-items-center">
             <Text fontWeight={'600'} fontSize={'lg'}>
               Amount
             </Text>
           </Col>
+          <Col xs={3} sm={3} md={1} className="d-flex align-items-center"></Col>
         </Row>
         <Divider borderColor={'#464646'} mt={3} />
       </Box>

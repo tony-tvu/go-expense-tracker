@@ -180,6 +180,27 @@ func (h *Handler) applyRules(ctx context.Context, userID *primitive.ObjectID) bo
 	return success
 }
 
+func (h *Handler) DeleteTransaction(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	transactionID := c.Param("transaction_id")
+	if util.ContainsEmpty(transactionID) {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	_, err = h.Db.Transactions.DeleteOne(ctx, bson.M{"transaction_id": transactionID, "user_id": *userID})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+}
+
 func (h *Handler) DeleteRule(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID, _, err := auth.AuthorizeUser(c, h.Db)
@@ -380,6 +401,83 @@ func (h *Handler) CreateTransaction(c *gin.Context) {
 	}
 
 	_, err = h.Db.Transactions.InsertOne(ctx, doc)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *Handler) UpdateTransaction(c *gin.Context) {
+	ctx := c.Request.Context()
+	defer c.Request.Body.Close()
+
+	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	type Input struct {
+		TransactionID string `json:"transaction_id" validate:"required"`
+		Date          string `json:"date" validate:"required"`
+		Name          string `json:"name" validate:"required"`
+		Category      string `json:"category" validate:"required"`
+		Amount        string `json:"amount" validate:"required"`
+	}
+
+	var input *Input
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	err = json.Unmarshal(bodyBytes, &input)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	err = v.Struct(input)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	if !util.Contains(&Categories, input.Category) {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	parsedAmount, err := strconv.ParseFloat(strings.Replace(input.Amount, "-", "", -1), 32)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	if parsedAmount == 0 {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	transactionDate, err := time.Parse(time.RFC1123, input.Date)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if time.Now().Before(transactionDate) {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	amount := NormalizeAmount(float32(parsedAmount), input.Category)
+	filter := bson.M{"transaction_id": input.TransactionID, "user_id": *userID}
+	update := bson.M{"$set": bson.M{
+		"date":     transactionDate,
+		"name":     input.Name,
+		"category": input.Category,
+		"amount":   amount,
+	}}
+	_, err = h.Db.Transactions.UpdateOne(ctx, filter, update)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

@@ -8,47 +8,50 @@ import {
   AlertDialogOverlay,
   Button,
   useDisclosure,
+  IconButton,
+  useColorModeValue,
 } from '@chakra-ui/react'
 import logger from '../logger'
 import { useNavigate } from 'react-router-dom'
+import { FaTrashAlt } from 'react-icons/fa'
 
-export default function DeleteRuleBtn({ rule, onSuccess }) {
+export default function DeleteTransactionBtn({ transaction, onSuccess }) {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const cancelRef = React.useRef()
   const navigate = useNavigate()
 
-  async function deleteAccount() {
-    await fetch(`${process.env.REACT_APP_API_URL}/rules/${rule.id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    })
+  const bgColor = useColorModeValue('white', '#252526')
+
+  async function deleteTransaction() {
+    await fetch(
+      `${process.env.REACT_APP_API_URL}/transactions/${transaction.transaction_id}`,
+      {
+        method: 'DELETE',
+        credentials: 'include',
+      }
+    )
       .then((res) => {
         if (res.status === 401) {
           navigate('/login')
         }
         if (res.status === 200) {
+          onClose()
           onSuccess()
         }
       })
       .catch((e) => {
-        logger('error deleting account', e)
+        logger('error deleting transaction', e)
       })
   }
 
   return (
     <>
-      <Button
-        variant="solid"
+      <IconButton
         type="button"
         onClick={onOpen}
-        color={'white'}
-        bg={'#E63E3F'}
-        _hover={{
-          bg: '#AA2E2F',
-        }}
-      >
-        Delete
-      </Button>
+        bg={bgColor}
+        icon={<FaTrashAlt />}
+      />
       <AlertDialog
         isOpen={isOpen}
         leastDestructiveRef={cancelRef}
@@ -57,12 +60,11 @@ export default function DeleteRuleBtn({ rule, onSuccess }) {
         <AlertDialogOverlay>
           <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Delete Account
+              Delete Transaction
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Are you sure you want to remove "{rule.substring}"={rule.category}
-              ?
+              Are you sure you want to remove {transaction.name}?
             </AlertDialogBody>
 
             <AlertDialogFooter>
@@ -75,7 +77,7 @@ export default function DeleteRuleBtn({ rule, onSuccess }) {
                 _hover={{
                   bg: '#AA2E2F',
                 }}
-                onClick={async () => await deleteAccount()}
+                onClick={async () => await deleteTransaction()}
                 ml={3}
               >
                 Delete
