@@ -364,13 +364,16 @@ func (h *Handler) CreateTransaction(c *gin.Context) {
 		return
 	}
 
-	transactionDate, err := time.Parse(time.RFC1123, input.Date)
+	parsed, err := time.Parse(time.RFC1123, input.Date)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	if time.Now().Before(transactionDate) {
+	// zero out time
+	dateZeroed := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, time.UTC)
+
+	if time.Now().Before(dateZeroed) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
@@ -384,7 +387,7 @@ func (h *Handler) CreateTransaction(c *gin.Context) {
 		{Key: "name", Value: util.RemoveDuplicateWhitespace(input.Name)},
 		{Key: "category", Value: input.Category},
 		{Key: "amount", Value: amount},
-		{Key: "date", Value: transactionDate},
+		{Key: "date", Value: dateZeroed},
 		{Key: "user_id", Value: *userID},
 		{Key: "account_id", Value: "user_created"},
 		{Key: "created_at", Value: time.Now()},

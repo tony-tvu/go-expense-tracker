@@ -69,5 +69,3 @@ export const formatUTC = (dateInt, addOffset = false) => {
     return offsetDate
   }
 }
-
-export function zeroOutUTC
