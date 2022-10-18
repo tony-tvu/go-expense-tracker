@@ -86,7 +86,7 @@ export default function TransactionsTable({
           <Row key={transaction.id}>
             <Col xs={3} sm={3} md={1} className="d-flex align-items-center">
               <Text alignItems={'center'}>
-                {DateTime.fromISO(transaction.date, { zone: 'UTC' }).toFormat(
+                {DateTime.fromISO(transaction.date, { zone: 'utc' }).toFormat(
                   'LL/dd/yy'
                 )}
               </Text>

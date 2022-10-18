@@ -449,13 +449,16 @@ func (h *Handler) UpdateTransaction(c *gin.Context) {
 		return
 	}
 
-	transactionDate, err := time.Parse(time.RFC1123, input.Date)
+	parsed, err := time.Parse(time.RFC1123, input.Date)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	if time.Now().Before(transactionDate) {
+	// zero out time
+	dateZeroed := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, time.UTC)
+
+	if time.Now().Before(dateZeroed) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
@@ -463,7 +466,7 @@ func (h *Handler) UpdateTransaction(c *gin.Context) {
 	amount := NormalizeAmount(float32(parsedAmount), input.Category)
 	filter := bson.M{"transaction_id": input.TransactionID, "user_id": *userID}
 	update := bson.M{"$set": bson.M{
-		"date":     transactionDate,
+		"date":     dateZeroed,
 		"name":     input.Name,
 		"category": input.Category,
 		"amount":   amount,

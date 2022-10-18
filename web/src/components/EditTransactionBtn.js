@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Button,
   useDisclosure,
@@ -24,6 +24,8 @@ import { useNavigate } from 'react-router-dom'
 import { colors } from '../theme'
 import DatePicker from './Datepicker'
 import { FaPencilAlt } from 'react-icons/fa'
+import { DateTime } from 'luxon'
+import { formatUTC } from '../util'
 
 export default function EditTransactionBtn({
   onSuccess,
@@ -31,7 +33,7 @@ export default function EditTransactionBtn({
   transaction,
 }) {
   const [loading, setLoading] = useState(false)
-  const [date, setDate] = useState(new Date(transaction.date))
+  const [date, setDate] = useState(new Date())
   const [name, setName] = useState(transaction.name)
   const [category, setCategory] = useState(transaction.category)
   const [amount, setAmount] = useState(transaction.amount)
@@ -41,6 +43,18 @@ export default function EditTransactionBtn({
   const toast = useToast()
 
   const bgColor = useColorModeValue('white', '#252526')
+
+  useEffect(() => {
+    const initialDate = DateTime.fromISO(transaction.date, { zone: 'utc' })
+    const localDate = DateTime.local(
+      initialDate.year,
+      initialDate.month,
+      initialDate.day,
+      0,
+      0
+    )
+    setDate(localDate.toJSDate())
+  }, [transaction.date, transaction.name])
 
   async function updateTransaction() {
     if (date > new Date()) {
@@ -77,6 +91,8 @@ export default function EditTransactionBtn({
       setLoading(false)
       return
     }
+
+    // const luxonDate = DateTime.fromISO(transaction.date, { zone: 'local' })
 
     await fetch(`${process.env.REACT_APP_API_URL}/transactions`, {
       method: 'PATCH',
@@ -150,7 +166,7 @@ export default function EditTransactionBtn({
                 <FormLabel>Date</FormLabel>
                 <DatePicker
                   selected={date}
-                  onChange={(date) => setDate(date)}
+                  onChange={(val) => setDate(formatUTC(val))}
                 />
                 <FormLabel mt={3}>Name</FormLabel>
                 <Input
