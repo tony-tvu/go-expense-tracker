@@ -25,7 +25,6 @@ import { colors } from '../theme'
 import DatePicker from './Datepicker'
 import { FaPencilAlt } from 'react-icons/fa'
 import { DateTime } from 'luxon'
-import { formatUTC } from '../util'
 
 export default function EditTransactionBtn({
   onSuccess,
@@ -166,7 +165,7 @@ export default function EditTransactionBtn({
                 <FormLabel>Date</FormLabel>
                 <DatePicker
                   selected={date}
-                  onChange={(val) => setDate(formatUTC(val))}
+                  onChange={(val) => setDate(val)}
                 />
                 <FormLabel mt={3}>Name</FormLabel>
                 <Input
