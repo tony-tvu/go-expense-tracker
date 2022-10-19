@@ -286,9 +286,6 @@ func (t *TellerClient) RefreshTransactions(userID *primitive.ObjectID, accessTok
 					log.Printf("error parsing amount for transaction %v: %v", t, err)
 					success = false
 				}
-				if account.Subtype == "credit_card" {
-					amount = -1 * amount
-				}
 
 				date, err := time.Parse("2006-01-02", t.Date)
 				if err != nil {
@@ -300,9 +297,10 @@ func (t *TellerClient) RefreshTransactions(userID *primitive.ObjectID, accessTok
 				if util.Contains(&finances.Categories, t.Details.Category) {
 					category = t.Details.Category
 				}
+				amount = float64(finances.NormalizeAmount(float32(amount), category))
 
 				// apply rules
-				name := util.RemoveDuplicateWhitespace(t.Description) 
+				name := util.RemoveDuplicateWhitespace(t.Description)
 				for _, rule := range rules {
 					if strings.Contains(name, rule.Substring) {
 
