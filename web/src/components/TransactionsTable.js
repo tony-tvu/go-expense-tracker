@@ -35,6 +35,7 @@ import { currency } from '../util'
 import CreateRuleBtn from './CreateRuleBtn'
 import AddTransactionBtn from './AddTransactionBtn'
 import { AppStateContext } from '../hooks/AppStateProvider'
+import DownloadCsvBtn from './DownloadCsvBtn'
 
 export default function TransactionsTable({
   transactionsData,
@@ -231,6 +232,9 @@ export default function TransactionsTable({
           </Select>
         </FormControl>
         <Spacer />
+        <Box pt={'32px'}>
+          <DownloadCsvBtn transactionsData={transactionsData} />
+        </Box>
         <Box pt={'32px'}>
           <CreateRuleBtn
             onSuccess={() => {
