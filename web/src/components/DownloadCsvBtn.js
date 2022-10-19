@@ -19,7 +19,7 @@ export default function DownloadCsvBtn({ transactionsData }) {
             }).toFormat('LL/dd/yyyy'),
             name: t.name,
             category: t.category,
-            amount: t.amount,
+            amount: t.amount < 0 ? -1 * t.amount : t.amount,
           })
         }
       })
