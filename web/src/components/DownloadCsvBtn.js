@@ -12,14 +12,16 @@ export default function DownloadCsvBtn({ transactionsData }) {
     if (transactionsData) {
       const filteredData = []
       transactionsData.forEach((t) => {
-        filteredData.push({
-          date: DateTime.fromISO(t.date, {
-            zone: 'utc',
-          }).toFormat('LL/dd/yyyy'),
-          name: t.name,
-          category: t.category,
-          amount: t.amount,
-        })
+        if (t.category !== 'ignore') {
+          filteredData.push({
+            date: DateTime.fromISO(t.date, {
+              zone: 'utc',
+            }).toFormat('LL/dd/yyyy'),
+            name: t.name,
+            category: t.category,
+            amount: t.amount,
+          })
+        }
       })
       setData(filteredData)
     }
