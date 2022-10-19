@@ -1,31 +1,46 @@
+import React, { useEffect, useState, useContext } from 'react'
 import {
-  Box,
-  Divider,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  chakra,
+  Text,
   HStack,
   Select,
-  Spacer,
-  Text,
   useColorModeValue,
+  Box,
+  Spacer,
 } from '@chakra-ui/react'
-import React from 'react'
-import { currency } from '../util'
-import Container from 'react-bootstrap/Container'
-import Row from 'react-bootstrap/Row'
-import Col from 'react-bootstrap/Col'
-import { DateTime } from 'luxon'
+import { TriangleDownIcon, TriangleUpIcon } from '@chakra-ui/icons'
+import {
+  useReactTable,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  createColumnHelper,
+} from '@tanstack/react-table'
 import { useNavigate } from 'react-router-dom'
-import logger from '../logger'
+import { DateTime } from 'luxon'
 import { FaCircle, FaSitemap, FaDollarSign } from 'react-icons/fa'
-import AddTransactionBtn from './AddTransactionBtn'
-import CreateRuleBtn from './CreateRuleBtn'
+import logger from '../logger'
 import EditTransactionBtn from './EditTransactionBtn'
 import DeleteTransactionBtn from './DeleteTransactionBtn'
+import { currency } from '../util'
+import CreateRuleBtn from './CreateRuleBtn'
+import AddTransactionBtn from './AddTransactionBtn'
+import { AppStateContext } from '../hooks/AppStateProvider'
 
 export default function TransactionsTable({
   transactionsData,
   onSuccess,
   forceRefresh,
 }) {
+  const [appState] = useContext(AppStateContext)
+  const [data, setData] = useState([])
+  const [sorting, setSorting] = useState([])
   const bgColor = useColorModeValue('white', '#252526')
   const navigate = useNavigate()
 
@@ -50,9 +65,64 @@ export default function TransactionsTable({
       })
   }
 
-  if (!transactionsData) {
-    return null
-  }
+  useEffect(() => {
+    setData([])
+  }, [appState])
+
+  useEffect(() => {
+    if (transactionsData) {
+      let transactions = []
+      transactionsData.forEach((t) => {
+        transactions.push({
+          date: t.date,
+          name: t.name,
+          category: t.category,
+          amount: t.amount,
+          transactionId: t.transaction_id,
+          enrollmentId: t.enrollment_id,
+          options: '',
+        })
+      })
+      setData(transactions)
+    }
+  }, [transactionsData])
+
+  const columnHelper = createColumnHelper()
+  const columns = [
+    columnHelper.accessor('date', {
+      cell: (info) => info.getValue(),
+      header: 'Date',
+    }),
+    columnHelper.accessor('name', {
+      cell: (info) => info.getValue(),
+      header: 'Name',
+    }),
+    columnHelper.accessor('category', {
+      cell: (info) => info.getValue(),
+      header: 'Category',
+    }),
+    columnHelper.accessor('amount', {
+      cell: (info) => info.getValue(),
+      header: 'Amount',
+    }),
+    columnHelper.accessor('options', {
+      cell: (info) => info.getValue(),
+      header: '',
+    }),
+  ]
+
+  const table = useReactTable({
+    columns,
+    data,
+    getCoreRowModel: getCoreRowModel(),
+    onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(),
+    state: {
+      sorting,
+    },
+  })
+
+  if (data.length === 0) return null
 
   function getCategoryColor(category) {
     switch (category) {
@@ -79,122 +149,198 @@ export default function TransactionsTable({
     }
   }
 
-  function renderRows() {
-    return transactionsData.map((transaction) => {
-      return (
-        <Box key={transaction.id} mb={2} borderColor={'#464646'}>
-          <Row key={transaction.id}>
-            <Col xs={3} sm={3} md={1} className="d-flex align-items-center">
-              <Text alignItems={'center'}>
-                {DateTime.fromISO(transaction.date, { zone: 'utc' }).toFormat(
-                  'LL/dd/yy'
-                )}
-              </Text>
-            </Col>
-            <Col xs={3} sm={3} md={5} className="d-flex align-items-center">
-              <Text>{transaction.name}</Text>
-            </Col>
-            <Col xs={3} sm={3} md={3} className="d-flex align-items-center">
-              <HStack>
-                <FaCircle color={getCategoryColor(transaction.category)} />
-                <Select
-                  defaultValue={transaction.category}
-                  borderColor={bgColor}
-                  onChange={async (event) => {
-                    await updateCategory(
-                      transaction.transaction_id,
-                      event.target.value
-                    )
-                  }}
-                >
-                  <option value={'bills'}>Bills</option>
-                  <option value={'entertainment'}>Entertainment</option>
-                  <option value={'groceries'}>Groceries</option>
-                  <option value={'ignore'}>Ignore</option>
-                  <option value={'income'}>Income</option>
-                  <option value={'restaurant'}>Restaurant</option>
-                  <option value={'transportation'}>Transportation</option>
-                  <option value={'vacation'}>Vacation</option>
-                  <option value={'uncategorized'}>Uncategorized</option>
-                </Select>
-              </HStack>
-            </Col>
-            <Col xs={3} sm={3} md={2} className="d-flex align-items-center">
-              <Text>{currency.format(transaction.amount)}</Text>
-            </Col>
-            <Col xs={1} sm={1} md={1} className="d-flex align-items-center">
-              <HStack>
-                <EditTransactionBtn
-                  onSuccess={onSuccess}
-                  forceRefresh={forceRefresh}
-                  transaction={transaction}
-                />
-                {transaction.enrollment_id === 'user_created' ? (
-                  <DeleteTransactionBtn
-                    onSuccess={onSuccess}
-                    forceRefresh={forceRefresh}
-                    transaction={transaction}
-                  />
-                ) : (
-                  <></>
-                )}
-              </HStack>
-            </Col>
-          </Row>
-          <Divider mt={2} />
-        </Box>
-      )
-    })
+  function getHeaderWidth(header) {
+    switch (header) {
+      case 'date':
+        return '100px'
+      case 'name':
+        return '300px'
+      case 'category':
+        return '100px'
+      case 'amount':
+        return '100px'
+      case 'options':
+        return '100px'
+      default: {
+        return '100px'
+      }
+    }
   }
 
   return (
-    <Container
-      style={{
-        padding: '20px',
-        backgroundColor: bgColor,
-        borderRadius: '10px',
-      }}
-    >
-      <Box mb={2}>
-        <HStack mb={5}>
-          <Spacer />
-          <Box>
-            <CreateRuleBtn
-              onSuccess={onSuccess}
-              forceRefresh={forceRefresh}
-              icon={<FaSitemap />}
-            />
-          </Box>
-          <Box pl={3}>
-            <AddTransactionBtn onSuccess={onSuccess} icon={<FaDollarSign />} />
-          </Box>
-        </HStack>
-        <Row>
-          <Col xs={3} sm={3} md={1} className="d-flex align-items-center">
-            <Text fontWeight={'600'} fontSize={'lg'}>
-              Date
-            </Text>
-          </Col>
-          <Col xs={3} sm={3} md={5} className="d-flex align-items-center">
-            <Text fontWeight={'600'} fontSize={'lg'}>
-              Name
-            </Text>
-          </Col>
-          <Col xs={3} sm={3} md={3} className="d-flex align-items-center">
-            <Text fontWeight={'600'} fontSize={'lg'}>
-              Category
-            </Text>
-          </Col>
-          <Col xs={3} sm={3} md={2} className="d-flex align-items-center">
-            <Text fontWeight={'600'} fontSize={'lg'}>
-              Amount
-            </Text>
-          </Col>
-          <Col xs={3} sm={3} md={1} className="d-flex align-items-center"></Col>
-        </Row>
-        <Divider borderColor={'#464646'} mt={3} />
-      </Box>
-      {renderRows()}
-    </Container>
+    <Box bg={bgColor} p={5} borderRadius={10}>
+      <HStack mb={3} h={'75px'}>
+        <Spacer />
+        <Box>
+          <CreateRuleBtn
+            onSuccess={() => {
+              setData([])
+              onSuccess()
+            }}
+            forceRefresh={forceRefresh}
+            icon={<FaSitemap />}
+          />
+        </Box>
+        <Box pl={3}>
+          <AddTransactionBtn
+            onSuccess={() => {
+              setData([])
+              onSuccess()
+            }}
+            icon={<FaDollarSign />}
+          />
+        </Box>
+      </HStack>
+
+      <Table>
+        <Thead p={10}>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <Tr key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                return (
+                  <Th
+                    key={header.id}
+                    onClick={header.column.getToggleSortingHandler()}
+                    w={getHeaderWidth(header.id)}
+                  >
+                    {flexRender(
+                      header.column.columnDef.header,
+                      header.getContext()
+                    )}
+                    {header.id !== 'options' ? (
+                      <chakra.span pl="4">
+                        {header.column.getIsSorted() ? (
+                          header.column.getIsSorted() === 'desc' ? (
+                            <TriangleDownIcon aria-label="sorted descending" />
+                          ) : (
+                            <TriangleUpIcon aria-label="sorted ascending" />
+                          )
+                        ) : (
+                          <TriangleUpIcon color={'transparent'} />
+                        )}
+                      </chakra.span>
+                    ) : (
+                      <></>
+                    )}
+                  </Th>
+                )
+              })}
+            </Tr>
+          ))}
+        </Thead>
+        <Tbody>
+          {table.getRowModel().rows.map((row) => {
+            return (
+              <Tr key={row.id}>
+                {row.getVisibleCells().map((cell) => {
+                  switch (cell.column.id) {
+                    case 'date': {
+                      return (
+                        <Td key={cell.id}>
+                          <Text alignItems={'center'}>
+                            {DateTime.fromISO(cell.getValue(), {
+                              zone: 'utc',
+                            }).toFormat('LL/dd/yy')}
+                          </Text>
+                        </Td>
+                      )
+                    }
+                    case 'name': {
+                      return (
+                        <Td key={cell.id}>
+                          <Text>{cell.getValue()}</Text>
+                        </Td>
+                      )
+                    }
+                    case 'category': {
+                      return (
+                        <Td key={cell.id}>
+                          <HStack>
+                            <FaCircle
+                              color={getCategoryColor(cell.getValue())}
+                            />
+                            <Select
+                              w={'165px'}
+                              defaultValue={cell.getValue()}
+                              borderColor={bgColor}
+                              onChange={async (event) => {
+                                await updateCategory(
+                                  cell.row.original.transactionId,
+                                  event.target.value
+                                )
+                              }}
+                            >
+                              <option value={'bills'}>Bills</option>
+                              <option value={'entertainment'}>
+                                Entertainment
+                              </option>
+                              <option value={'groceries'}>Groceries</option>
+                              <option value={'ignore'}>Ignore</option>
+                              <option value={'income'}>Income</option>
+                              <option value={'restaurant'}>Restaurant</option>
+                              <option value={'transportation'}>
+                                Transportation
+                              </option>
+                              <option value={'vacation'}>Vacation</option>
+                              <option value={'uncategorized'}>
+                                Uncategorized
+                              </option>
+                            </Select>
+                          </HStack>
+                        </Td>
+                      )
+                    }
+                    case 'amount': {
+                      return (
+                        <Td key={cell.id}>
+                          <Text>{currency.format(cell.getValue())}</Text>
+                        </Td>
+                      )
+                    }
+                    case 'options': {
+                      return (
+                        <Td key={cell.id}>
+                          <HStack>
+                            <EditTransactionBtn
+                              onSuccess={() => {
+                                setData([])
+                                onSuccess()
+                              }}
+                              forceRefresh={forceRefresh}
+                              transaction={cell.row.original}
+                              transactionsData={transactionsData}
+                            />
+                            {cell.row.original.enrollmentId ===
+                            'user_created' ? (
+                              <DeleteTransactionBtn
+                                onSuccess={onSuccess}
+                                forceRefresh={forceRefresh}
+                                transaction={cell.row.original}
+                              />
+                            ) : (
+                              <></>
+                            )}
+                          </HStack>
+                        </Td>
+                      )
+                    }
+                    default: {
+                      return (
+                        <Td key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </Td>
+                      )
+                    }
+                  }
+                })}
+              </Tr>
+            )
+          })}
+        </Tbody>
+      </Table>
+    </Box>
   )
 }

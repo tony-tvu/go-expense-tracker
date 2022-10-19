@@ -30,6 +30,7 @@ export default function EditTransactionBtn({
   onSuccess,
   forceRefresh,
   transaction,
+  transactionsData,
 }) {
   const [loading, setLoading] = useState(false)
   const [date, setDate] = useState(new Date())
@@ -44,6 +45,15 @@ export default function EditTransactionBtn({
   const bgColor = useColorModeValue('white', '#252526')
 
   useEffect(() => {
+    // need this in case user changed the category from the table
+    let initialCategory = transaction.category
+    transactionsData.forEach((t) => {
+      if (t.transaction_id === transaction.transactionId) {
+        initialCategory = t.category
+      }
+    })
+    setCategory(initialCategory)
+
     const initialDate = DateTime.fromISO(transaction.date, { zone: 'utc' })
     const localDate = DateTime.local(
       initialDate.year,
@@ -53,7 +63,13 @@ export default function EditTransactionBtn({
       0
     )
     setDate(localDate.toJSDate())
-  }, [transaction.date, transaction.name])
+  }, [
+    transaction.category,
+    transaction.date,
+    transaction.name,
+    transaction.transactionId,
+    transactionsData,
+  ])
 
   async function updateTransaction() {
     if (date > new Date()) {
@@ -62,7 +78,7 @@ export default function EditTransactionBtn({
         description: 'Cannot be in the future',
         status: 'error',
         position: 'top-right',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       })
       setLoading(false)
@@ -73,7 +89,7 @@ export default function EditTransactionBtn({
         description: 'Cannot be blank',
         status: 'error',
         position: 'top-right',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       })
       setLoading(false)
@@ -84,14 +100,12 @@ export default function EditTransactionBtn({
         description: 'Must be a positive or negative number',
         status: 'error',
         position: 'top-right',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       })
       setLoading(false)
       return
     }
-
-    // const luxonDate = DateTime.fromISO(transaction.date, { zone: 'local' })
 
     await fetch(`${process.env.REACT_APP_API_URL}/transactions`, {
       method: 'PATCH',
@@ -100,7 +114,7 @@ export default function EditTransactionBtn({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        transaction_id: transaction.transaction_id,
+        transaction_id: transaction.transactionId,
         date: date.toUTCString(),
         name: name,
         category: category,
@@ -120,7 +134,7 @@ export default function EditTransactionBtn({
             description: 'Transaction updated',
             status: 'success',
             position: 'top-right',
-            duration: 5000,
+            duration: 2000,
             isClosable: true,
           })
         }
@@ -130,7 +144,7 @@ export default function EditTransactionBtn({
             description: 'Please try again later',
             status: 'error',
             position: 'top-right',
-            duration: 5000,
+            duration: 3000,
             isClosable: true,
           })
         }
@@ -163,10 +177,7 @@ export default function EditTransactionBtn({
             <AlertDialogBody>
               <FormControl>
                 <FormLabel>Date</FormLabel>
-                <DatePicker
-                  selected={date}
-                  onChange={(val) => setDate(val)}
-                />
+                <DatePicker selected={date} onChange={(val) => setDate(val)} />
                 <FormLabel mt={3}>Name</FormLabel>
                 <Input
                   defaultValue={name}

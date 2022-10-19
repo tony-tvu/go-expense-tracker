@@ -24,7 +24,7 @@ export default function DeleteTransactionBtn({ transaction, onSuccess }) {
 
   async function deleteTransaction() {
     await fetch(
-      `${process.env.REACT_APP_API_URL}/transactions/${transaction.transaction_id}`,
+      `${process.env.REACT_APP_API_URL}/transactions/${transaction.transactionId}`,
       {
         method: 'DELETE',
         credentials: 'include',
