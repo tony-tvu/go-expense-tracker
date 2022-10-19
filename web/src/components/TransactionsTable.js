@@ -13,6 +13,9 @@ import {
   useColorModeValue,
   Box,
   Spacer,
+  FormControl,
+  FormLabel,
+  Input,
 } from '@chakra-ui/react'
 import { TriangleDownIcon, TriangleUpIcon } from '@chakra-ui/icons'
 import {
@@ -41,6 +44,8 @@ export default function TransactionsTable({
   const [appState] = useContext(AppStateContext)
   const [data, setData] = useState([])
   const [sorting, setSorting] = useState([])
+  const [searchStr, setSearchStr] = useState('')
+  const [filteredCategory, setFilteredCategory] = useState('all')
   const bgColor = useColorModeValue('white', '#252526')
   const navigate = useNavigate()
 
@@ -67,25 +72,51 @@ export default function TransactionsTable({
 
   useEffect(() => {
     setData([])
+  }, [searchStr])
+
+  useEffect(() => {
+    setData([])
+  }, [filteredCategory])
+
+  useEffect(() => {
+    setData([])
   }, [appState])
 
   useEffect(() => {
     if (transactionsData) {
       let transactions = []
       transactionsData.forEach((t) => {
-        transactions.push({
-          date: t.date,
-          name: t.name,
-          category: t.category,
-          amount: t.amount,
-          transactionId: t.transaction_id,
-          enrollmentId: t.enrollment_id,
-          options: '',
-        })
+        // apply searchStr filter
+        if (t.name.toLowerCase().includes(searchStr.toLowerCase())) {
+          if (filteredCategory === 'all') {
+            transactions.push({
+              date: t.date,
+              name: t.name,
+              category: t.category,
+              amount: t.amount,
+              transactionId: t.transaction_id,
+              enrollmentId: t.enrollment_id,
+              options: '',
+            })
+          } else {
+            // apply category filter
+            if (t.category === filteredCategory) {
+              transactions.push({
+                date: t.date,
+                name: t.name,
+                category: t.category,
+                amount: t.amount,
+                transactionId: t.transaction_id,
+                enrollmentId: t.enrollment_id,
+                options: '',
+              })
+            }
+          }
+        }
       })
       setData(transactions)
     }
-  }, [transactionsData])
+  }, [transactionsData, searchStr, filteredCategory])
 
   const columnHelper = createColumnHelper()
   const columns = [
@@ -122,8 +153,9 @@ export default function TransactionsTable({
     },
   })
 
-  if (data.length === 0) return null
+  if (data.length === 0 && !transactionsData) return null
 
+  // TODO: put colors in theme file
   function getCategoryColor(category) {
     switch (category) {
       case 'bills':
@@ -152,13 +184,13 @@ export default function TransactionsTable({
   function getHeaderWidth(header) {
     switch (header) {
       case 'date':
-        return '100px'
+        return '120px'
       case 'name':
         return '300px'
       case 'category':
-        return '100px'
+        return '200px'
       case 'amount':
-        return '100px'
+        return '200px'
       case 'options':
         return '100px'
       default: {
@@ -169,9 +201,37 @@ export default function TransactionsTable({
 
   return (
     <Box bg={bgColor} p={5} borderRadius={10}>
-      <HStack mb={3} h={'75px'}>
+      <HStack mb={5} h={'65px'}>
+        <FormControl w={'300px'}>
+          <FormLabel>Search</FormLabel>
+          <Input
+            type="text"
+            placeholder="Start typing..."
+            onChange={(e) => setSearchStr(e.target.value)}
+          />
+        </FormControl>
+        <FormControl w={'300px'}>
+          <FormLabel>Category</FormLabel>
+          <Select
+            defaultValue={'all'}
+            onChange={(event) => {
+              setFilteredCategory(event.target.value)
+            }}
+          >
+            <option value={'all'}>All</option>
+            <option value={'bills'}>Bills</option>
+            <option value={'entertainment'}>Entertainment</option>
+            <option value={'groceries'}>Groceries</option>
+            <option value={'ignore'}>Ignore</option>
+            <option value={'income'}>Income</option>
+            <option value={'restaurant'}>Restaurant</option>
+            <option value={'transportation'}>Transportation</option>
+            <option value={'vacation'}>Vacation</option>
+            <option value={'uncategorized'}>Uncategorized</option>
+          </Select>
+        </FormControl>
         <Spacer />
-        <Box>
+        <Box pt={'32px'}>
           <CreateRuleBtn
             onSuccess={() => {
               setData([])
@@ -181,7 +241,7 @@ export default function TransactionsTable({
             icon={<FaSitemap />}
           />
         </Box>
-        <Box pl={3}>
+        <Box pl={2} pt={'32px'}>
           <AddTransactionBtn
             onSuccess={() => {
               setData([])
@@ -261,7 +321,7 @@ export default function TransactionsTable({
                             />
                             <Select
                               w={'165px'}
-                              defaultValue={cell.getValue()}
+                              value={cell.getValue()}
                               borderColor={bgColor}
                               onChange={async (event) => {
                                 await updateCategory(
@@ -303,6 +363,7 @@ export default function TransactionsTable({
                           <HStack>
                             <EditTransactionBtn
                               onSuccess={() => {
+                                setSearchStr('')
                                 setData([])
                                 onSuccess()
                               }}
@@ -325,14 +386,8 @@ export default function TransactionsTable({
                       )
                     }
                     default: {
-                      return (
-                        <Td key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </Td>
-                      )
+                      logger(`unknown column: ${cell.column.id}`)
+                      return <></>
                     }
                   }
                 })}

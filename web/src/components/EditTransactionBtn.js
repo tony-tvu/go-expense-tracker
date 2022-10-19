@@ -33,10 +33,13 @@ export default function EditTransactionBtn({
   transactionsData,
 }) {
   const [loading, setLoading] = useState(false)
-  const [date, setDate] = useState(new Date())
-  const [name, setName] = useState(transaction.name)
-  const [category, setCategory] = useState(transaction.category)
-  const [amount, setAmount] = useState(transaction.amount)
+
+  const [updatedTransaction, setUpdatedTransaction] = useState({
+    date: new Date(),
+    name: transaction.name,
+    category: transaction.category,
+    amount: transaction.amount,
+  })
   const { isOpen, onOpen, onClose } = useDisclosure()
   const cancelRef = React.useRef()
   const navigate = useNavigate()
@@ -45,14 +48,15 @@ export default function EditTransactionBtn({
   const bgColor = useColorModeValue('white', '#252526')
 
   useEffect(() => {
-    // need this in case user changed the category from the table
-    let initialCategory = transaction.category
+    // needs to be set for sorting
+    let name = transaction.name
+    let category = transaction.category
     transactionsData.forEach((t) => {
       if (t.transaction_id === transaction.transactionId) {
-        initialCategory = t.category
+        name = t.name
+        category = t.category
       }
     })
-    setCategory(initialCategory)
 
     const initialDate = DateTime.fromISO(transaction.date, { zone: 'utc' })
     const localDate = DateTime.local(
@@ -62,8 +66,15 @@ export default function EditTransactionBtn({
       0,
       0
     )
-    setDate(localDate.toJSDate())
+
+    setUpdatedTransaction({
+      date: localDate.toJSDate(),
+      name: name,
+      category: category,
+      amount: transaction.amount,
+    })
   }, [
+    transaction.amount,
     transaction.category,
     transaction.date,
     transaction.name,
@@ -72,7 +83,7 @@ export default function EditTransactionBtn({
   ])
 
   async function updateTransaction() {
-    if (date > new Date()) {
+    if (updatedTransaction.date > new Date()) {
       toast({
         title: 'Invalid Date',
         description: 'Cannot be in the future',
@@ -83,7 +94,7 @@ export default function EditTransactionBtn({
       })
       setLoading(false)
       return
-    } else if (!name) {
+    } else if (!updatedTransaction.name) {
       toast({
         title: 'Name required',
         description: 'Cannot be blank',
@@ -94,7 +105,7 @@ export default function EditTransactionBtn({
       })
       setLoading(false)
       return
-    } else if (amount === 0) {
+    } else if (updatedTransaction.amount === 0) {
       toast({
         title: 'Amount required',
         description: 'Must be a positive or negative number',
@@ -115,10 +126,10 @@ export default function EditTransactionBtn({
       },
       body: JSON.stringify({
         transaction_id: transaction.transactionId,
-        date: date.toUTCString(),
-        name: name,
-        category: category,
-        amount: amount.toString(),
+        date: updatedTransaction.date.toUTCString(),
+        name: updatedTransaction.name,
+        category: updatedTransaction.category,
+        amount: updatedTransaction.amount.toString(),
       }),
     })
       .then((res) => {
@@ -177,18 +188,40 @@ export default function EditTransactionBtn({
             <AlertDialogBody>
               <FormControl>
                 <FormLabel>Date</FormLabel>
-                <DatePicker selected={date} onChange={(val) => setDate(val)} />
+                <DatePicker
+                  selected={updatedTransaction.date}
+                  onChange={(val) =>
+                    setUpdatedTransaction({
+                      date: val,
+                      name: updatedTransaction.name,
+                      category: updatedTransaction.category,
+                      amount: updatedTransaction.amount,
+                    })
+                  }
+                />
                 <FormLabel mt={3}>Name</FormLabel>
                 <Input
-                  defaultValue={name}
-                  onChange={(event) => setName(event.target.value)}
+                  defaultValue={updatedTransaction.name}
+                  onChange={(event) =>
+                    setUpdatedTransaction({
+                      date: updatedTransaction.date,
+                      name: event.target.value,
+                      category: updatedTransaction.category,
+                      amount: updatedTransaction.amount,
+                    })
+                  }
                   mb={3}
                 />
                 <FormLabel>Category</FormLabel>
                 <Select
-                  defaultValue={category}
+                  defaultValue={updatedTransaction.category}
                   onChange={async (event) => {
-                    setCategory(event.target.value)
+                    setUpdatedTransaction({
+                      date: updatedTransaction.date,
+                      name: updatedTransaction.name,
+                      category: event.target.value,
+                      amount: updatedTransaction.amount,
+                    })
                   }}
                   mb={3}
                 >
@@ -205,7 +238,14 @@ export default function EditTransactionBtn({
                 <FormLabel>Amount</FormLabel>
                 <NumberInput defaultValue={transaction.amount}>
                   <NumberInputField
-                    onChange={(event) => setAmount(event.target.value)}
+                    onChange={(event) =>
+                      setUpdatedTransaction({
+                        date: updatedTransaction.date,
+                        name: updatedTransaction.name,
+                        category: updatedTransaction.category,
+                        amount: event.target.value,
+                      })
+                    }
                     mb={3}
                   />
                 </NumberInput>
