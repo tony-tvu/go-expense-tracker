@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/types"
 	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -83,7 +81,6 @@ func TestUserInfo(t *testing.T) {
 	assert.Equal(t, testUser.Username, u.Username)
 	assert.Equal(t, testUser.Email, u.Email)
 	assert.Equal(t, "", u.Password)
-	assert.Equal(t, types.RegularUser, u.UserType)
 }
 
 // IsLoggedIn route should return correct values
@@ -103,7 +100,6 @@ func TestIsAdminRoute(t *testing.T) {
 	json.NewDecoder(res.Body).Decode(&resBody)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.False(t, resBody.IsLoggedIn)
-	assert.False(t, resBody.IsAdmin)
 
 	// create regular user and login
 	user, cleanup := createTestUser(t)
@@ -117,33 +113,4 @@ func TestIsAdminRoute(t *testing.T) {
 	json.NewDecoder(res.Body).Decode(&resBody)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.True(t, resBody.IsLoggedIn)
-	assert.False(t, resBody.IsAdmin)
-
-	// logout user
-	res = makeRequest(t, "POST", "/api/logout", &accessToken, &refreshToken)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-
-	// make user an admin and login
-	_, err := testApp.Db.Users.UpdateOne(
-		ctx,
-		bson.M{"username": user.Username},
-		bson.M{
-			"$set": bson.M{
-				"user_type":  types.AdminUser,
-				"updated_at": time.Now(),
-			}},
-	)
-	if err != nil {
-		t.FailNow()
-	}
-	accessToken, refreshToken, _ = logUserIn(t, user.Username, user.Password)
-
-	// make request to logged_in endpoint as admin
-	res = makeRequest(t, "GET", "/api/logged_in", &accessToken, &refreshToken)
-
-	// should return 200, logged_in: true, is_admin: true
-	json.NewDecoder(res.Body).Decode(&resBody)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.True(t, resBody.IsLoggedIn)
-	assert.True(t, resBody.IsAdmin)
 }

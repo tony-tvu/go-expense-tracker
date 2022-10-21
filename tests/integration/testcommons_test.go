@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tony-tvu/goexpense/types"
 	"github.com/tony-tvu/goexpense/user"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -65,14 +64,12 @@ func createTestUser(t *testing.T) (*user.User, func()) {
 		Username: username,
 		Email:    fmt.Sprintf("%v@email.com", username),
 		Password: string(hash),
-		UserType: types.RegularUser,
 	}
 
 	doc := &bson.D{
 		{Key: "username", Value: username},
 		{Key: "email", Value: fmt.Sprintf("%v@email.com", username)},
 		{Key: "password", Value: string(hash)},
-		{Key: "user_type", Value: types.RegularUser},
 		{Key: "created_at", Value: time.Now()},
 		{Key: "updated_at", Value: time.Now()},
 	}

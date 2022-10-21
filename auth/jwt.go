@@ -70,7 +70,7 @@ new session/refresh_token.
 
 Default expiration time: 15m
 */
-func GetEncryptedToken(tokenType TokenType, userID string, userType string) (Token, error) {
+func GetEncryptedToken(tokenType TokenType, userID string) (Token, error) {
 	var exp time.Time
 	if tokenType == RefreshToken {
 		exp = time.Now().Add(time.Duration(refreshTokenExp) * time.Second)
@@ -79,8 +79,7 @@ func GetEncryptedToken(tokenType TokenType, userID string, userType string) (Tok
 	}
 
 	accessTokenStr, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &Claims{
-		UserID:   userID,
-		UserType: userType,
+		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -118,7 +117,7 @@ func ValidateTokenAndGetClaims(encryptedTkn string) (*Claims, error) {
 
 	// return error if claims are missing
 	claims := token.Claims.(*Claims)
-	if claims.UserID == "" || claims.UserType == "" {
+	if claims.UserID == "" {
 		return nil, errors.New("token is missing claims")
 	}
 

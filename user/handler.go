@@ -9,9 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
 	"github.com/tony-tvu/goexpense/auth"
-	"github.com/tony-tvu/goexpense/cache"
 	"github.com/tony-tvu/goexpense/db"
-	"github.com/tony-tvu/goexpense/types"
 	"github.com/tony-tvu/goexpense/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
@@ -19,7 +17,6 @@ import (
 
 type Handler struct {
 	Db           *db.MongoDb
-	ConfigsCache *cache.ConfigsCache
 }
 
 var v *validator.Validate
@@ -29,33 +26,22 @@ func init() {
 }
 
 func (h *Handler) IsLoggedIn(c *gin.Context) {
-	configs, err := h.ConfigsCache.GetConfigs()
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	_, userType, err := auth.AuthorizeUser(c, h.Db)
+	_, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"logged_in":            false,
 			"is_admin":             false,
-			"registration_enabled": configs.RegistrationEnabled,
 		})
 	} else {
-		isAdmin := *userType == types.AdminUser
 		c.JSON(http.StatusOK, gin.H{
 			"logged_in":            true,
-			"is_admin":             isAdmin,
-			"registration_enabled": configs.RegistrationEnabled,
 		})
 	}
 }
 
 func (h *Handler) GetUsers(c *gin.Context) {
 	ctx := c.Request.Context()
-
-	if _, uType, err := auth.AuthorizeUser(c, h.Db); err != nil || *uType != types.AdminUser {
+	if _, err := auth.AuthorizeUser(c, h.Db); err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
@@ -117,7 +103,7 @@ func (h *Handler) Login(c *gin.Context) {
 	}
 
 	// create refresh token
-	refreshToken, err := auth.GetEncryptedToken(auth.RefreshToken, u.ID.Hex(), string(u.UserType))
+	refreshToken, err := auth.GetEncryptedToken(auth.RefreshToken, u.ID.Hex())
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -146,7 +132,7 @@ func (h *Handler) Login(c *gin.Context) {
 	}
 
 	// create access token
-	accessToken, err := auth.GetEncryptedToken(auth.AccessToken, u.ID.Hex(), string(u.UserType))
+	accessToken, err := auth.GetEncryptedToken(auth.AccessToken, u.ID.Hex())
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -159,7 +145,7 @@ func (h *Handler) Login(c *gin.Context) {
 func (h *Handler) Logout(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -178,7 +164,7 @@ func (h *Handler) Logout(c *gin.Context) {
 func (h *Handler) GetUserInfo(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -193,30 +179,7 @@ func (h *Handler) GetUserInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"username":  u.Username,
 		"email":     u.Email,
-		"user_type": u.UserType,
 	})
-}
-
-func (h *Handler) GetSessions(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	if _, uType, err := auth.AuthorizeUser(c, h.Db); err != nil || *uType != types.AdminUser {
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-
-	var sessions []*auth.Session
-	cursor, err := h.Db.Sessions.Find(ctx, bson.M{})
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	if err = cursor.All(ctx, &sessions); err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(http.StatusOK, sessions)
 }
 
 // TODO

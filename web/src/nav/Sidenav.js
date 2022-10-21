@@ -36,20 +36,13 @@ const textColor = '#DCDCE2'
 const hoverBgColor = '#303031'
 const navBgColor = '#252526'
 
-export default function Sidenav({
-  children,
-  isLoggedIn,
-  registrationEnabled,
-  isAdmin,
-  current,
-}) {
+export default function Sidenav({ children, isLoggedIn, isAdmin, current }) {
   const { isOpen, onOpen, onClose } = useDisclosure()
   return (
     <Box minH="100vh" bg={useColorModeValue('gray.100', '#1E1E1E')}>
       <SidebarContent
         onClose={() => onClose}
         isLoggedIn={isLoggedIn}
-        registrationEnabled={registrationEnabled}
         isAdmin={isAdmin}
         current={current}
         display={{ base: 'none', md: 'block' }}
@@ -66,7 +59,6 @@ export default function Sidenav({
         <DrawerContent>
           <SidebarContent
             isLoggedIn={isLoggedIn}
-            registrationEnabled={registrationEnabled}
             isAdmin={isAdmin}
             current={current}
             onClose={onClose}
@@ -82,14 +74,7 @@ export default function Sidenav({
   )
 }
 
-const SidebarContent = ({
-  onClose,
-  isLoggedIn,
-  registrationEnabled,
-  isAdmin,
-  current,
-  ...rest
-}) => {
+const SidebarContent = ({ onClose, isLoggedIn, isAdmin, current, ...rest }) => {
   const navigate = useNavigate()
   function logout() {
     fetch(`${process.env.REACT_APP_API_URL}/logout`, {
@@ -132,7 +117,7 @@ const SidebarContent = ({
             fontWeight="bold"
             color={textColor}
           >
-            {process.env.REACT_APP_NAME}
+            GoExpense
           </Text>
         </RouterLink>
         <Spacer />
@@ -151,14 +136,6 @@ const SidebarContent = ({
             iconColor={current === 'transactions' ? colors.primary : textColor}
           >
             Transactions
-          </NavItem>
-          <NavItem
-            to="/analytics"
-            icon={FaChartPie}
-            bgColor={current === 'analytics' ? hoverBgColor : navBgColor}
-            iconColor={current === 'analytics' ? colors.primary : textColor}
-          >
-            Analytics
           </NavItem>
           <NavItem
             to="/rules"
@@ -182,7 +159,7 @@ const SidebarContent = ({
         </>
       )}
 
-      {!isLoggedIn && registrationEnabled && (
+      {!isLoggedIn && (
         <>
           <NavItem to="/register" color={textColor} icon={FaPen}>
             Register
@@ -194,16 +171,6 @@ const SidebarContent = ({
 
       {isLoggedIn && (
         <>
-          {/* {isAdmin && (
-            <NavItem
-              to="/admin"
-              icon={FaMugHot}
-              bgColor={current === 'admin' ? hoverBgColor : navBgColor}
-              iconColor={current === 'admin' ? colors.primary : textColor}
-            >
-              Admin
-            </NavItem>
-          )} */}
           <NavItem
             to="/logout"
             icon={FaRegArrowAltCircleLeft}
@@ -296,7 +263,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
           fontWeight="bold"
           color={useColorModeValue('black', textColor)}
         >
-          {process.env.REACT_APP_NAME}
+          GoExpense
         </Text>
       </RouterLink>
     </Flex>

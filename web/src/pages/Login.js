@@ -26,7 +26,6 @@ const CFaLock = chakra(FaLock)
 const CFcat = chakra(FaCat)
 
 export default function Login() {
-  const [registrationEnabled, setRegistrationEnabled] = useState(false)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -46,7 +45,6 @@ export default function Login() {
         .then(async (res) => {
           if (!res) return
           const data = await res.json().catch((err) => logger(err))
-          setRegistrationEnabled(data ? data.registration_enabled : false)
           if (data && data.logged_in) {
             navigate('/')
           }
@@ -96,7 +94,7 @@ export default function Login() {
   }
 
   return (
-    <Sidenav registrationEnabled={registrationEnabled}>
+    <Sidenav>
       <Flex flexDirection="column">
         <Stack flexDir="column" mt="15%" alignItems="center">
           <CFcat width={'10vh'} size={'100px'} color={logoColor} />

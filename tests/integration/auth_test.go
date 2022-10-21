@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tony-tvu/goexpense/types"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -93,49 +92,3 @@ func TestAuthRestrictAccess(t *testing.T) {
 	assert.Equal(t, "", cookies["goexpense_refresh"])
 }
 
-// Admin restricted handlers should not allow guest or regular users
-func TestAuthAdminRestricted(t *testing.T) {
-	t.Parallel()
-
-	// make request to admin-only route as a guest user
-	res := makeRequest(t, "GET", "/api/sessions", nil, nil)
-
-	// should return 401
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
-
-	// create regular user and login
-	user, cleanup := createTestUser(t)
-	defer cleanup()
-	accessToken, refreshToken, _ := logUserIn(t, user.Username, user.Password)
-
-	// make request to admin-only route as regular user
-	res = makeRequest(t, "GET", "/api/sessions", &refreshToken, &accessToken)
-
-	// should return 401
-	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
-
-	// logout user
-	res = makeRequest(t, "POST", "/api/logout", &accessToken, &refreshToken)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-
-	// make user an admin and login
-	_, err := testApp.Db.Users.UpdateOne(
-		ctx,
-		bson.M{"username": user.Username},
-		bson.M{
-			"$set": bson.M{
-				"user_type": types.AdminUser,
-			}},
-	)
-	if err != nil {
-		t.FailNow()
-	}
-
-	accessToken, refreshToken, _ = logUserIn(t, user.Username, user.Password)
-
-	// make request to admin-only endpoint as admin
-	res = makeRequest(t, "GET", "/api/sessions", &accessToken, &refreshToken)
-
-	// should return 200
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-}

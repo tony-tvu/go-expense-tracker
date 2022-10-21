@@ -32,7 +32,7 @@ func (h *Handler) NewEnrollment(c *gin.Context) {
 	ctx := c.Request.Context()
 	defer c.Request.Body.Close()
 
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -82,7 +82,7 @@ func (h *Handler) NewEnrollment(c *gin.Context) {
 func (h *Handler) GetEnrollments(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -108,7 +108,7 @@ func (h *Handler) GetEnrollments(c *gin.Context) {
 func (h *Handler) DeleteEnrollment(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return

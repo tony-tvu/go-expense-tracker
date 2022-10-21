@@ -16,7 +16,6 @@ import (
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/tony-tvu/goexpense/cache"
 	"github.com/tony-tvu/goexpense/db"
 	"github.com/tony-tvu/goexpense/finances"
 	"github.com/tony-tvu/goexpense/jobs"
@@ -30,7 +29,6 @@ import (
 
 type App struct {
 	Db           *db.MongoDb
-	ConfigsCache *cache.ConfigsCache
 	Router       *gin.Engine
 	Jobs         *jobs.Jobs
 }
@@ -54,7 +52,6 @@ func (a *App) Initialize(ctx context.Context) {
 		log.Fatal("ENV is not set")
 	}
 	a.Db = &db.MongoDb{}
-	a.ConfigsCache = &cache.ConfigsCache{}
 
 	// TellerClient
 	dirname, _ := os.Getwd()
@@ -94,10 +91,9 @@ func (a *App) Initialize(ctx context.Context) {
 	a.Jobs = jobs
 
 	// Handlers
-	cache := &cache.Handler{Db: a.Db, ConfigsCache: a.ConfigsCache}
 	finances := &finances.Handler{Db: a.Db}
 	teller := &teller.Handler{Db: a.Db, TellerClient: tc}
-	users := &user.Handler{Db: a.Db, ConfigsCache: a.ConfigsCache}
+	users := &user.Handler{Db: a.Db}
 
 	// Router
 	if env == Production {
@@ -123,11 +119,6 @@ func (a *App) Initialize(ctx context.Context) {
 
 	api := router.Group("/api", middleware.NoCache)
 	{
-		// configs
-		api.GET("/teller_app_id", cache.TellerAppID)
-		api.GET("/configs", cache.GetConfigs)
-		api.PATCH("/configs", cache.UpdateConfigs)
-
 		// finances
 		api.GET("/transactions", finances.GetTransactions)
 		api.PATCH("/transactions/category", finances.UpdateCategory)
@@ -149,7 +140,6 @@ func (a *App) Initialize(ctx context.Context) {
 		api.POST("/login", middleware.LoginRateLimit(), users.Login)
 		api.GET("/logged_in", users.IsLoggedIn)
 		api.GET("/user_info", users.GetUserInfo)
-		api.GET("/sessions", users.GetSessions)
 	}
 
 	router.Use(middleware.FrontendCache, static.Serve("/", static.LocalFile("./web/build", true)))
@@ -177,16 +167,6 @@ func (a *App) Start(ctx context.Context) {
 	}()
 	a.Db.SetCollections(mongoclient, dbName)
 	a.Db.CreateUniqueConstraints(ctx)
-	username := os.Getenv("ADMIN_USERNAME")
-	email := os.Getenv("ADMIN_EMAIL")
-	pw := os.Getenv("ADMIN_PASSWORD")
-	if util.ContainsEmpty(username, email, pw) {
-		return
-	}
-	a.Db.CreateInitialAdminUser(ctx, username, email, pw)
-
-	// Populate cache
-	a.ConfigsCache.InitConfigsCache(ctx, a.Db)
 
 	// Start scheduled jobs
 	a.Jobs.Start(ctx)

@@ -90,7 +90,7 @@ func (h *Handler) CreateRule(c *gin.Context) {
 	ctx := c.Request.Context()
 	defer c.Request.Body.Close()
 
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -173,7 +173,7 @@ func (h *Handler) applyNewRule(ctx context.Context, userID *primitive.ObjectID, 
 
 func (h *Handler) DeleteTransaction(c *gin.Context) {
 	ctx := c.Request.Context()
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -194,7 +194,7 @@ func (h *Handler) DeleteTransaction(c *gin.Context) {
 
 func (h *Handler) DeleteRule(c *gin.Context) {
 	ctx := c.Request.Context()
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -221,7 +221,7 @@ func (h *Handler) DeleteRule(c *gin.Context) {
 
 func (h *Handler) GetRules(c *gin.Context) {
 	ctx := c.Request.Context()
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -244,7 +244,7 @@ func (h *Handler) GetRules(c *gin.Context) {
 
 func (h *Handler) GetTransactions(c *gin.Context) {
 	ctx := c.Request.Context()
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -318,7 +318,7 @@ func (h *Handler) CreateTransaction(c *gin.Context) {
 	ctx := c.Request.Context()
 	defer c.Request.Body.Close()
 
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -405,7 +405,7 @@ func (h *Handler) UpdateTransaction(c *gin.Context) {
 	ctx := c.Request.Context()
 	defer c.Request.Body.Close()
 
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -485,7 +485,7 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 	ctx := c.Request.Context()
 	defer c.Request.Body.Close()
 
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -540,7 +540,7 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 func (h *Handler) GetAccounts(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	userID, _, err := auth.AuthorizeUser(c, h.Db)
+	userID, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
