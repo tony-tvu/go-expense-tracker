@@ -39,7 +39,6 @@ export default function AddAccountBtn({ onSuccess }) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // access_token: process.env.REACT_APP_ACCESS_TOKEN,
         access_token: enrollment.accessToken,
         enrollment_id: enrollment.enrollment.id,
         institution: enrollment.enrollment.institution.name,
@@ -53,35 +52,14 @@ export default function AddAccountBtn({ onSuccess }) {
         logger('error saving access token', e)
       })
   }
-
-  async function getTellerAppId() {
-    return await fetch(`${process.env.REACT_APP_API_URL}/teller_app_id`, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then(async (res) => {
-        if (res.status === 401) navigate('/login')
-        if (!res) return
-        const resData = await res.json().catch((err) => logger(err))
-        return resData.teller_app_id
-      })
-      .catch((e) => {
-        logger('error fetching teller app id', e)
-      })
-  }
-
   return (
     <Button
       leftIcon={<BsPlus />}
       type="button"
       variant="solid"
       onClick={async () => {
-        const appId = await getTellerAppId()
         const res = await tellerApi.setup({
-          applicationId: appId,
+          applicationId: process.env.REACT_APP_TELLER_APPLICATION_ID,
           environment: process.env.REACT_APP_TELLER_ENV,
           onSuccess: async (enrollment) => {
             await createEnrollment(enrollment)

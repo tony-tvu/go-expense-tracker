@@ -9,10 +9,8 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -34,8 +32,7 @@ type App struct {
 }
 
 const (
-	Production  = "production"
-	Development = "development"
+	Production = "production"
 )
 
 var env string
@@ -101,17 +98,6 @@ func (a *App) Initialize(ctx context.Context) {
 	}
 	router := gin.New()
 	router.ForwardedByClientIP = true
-
-	// Cors
-	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
-	allowedOriginsArr := strings.Split(allowedOrigins, ",")
-	router.Use(middleware.CorsHeaders(allowedOriginsArr))
-	router.Use(cors.New(cors.Config{
-		AllowOrigins:     allowedOriginsArr,
-		AllowMethods:     []string{"GET", "PUT", "PATCH", "POST", "DELETE"},
-		AllowCredentials: true,
-		MaxAge:           5 * time.Minute,
-	}))
 
 	// middleware
 	router.Use(middleware.RateLimit())

@@ -5,16 +5,10 @@
   "dependencies": {
     "@chakra-ui/icons": "^2.0.11",
     "@chakra-ui/react": "^2.3.3",
-    "@emotion/react": "^11.10.4",
-    "@emotion/styled": "^11.10.4",
     "@tanstack/react-table": "^8.5.15",
-    "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^13.3.0",
-    "@testing-library/user-event": "^13.5.0",
     "bootstrap": "^5.2.1",
     "date-fns": "^2.29.3",
     "framer-motion": "^7.2.1",
-    "graphql": "^16.6.0",
     "luxon": "^3.0.4",
     "react": "^18.2.0",
     "react-bootstrap": "^2.5.0",
@@ -27,10 +21,9 @@
     "recharts": "^2.1.15",
     "web-vitals": "^2.1.4"
   },
+  "type": "module",
   "scripts": {
-    "start": "BROWSER=none react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "build": "node esbuild.config.js",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -52,6 +45,7 @@
     ]
   },
   "devDependencies": {
-    "dotenv": "^16.0.3"
+    "dotenv": "^16.0.3",
+    "esbuild": "^0.15.12"
   }
 }
