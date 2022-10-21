@@ -26,15 +26,17 @@ cp .env.example .env
 Copy `.env.example` to a new file called `.env`. If you plan to use this app with Teller.io, be sure to fill in your teller application ID for `REACT_APP_TELLER_APPLICATION_ID` and place your certificates in the /certificate directory. Teller should've provided a `certificate.pem` and `private_key.pem` when you created an account and provided your app information. 
 
 ## 3. Start docker
-
 ```bash
 docker compose up
 ```
 
-## 3. Run App
+## 4. Run App
+Open separate terminal and cd into `go-expense-tracker` directory and run:
 ```bash
 make start
 ```
+View app at [http://localhost:8080](http://localhost:8080)
+<br/>
 <br/>
 
 ### Special instructions for Windows
