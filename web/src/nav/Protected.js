@@ -5,7 +5,6 @@ import Sidenav from './Sidenav'
 
 export default function Protected({ adminOnly, current, children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(null)
-  const [isAdmin, setIsAdmin] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -24,11 +23,6 @@ export default function Protected({ adminOnly, current, children }) {
         } else {
           setIsLoggedIn(false)
         }
-        if (data && data.is_admin) {
-          setIsAdmin(true)
-        } else {
-          setIsAdmin(false)
-        }
         setLoading(false)
       })
       .catch((err) => {
@@ -44,12 +38,8 @@ export default function Protected({ adminOnly, current, children }) {
     return <Navigate to="/login" replace />
   }
 
-  if (adminOnly && !isAdmin) {
-    return <Navigate to="/" replace />
-  }
-
   return (
-    <Sidenav isLoggedIn={isLoggedIn} isAdmin={isAdmin} current={current}>
+    <Sidenav isLoggedIn={isLoggedIn} current={current}>
       {children}
     </Sidenav>
   )

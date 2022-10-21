@@ -8,9 +8,7 @@ import {
   InputLeftElement,
   chakra,
   Box,
-  Link,
   FormControl,
-  FormHelperText,
   InputRightElement,
   useColorModeValue,
   useToast,
@@ -37,22 +35,20 @@ export default function Login() {
 
   useEffect(() => {
     document.title = 'Login'
-    Promise.all([
-      fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
-        method: 'GET',
-        credentials: 'include',
+    fetch(`${process.env.REACT_APP_API_URL}/logged_in`, {
+      method: 'GET',
+      credentials: 'include',
+    })
+      .then(async (res) => {
+        if (!res) return
+        const data = await res.json().catch((err) => logger(err))
+        if (data && data.logged_in) {
+          navigate('/')
+        }
       })
-        .then(async (res) => {
-          if (!res) return
-          const data = await res.json().catch((err) => logger(err))
-          if (data && data.logged_in) {
-            navigate('/')
-          }
-        })
-        .catch((err) => {
-          logger('error verifying login state', err)
-        }),
-    ])
+      .catch((err) => {
+        logger('error verifying login state', err)
+      })
   }, [navigate])
 
   async function handleSubmit(e) {
@@ -170,11 +166,6 @@ export default function Login() {
                       </Button>
                     </InputRightElement>
                   </InputGroup>
-                  <FormHelperText textAlign="right">
-                    <Link color={useColorModeValue('black', 'whiteAlpha.800')}>
-                      forgot password?
-                    </Link>
-                  </FormHelperText>
                 </FormControl>
                 <Button
                   type="submit"

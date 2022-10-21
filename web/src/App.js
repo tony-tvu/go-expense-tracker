@@ -7,6 +7,7 @@ import Protected from './nav/Protected'
 import Transactions from './pages/Transactions'
 import Rules from './pages/Rules'
 import AppStateProvider from './hooks/AppStateProvider'
+import RegisterUser from './pages/RegisterUser'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<RegisterUser />} />
             <Route
               path="/"
               element={

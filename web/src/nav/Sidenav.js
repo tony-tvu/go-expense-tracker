@@ -22,7 +22,7 @@ import {
   FaPen,
   FaDollarSign,
   FaRegArrowAltCircleLeft,
-  FaChartPie,
+  FaRegArrowAltCircleRight,
   FaSitemap,
 } from 'react-icons/fa'
 import { ColorModeSwitcher } from '../components/ColorModeSwitcher'
@@ -36,14 +36,13 @@ const textColor = '#DCDCE2'
 const hoverBgColor = '#303031'
 const navBgColor = '#252526'
 
-export default function Sidenav({ children, isLoggedIn, isAdmin, current }) {
+export default function Sidenav({ children, isLoggedIn, current }) {
   const { isOpen, onOpen, onClose } = useDisclosure()
   return (
     <Box minH="100vh" bg={useColorModeValue('gray.100', '#1E1E1E')}>
       <SidebarContent
         onClose={() => onClose}
         isLoggedIn={isLoggedIn}
-        isAdmin={isAdmin}
         current={current}
         display={{ base: 'none', md: 'block' }}
       />
@@ -59,7 +58,6 @@ export default function Sidenav({ children, isLoggedIn, isAdmin, current }) {
         <DrawerContent>
           <SidebarContent
             isLoggedIn={isLoggedIn}
-            isAdmin={isAdmin}
             current={current}
             onClose={onClose}
           />
@@ -74,7 +72,7 @@ export default function Sidenav({ children, isLoggedIn, isAdmin, current }) {
   )
 }
 
-const SidebarContent = ({ onClose, isLoggedIn, isAdmin, current, ...rest }) => {
+const SidebarContent = ({ onClose, isLoggedIn, current, ...rest }) => {
   const navigate = useNavigate()
   function logout() {
     fetch(`${process.env.REACT_APP_API_URL}/logout`, {
@@ -163,6 +161,13 @@ const SidebarContent = ({ onClose, isLoggedIn, isAdmin, current, ...rest }) => {
         <>
           <NavItem to="/register" color={textColor} icon={FaPen}>
             Register
+          </NavItem>
+          <NavItem
+            to="/login"
+            color={textColor}
+            icon={FaRegArrowAltCircleRight}
+          >
+            Login
           </NavItem>
           <Divider mt={5} borderColor={'#464646'} />
         </>

@@ -82,35 +82,3 @@ func TestUserInfo(t *testing.T) {
 	assert.Equal(t, testUser.Email, u.Email)
 	assert.Equal(t, "", u.Password)
 }
-
-// IsLoggedIn route should return correct values
-func TestIsAdminRoute(t *testing.T) {
-	t.Parallel()
-
-	type LoggedInResponse struct {
-		IsLoggedIn bool `json:"logged_in"`
-		IsAdmin    bool `json:"is_admin"`
-	}
-
-	// make request to logged_in route as a guest user
-	res := makeRequest(t, "GET", "/api/logged_in", nil, nil)
-
-	// should return 200, logged_in: false, is_admin:false
-	var resBody *LoggedInResponse
-	json.NewDecoder(res.Body).Decode(&resBody)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.False(t, resBody.IsLoggedIn)
-
-	// create regular user and login
-	user, cleanup := createTestUser(t)
-	defer cleanup()
-	accessToken, refreshToken, _ := logUserIn(t, user.Username, user.Password)
-
-	// make request to logged_in route as regular user
-	res = makeRequest(t, "GET", "/api/logged_in", &refreshToken, &accessToken)
-
-	// should return 200, logged_in: true, is_admin:false
-	json.NewDecoder(res.Body).Decode(&resBody)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.True(t, resBody.IsLoggedIn)
-}

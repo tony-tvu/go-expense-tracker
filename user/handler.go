@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -16,7 +17,7 @@ import (
 )
 
 type Handler struct {
-	Db           *db.MongoDb
+	Db *db.MongoDb
 }
 
 var v *validator.Validate
@@ -29,12 +30,11 @@ func (h *Handler) IsLoggedIn(c *gin.Context) {
 	_, err := auth.AuthorizeUser(c, h.Db)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
-			"logged_in":            false,
-			"is_admin":             false,
+			"logged_in": false,
 		})
 	} else {
 		c.JSON(http.StatusOK, gin.H{
-			"logged_in":            true,
+			"logged_in": true,
 		})
 	}
 }
@@ -177,12 +177,63 @@ func (h *Handler) GetUserInfo(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"username":  u.Username,
-		"email":     u.Email,
+		"username": u.Username,
+		"email":    u.Email,
 	})
 }
 
-// TODO
 func (h *Handler) RegisterUser(c *gin.Context) {
-	panic("not implemented")
+	ctx := c.Request.Context()
+	defer c.Request.Body.Close()
+
+	type Input struct {
+		Username string `json:"username" validate:"required"`
+		Email    string `json:"email" validate:"email"`
+		Password string `json:"password" validate:"required"`
+	}
+
+	var input *Input
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	err = json.Unmarshal(bodyBytes, &input)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	err = v.Struct(input)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid input",
+		})
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	doc := &bson.D{
+		{Key: "username", Value: input.Username},
+		{Key: "email", Value: input.Email},
+		{Key: "password", Value: string(hash)},
+		{Key: "created_at", Value: time.Now()},
+		{Key: "updated_at", Value: time.Now()},
+	}
+	_, err = h.Db.Users.InsertOne(ctx, doc)
+	if err != nil && strings.Contains(err.Error(), "duplicate key error") {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "User with that email or username already exists",
+		})
+		return
+	} else if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 }

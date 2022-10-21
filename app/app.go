@@ -28,9 +28,9 @@ import (
 )
 
 type App struct {
-	Db           *db.MongoDb
-	Router       *gin.Engine
-	Jobs         *jobs.Jobs
+	Db     *db.MongoDb
+	Router *gin.Engine
+	Jobs   *jobs.Jobs
 }
 
 const (
@@ -140,6 +140,7 @@ func (a *App) Initialize(ctx context.Context) {
 		api.POST("/login", middleware.LoginRateLimit(), users.Login)
 		api.GET("/logged_in", users.IsLoggedIn)
 		api.GET("/user_info", users.GetUserInfo)
+		api.POST("/register", users.RegisterUser)
 	}
 
 	router.Use(middleware.FrontendCache, static.Serve("/", static.LocalFile("./web/build", true)))
