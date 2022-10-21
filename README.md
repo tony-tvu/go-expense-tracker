@@ -2,7 +2,7 @@
 
 Expense tracker application written in Go, React, and MongoDB. It uses [Teller.io](https://teller.io/) api to automatically retrieve user financial transactions, however this is optional and can be used as a standalone expense tracking app where users can manually add transactions.
 
-
+![image](https://user-images.githubusercontent.com/52386267/197275338-0aafcb59-e0f5-48c5-99a5-9352ddee53f6.png)
 ## Prerequisites
 - Go
 - Node
